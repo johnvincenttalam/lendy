@@ -263,9 +263,16 @@ export default function Dashboard() {
                 <Receipt className="w-7 h-7 text-muted" />
               </div>
               <p className="text-base font-semibold text-primary mb-1">No loans yet</p>
-              <p className="text-[13px] text-muted text-center max-w-[200px]">
-                Add your first loan to start tracking your payments
+              <p className="text-[13px] text-muted text-center max-w-[220px] mb-5">
+                Add your first loan or restore from a backup
               </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-subtle border border-themed text-[13px] font-semibold text-secondary hover:opacity-80 transition-opacity"
+              >
+                <Upload className="w-4 h-4" />
+                Import Backup
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
