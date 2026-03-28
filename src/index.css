@@ -28,20 +28,20 @@
 
 /* Dark mode */
 .dark {
-  --color-page: #000000;
-  --color-card: #1C1C1E;
-  --color-card-hover: #222224;
-  --color-header: rgba(28, 28, 30, 0.82);
-  --color-text-primary: #F5F5F7;
-  --color-text-secondary: #98989D;
-  --color-text-muted: #48484A;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-input-bg: #111113;
-  --color-input-bg-focus: #1C1C1E;
-  --color-input-border: rgba(255, 255, 255, 0.08);
-  --color-overlay: rgba(0, 0, 0, 0.6);
-  --color-subtle-bg: rgba(255, 255, 255, 0.04);
-  --color-divider: rgba(255, 255, 255, 0.04);
+  --color-page: #121218;
+  --color-card: #1E1E26;
+  --color-card-hover: #262630;
+  --color-header: rgba(30, 30, 38, 0.88);
+  --color-text-primary: #F0F0F5;
+  --color-text-secondary: #A0A0AA;
+  --color-text-muted: #5A5A66;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input-bg: #181820;
+  --color-input-bg-focus: #1E1E26;
+  --color-input-border: rgba(255, 255, 255, 0.10);
+  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-subtle-bg: rgba(255, 255, 255, 0.06);
+  --color-divider: rgba(255, 255, 255, 0.06);
 }
 
 * {
