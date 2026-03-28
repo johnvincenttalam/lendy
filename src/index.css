@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand: #F3622D;
+  --color-brand-light: #F5784A;
+  --color-brand-dark: #D94F1E;
+}
+
+/* Light mode */
+:root {
+  --color-page: #F2F2F7;
+  --color-card: #FFFFFF;
+  --color-card-hover: #F9F9FB;
+  --color-header: rgba(255, 255, 255, 0.82);
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6E6E73;
+  --color-text-muted: #AEAEB2;
+  --color-border: rgba(0, 0, 0, 0.06);
+  --color-input-bg: #F2F2F7;
+  --color-input-bg-focus: #FFFFFF;
+  --color-input-border: rgba(0, 0, 0, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.32);
+  --color-subtle-bg: rgba(0, 0, 0, 0.03);
+  --color-divider: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode */
+.dark {
+  --color-page: #000000;
+  --color-card: #1C1C1E;
+  --color-card-hover: #222224;
+  --color-header: rgba(28, 28, 30, 0.82);
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #98989D;
+  --color-text-muted: #48484A;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-input-bg: #111113;
+  --color-input-bg-focus: #1C1C1E;
+  --color-input-border: rgba(255, 255, 255, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-subtle-bg: rgba(255, 255, 255, 0.04);
+  --color-divider: rgba(255, 255, 255, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-page);
+  color: var(--color-text-secondary);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid var(--color-input-border);
+  border-radius: 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: var(--color-input-bg);
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  letter-spacing: -0.01em;
+}
+
+.input-field:focus {
+  border-color: #F3622D;
+  background: var(--color-input-bg-focus);
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Theme-aware utilities */
+.bg-page { background-color: var(--color-page); }
+.bg-card { background-color: var(--color-card); }
+.bg-card-hover { background-color: var(--color-card-hover); }
+.bg-header { background-color: var(--color-header); }
+.bg-subtle { background-color: var(--color-subtle-bg); }
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+.border-themed { border-color: var(--color-border); }
+.border-divider { border-color: var(--color-divider); }
+.bg-overlay { background-color: var(--color-overlay); }
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 10px;
+}
+
+/* Backdrop blur for header */
+.backdrop-blur-header {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* Confetti */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(var(--drift)) rotate(720deg);
+    opacity: 0;
+  }
+}
