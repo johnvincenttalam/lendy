@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import LoanDetailsPage from './pages/LoanDetailsPage'
 import ToastContainer from './components/Toast'
@@ -7,7 +7,7 @@ import InstallPrompt from './components/InstallPrompt'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ConfettiContainer />
       <ToastContainer />
       <InstallPrompt />
@@ -15,6 +15,6 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/loan/:id" element={<LoanDetailsPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
