@@ -52,7 +52,7 @@ export default function InstallPrompt() {
         <div
           className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shrink-0"
         >
-          <img src="/lendy.png" alt="Lendy" className="w-6 h-6 rounded-md" />
+          <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-6 h-6 rounded-md" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-primary">Install Lendy</p>

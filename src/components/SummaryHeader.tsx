@@ -30,7 +30,7 @@ export default function SummaryHeader({
       <div className="max-w-2xl mx-auto px-3 pt-5 pb-4">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <img src="/lendy.png" alt="Lendy" className="w-9 h-9 rounded-xl" />
+            <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-9 h-9 rounded-xl" />
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Lendy</h1>
               <p className="text-[12px] text-white/60">
