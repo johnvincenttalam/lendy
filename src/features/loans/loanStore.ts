@@ -1,10 +1,12 @@
 import { create } from 'zustand'
-import type { Loan, LoanFormData } from './loanTypes'
-import { monthlyInterestPortion } from './loanUtils'
+import { DEFAULT_COLOR } from './loanTypes'
+import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
+import { monthlyInterestPortion, monthlyPrincipalPortion, paymentSchedule } from './loanUtils'
 import { showToast } from '../../components/Toast'
 import { triggerConfetti } from '../../components/Confetti'
 
 const STORAGE_KEY = 'loan-tracker-loans'
+const PAYMENTS_KEY = 'loan-tracker-payments'
 const INCOME_KEY = 'loan-tracker-income'
 const SORT_KEY = 'loan-tracker-sort'
 
@@ -17,7 +19,7 @@ function loadLoans(): Loan[] {
     const loans: Loan[] = JSON.parse(data)
     return loans.map((loan) => ({
       ...loan,
-      color: loan.color || '#F3622D',
+      color: loan.color || DEFAULT_COLOR,
       interestRate: loan.interestRate ?? 0,
       totalInterestPaid: loan.totalInterestPaid ?? 0,
     }))
@@ -30,8 +32,52 @@ function saveLoans(loans: Loan[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(loans))
 }
 
+function loadPayments(): PaymentRecord[] {
+  try {
+    const data = localStorage.getItem(PAYMENTS_KEY)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+function savePayments(payments: PaymentRecord[]) {
+  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments))
+}
+
+// Backfill payment records for existing loans that have monthsPaid > 0 but no records
+function migrateExistingPayments(loans: Loan[], existingPayments: PaymentRecord[]): PaymentRecord[] {
+  const loanIdsWithRecords = new Set(existingPayments.map((p) => p.loanId))
+  const newRecords: PaymentRecord[] = []
+
+  for (const loan of loans) {
+    if (loan.monthsPaid <= 0 || loanIdsWithRecords.has(loan.id)) continue
+
+    const schedule = paymentSchedule(loan)
+    const principal = monthlyPrincipalPortion(loan)
+    const interest = monthlyInterestPortion(loan)
+
+    for (let i = 0; i < loan.monthsPaid; i++) {
+      const scheduledDate = schedule[i]?.date ?? new Date(loan.startDate)
+      newRecords.push({
+        id: crypto.randomUUID(),
+        loanId: loan.id,
+        amount: loan.monthlyPayment,
+        principal: Math.round(principal * 100) / 100,
+        interest: Math.round(interest * 100) / 100,
+        paidAt: scheduledDate.toISOString(),
+        dueDate: scheduledDate.toISOString().split('T')[0],
+        month: i + 1,
+      })
+    }
+  }
+
+  return [...existingPayments, ...newRecords]
+}
+
 type LoanStore = {
   loans: Loan[]
+  payments: PaymentRecord[]
   monthlyIncome: number
   sortBy: SortOption
   addLoan: (data: LoanFormData) => void
@@ -39,6 +85,7 @@ type LoanStore = {
   markAsPaid: (id: string) => void
   undoMarkAsPaid: (id: string) => void
   deleteLoan: (id: string) => void
+  getPaymentsForLoan: (loanId: string) => PaymentRecord[]
   setMonthlyIncome: (income: number) => void
   setSortBy: (sort: SortOption) => void
   exportCSV: () => string
@@ -46,8 +93,14 @@ type LoanStore = {
   importBackup: (json: string) => boolean
 }
 
+const initialLoans = loadLoans()
+const existingPayments = loadPayments()
+const initialPayments = migrateExistingPayments(initialLoans, existingPayments)
+if (initialPayments.length > existingPayments.length) savePayments(initialPayments)
+
 export const useLoanStore = create<LoanStore>((set, get) => ({
-  loans: loadLoans(),
+  loans: initialLoans,
+  payments: initialPayments,
   monthlyIncome: Number(localStorage.getItem(INCOME_KEY)) || 0,
   sortBy: (localStorage.getItem(SORT_KEY) as SortOption) || 'newest',
 
@@ -78,13 +131,30 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
 
   markAsPaid: (id) =>
     set((state) => {
+      let newRecord: PaymentRecord | null = null
       const loans = state.loans.map((loan) => {
         if (loan.id !== id) return loan
         if (loan.monthsPaid >= loan.durationMonths) return loan
 
         const interestPortion = monthlyInterestPortion(loan)
+        const principalPortion = monthlyPrincipalPortion(loan)
         const newMonthsPaid = loan.monthsPaid + 1
         const fullyPaid = newMonthsPaid >= loan.durationMonths
+
+        // Calculate scheduled due date for this payment
+        const dueDate = new Date(loan.startDate)
+        dueDate.setMonth(dueDate.getMonth() + loan.monthsPaid)
+
+        newRecord = {
+          id: crypto.randomUUID(),
+          loanId: loan.id,
+          amount: loan.monthlyPayment,
+          principal: Math.round(principalPortion * 100) / 100,
+          interest: Math.round(interestPortion * 100) / 100,
+          paidAt: new Date().toISOString(),
+          dueDate: dueDate.toISOString().split('T')[0],
+          month: newMonthsPaid,
+        }
 
         setTimeout(() => {
           if (fullyPaid) {
@@ -108,8 +178,10 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
           totalInterestPaid: loan.totalInterestPaid + interestPortion,
         }
       })
+      const payments = newRecord ? [...state.payments, newRecord] : state.payments
       saveLoans(loans)
-      return { loans }
+      savePayments(payments)
+      return { loans, payments }
     }),
 
   undoMarkAsPaid: (id) =>
@@ -127,19 +199,34 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
           totalInterestPaid: loan.totalInterestPaid - interestPortion,
         }
       })
+      // Remove the last payment record for this loan
+      const loanPayments = state.payments.filter((p) => p.loanId === id)
+      const lastPayment = loanPayments[loanPayments.length - 1]
+      const payments = lastPayment
+        ? state.payments.filter((p) => p.id !== lastPayment.id)
+        : state.payments
       saveLoans(loans)
+      savePayments(payments)
       showToast('Payment undone')
-      return { loans }
+      return { loans, payments }
     }),
 
   deleteLoan: (id) =>
     set((state) => {
       const loan = state.loans.find((l) => l.id === id)
       const loans = state.loans.filter((l) => l.id !== id)
+      const payments = state.payments.filter((p) => p.loanId !== id)
       saveLoans(loans)
+      savePayments(payments)
       if (loan) showToast(`"${loan.name}" deleted`)
-      return { loans }
+      return { loans, payments }
     }),
+
+  getPaymentsForLoan: (loanId) => {
+    return get().payments
+      .filter((p) => p.loanId === loanId)
+      .sort((a, b) => a.month - b.month)
+  },
 
   setMonthlyIncome: (income) => {
     localStorage.setItem(INCOME_KEY, String(income))
@@ -169,8 +256,8 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   },
 
   exportBackup: () => {
-    const { loans, monthlyIncome } = get()
-    return JSON.stringify({ loans, monthlyIncome, exportedAt: new Date().toISOString() }, null, 2)
+    const { loans, payments, monthlyIncome } = get()
+    return JSON.stringify({ loans, payments, monthlyIncome, exportedAt: new Date().toISOString() }, null, 2)
   },
 
   importBackup: (json) => {
@@ -179,16 +266,21 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       if (!Array.isArray(data.loans)) return false
       const loans = data.loans.map((loan: Loan) => ({
         ...loan,
-        color: loan.color || '#F3622D',
+        color: loan.color || DEFAULT_COLOR,
         interestRate: loan.interestRate ?? 0,
         totalInterestPaid: loan.totalInterestPaid ?? 0,
       }))
+      // Import payments if present, otherwise backfill from loan data
+      const payments = Array.isArray(data.payments)
+        ? data.payments
+        : migrateExistingPayments(loans, [])
       saveLoans(loans)
+      savePayments(payments)
       if (data.monthlyIncome) {
         localStorage.setItem(INCOME_KEY, String(data.monthlyIncome))
-        set({ loans, monthlyIncome: data.monthlyIncome })
+        set({ loans, payments, monthlyIncome: data.monthlyIncome })
       } else {
-        set({ loans })
+        set({ loans, payments })
       }
       showToast(`${loans.length} loans restored`)
       return true

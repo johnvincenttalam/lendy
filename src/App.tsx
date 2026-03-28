@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import LoanDetailsPage from './pages/LoanDetailsPage'
+import PaySchedule from './pages/PaySchedule'
 import ToastContainer from './components/Toast'
 import ConfettiContainer from './components/Confetti'
 import InstallPrompt from './components/InstallPrompt'
@@ -14,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/loan/:id" element={<LoanDetailsPage />} />
+        <Route path="/schedule" element={<PaySchedule />} />
       </Routes>
     </HashRouter>
   )

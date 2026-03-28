@@ -32,7 +32,7 @@ export default function LoanDetailsPage() {
         deleteLoan(loan.id)
         navigate('/')
       }}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(-1)}
     />
   )
 }

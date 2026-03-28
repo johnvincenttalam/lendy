@@ -13,6 +13,17 @@ export type Loan = {
   createdAt: string
 }
 
+export type PaymentRecord = {
+  id: string
+  loanId: string
+  amount: number
+  principal: number
+  interest: number
+  paidAt: string // ISO date string of when user marked it paid
+  dueDate: string // the scheduled due date for this payment
+  month: number // which month number (1-based) in the loan schedule
+}
+
 export type LoanFormData = Omit<Loan, 'id' | 'monthsPaid' | 'totalPaid' | 'totalInterestPaid' | 'createdAt'>
 
 export type PaymentBreakdown = {
@@ -23,8 +34,10 @@ export type PaymentBreakdown = {
   interest: number
 }
 
+export const DEFAULT_COLOR = '#F3622D'
+
 export const LOAN_COLORS = [
-  '#F3622D', // brand orange
+  DEFAULT_COLOR, // brand orange
   '#3B82F6', // blue
   '#8B5CF6', // purple
   '#EC4899', // pink

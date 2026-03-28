@@ -3,6 +3,7 @@ import {
   ArrowLeft, Trash2, CheckCircle, Calendar, DollarSign,
   Clock, TrendingUp, PiggyBank, CircleDot, Palette, Pencil,
 } from 'lucide-react'
+import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
 import {
   remainingPrincipal,
@@ -43,7 +44,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const end = endDate(loan)
   const schedule = paymentSchedule(loan)
   const hasInterest = loan.interestRate > 0
-  const color = loan.color || '#F3622D'
+  const color = loan.color || DEFAULT_COLOR
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">

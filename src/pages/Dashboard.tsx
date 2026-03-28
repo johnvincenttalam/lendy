@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus, Receipt, Search, Download, X, ArrowUpDown,
-  Upload, Settings, ChevronDown,
+  Upload, Settings, ChevronDown, Calendar,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [showSort, setShowSort] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const totalDebt = loans.reduce((sum, l) => sum + remainingBalance(l), 0)
@@ -120,7 +122,7 @@ export default function Dashboard() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search loans..."
-                  className="input-field !pl-10 !py-2.5 text-[14px]"
+                  className="input-field !pl-10 !py-0 !h-10 text-[14px]"
                 />
                 {search && (
                   <button
@@ -131,6 +133,13 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
+              <button
+                onClick={() => navigate('/schedule')}
+                className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"
+                title="Pay Schedule"
+              >
+                <Calendar className="w-4 h-4 text-secondary" />
+              </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"

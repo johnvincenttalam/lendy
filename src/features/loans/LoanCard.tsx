@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
 import {
   remainingBalance,
@@ -17,7 +18,7 @@ export default function LoanCard({ loan }: Props) {
   const remaining = remainingBalance(loan)
   const left = monthsLeft(loan)
   const paid = isFullyPaid(loan)
-  const color = loan.color || '#F3622D'
+  const color = loan.color || DEFAULT_COLOR
 
   return (
     <button
