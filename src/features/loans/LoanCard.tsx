@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { Loan } from './loanTypes'
 import {
-  remainingPrincipal,
+  remainingBalance,
   monthsLeft,
   progressPercent,
   formatCurrency,
@@ -14,7 +14,7 @@ type Props = { loan: Loan }
 export default function LoanCard({ loan }: Props) {
   const navigate = useNavigate()
   const pct = progressPercent(loan)
-  const remaining = remainingPrincipal(loan)
+  const remaining = remainingBalance(loan)
   const left = monthsLeft(loan)
   const paid = isFullyPaid(loan)
   const color = loan.color || '#F3622D'
