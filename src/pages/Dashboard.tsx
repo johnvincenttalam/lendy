@@ -187,13 +187,6 @@ export default function Dashboard() {
                     Restore
                   </button>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportBackup}
-                  className="hidden"
-                />
               </div>
             )}
 
@@ -305,6 +298,14 @@ export default function Dashboard() {
           onClose={() => setShowForm(false)}
         />
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleImportBackup}
+        className="hidden"
+      />
     </div>
   )
 }
