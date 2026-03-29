@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'

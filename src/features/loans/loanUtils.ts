@@ -142,6 +142,44 @@ export function totalInterestPaidAllLoans(loans: Loan[]): number {
   return loans.reduce((sum, l) => sum + interestPaidSoFar(l), 0)
 }
 
+export function debtPayoffTimeline(loans: Loan[]): Array<{ date: Date; balance: number }> {
+  const active = loans.filter((l) => !isFullyPaid(l))
+  if (active.length === 0) return []
+
+  const now = new Date()
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  // Find max months remaining across all loans
+  let maxMonths = 0
+  for (const loan of active) {
+    const start = new Date(loan.startDate)
+    const loanEnd = new Date(start)
+    loanEnd.setMonth(loanEnd.getMonth() + loan.durationMonths)
+    const monthsFromNow = (loanEnd.getFullYear() - now.getFullYear()) * 12 + (loanEnd.getMonth() - now.getMonth())
+    if (monthsFromNow > maxMonths) maxMonths = monthsFromNow
+  }
+
+  const timeline: Array<{ date: Date; balance: number }> = []
+
+  for (let m = 0; m <= maxMonths; m++) {
+    const date = new Date(startMonth)
+    date.setMonth(date.getMonth() + m)
+
+    let totalBalance = 0
+    for (const loan of active) {
+      const start = new Date(loan.startDate)
+      const monthsSinceStart = (date.getFullYear() - start.getFullYear()) * 12 + (date.getMonth() - start.getMonth())
+      const effectivePaid = Math.min(Math.max(monthsSinceStart, loan.monthsPaid), loan.durationMonths)
+      const remaining = totalCostOfLoan(loan) - loan.monthlyPayment * effectivePaid
+      totalBalance += Math.max(0, remaining)
+    }
+
+    timeline.push({ date, balance: totalBalance })
+  }
+
+  return timeline
+}
+
 export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
   if (monthlyIncome <= 0) return 0
   const totalMonthly = loans

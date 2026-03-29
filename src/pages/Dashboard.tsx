@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Receipt, Search, Download, X, ArrowUpDown,
-  Upload, Settings, ChevronDown, Calendar,
+  Upload, Settings, ChevronDown, Calendar, TrendingDown,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -10,8 +10,11 @@ import {
   totalInterestAllLoans, debtToIncomeRatio, formatCurrency,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
+import DebtChart from '../components/DebtChart'
 import LoanCard from '../features/loans/LoanCard'
 import LoanForm from '../features/loans/LoanForm'
+import PinSetup from '../features/lock/PinSetup'
+import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
 
 type Filter = 'all' | 'active' | 'paid'
@@ -111,6 +114,7 @@ export default function Dashboard() {
       />
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
+        {activeCount > 0 && <DebtChart loans={loans} />}
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
             {/* Search + actions */}
@@ -139,6 +143,13 @@ export default function Dashboard() {
                 title="Pay Schedule"
               >
                 <Calendar className="w-4 h-4 text-secondary" />
+              </button>
+              <button
+                onClick={() => navigate('/strategies')}
+                className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"
+                title="Payment Strategies"
+              >
+                <TrendingDown className="w-4 h-4 text-secondary" />
               </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
@@ -171,6 +182,12 @@ export default function Dashboard() {
                     </p>
                   )}
                 </div>
+
+                {/* Notifications */}
+                <NotificationSettings />
+
+                {/* App Lock */}
+                <PinSetup />
 
                 {/* Data actions */}
                 <div className="flex gap-2">
