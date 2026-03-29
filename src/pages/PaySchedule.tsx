@@ -1,5 +1,6 @@
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import {
   isFullyPaid,
@@ -14,26 +15,104 @@ function getDueDay(loan: Loan): number {
   return new Date(loan.startDate).getDate()
 }
 
-function partitionByCycle(loans: Loan[]): [Loan[], Loan[]] {
-  const firstHalf: Loan[] = []
-  const secondHalf: Loan[] = []
-  for (const loan of loans) {
-    if (getDueDay(loan) <= 15) firstHalf.push(loan)
-    else secondHalf.push(loan)
-  }
-  return [firstHalf, secondHalf]
+type Period = { year: number; month: number; half: 1 | 2 }
+
+function periodLabel(p: Period): string {
+  const monthName = new Date(p.year, p.month).toLocaleString('en-US', { month: 'short' })
+  const range = p.half === 1 ? '1 – 15' : '16 – 31'
+  return `${monthName} ${range}`
 }
 
-const CYCLES = [
-  { label: '1st – 15th', index: 0 },
-  { label: '16th – 31st', index: 1 },
-] as const
+function periodMonthYear(p: Period): string {
+  return new Date(p.year, p.month).toLocaleString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function shiftPeriod(p: Period, delta: number): Period {
+  let { year, month, half } = p
+  const totalHalves = (year * 12 + month) * 2 + (half - 1) + delta
+  const monthIndex = Math.floor(totalHalves / 2)
+  return {
+    year: Math.floor(monthIndex / 12),
+    month: monthIndex % 12,
+    half: (totalHalves % 2 === 0 ? 1 : 2) as 1 | 2,
+  }
+}
+
+function currentPeriod(): Period {
+  const now = new Date()
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth(),
+    half: now.getDate() <= 15 ? 1 : 2,
+  }
+}
+
+function periodsEqual(a: Period, b: Period): boolean {
+  return a.year === b.year && a.month === b.month && a.half === b.half
+}
+
+function isLoanActiveInPeriod(loan: Loan, period: Period): boolean {
+  const start = new Date(loan.startDate)
+  const startYear = start.getFullYear()
+  const startMonth = start.getMonth()
+
+  // Loan end: startDate + durationMonths
+  const endDate = new Date(loan.startDate)
+  endDate.setMonth(endDate.getMonth() + loan.durationMonths)
+  const endYear = endDate.getFullYear()
+  const endMonth = endDate.getMonth()
+  const endDay = endDate.getDate()
+
+  // Period start month/year
+  const pStart = period.year * 12 + period.month
+  const lStart = startYear * 12 + startMonth
+  const lEnd = endYear * 12 + endMonth
+
+  // Loan hasn't started yet in this period's month
+  if (pStart < lStart) return false
+  // Loan finished before this period
+  if (pStart > lEnd) return false
+  // If same month as end, check if the due day falls before loan end day
+  if (pStart === lEnd) {
+    const dueDay = getDueDay(loan)
+    if (dueDay > endDay) return false
+  }
+
+  return true
+}
+
+function getLoansForPeriod(loans: Loan[], period: Period): Loan[] {
+  return loans.filter((loan) => {
+    if (isFullyPaid(loan)) return false
+    const dueDay = getDueDay(loan)
+    const inHalf = period.half === 1 ? dueDay <= 15 : dueDay > 15
+    if (!inHalf) return false
+    return isLoanActiveInPeriod(loan, period)
+  })
+}
 
 export default function PaySchedule() {
   const navigate = useNavigate()
   const { loans } = useLoanStore()
-  const activeLoans = loans.filter((l) => !isFullyPaid(l))
-  const groups = partitionByCycle(activeLoans)
+  const [period, setPeriod] = useState<Period>(currentPeriod)
+  const isCurrent = periodsEqual(period, currentPeriod())
+
+  const periodLoans = useMemo(() => getLoansForPeriod(loans, period), [loans, period])
+  const total = useMemo(() => periodLoans.reduce((s, l) => s + l.monthlyPayment, 0), [periodLoans])
+
+  // Swipe support
+  const touchStartX = useRef<number | null>(null)
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }, [])
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const diff = e.changedTouches[0].clientX - touchStartX.current
+    if (Math.abs(diff) > 50) {
+      setPeriod((p) => shiftPeriod(p, diff < 0 ? 1 : -1))
+    }
+    touchStartX.current = null
+  }, [])
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -48,87 +127,65 @@ export default function PaySchedule() {
             </button>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
-              <p className="text-[12px] text-white/60">Grouped by salary cycle</p>
+              <p className="text-[12px] text-white/60">Browse by pay period</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {CYCLES.map(({ label, index }) => {
-              const group = groups[index]
-              const total = group.reduce((s, l) => s + l.monthlyPayment, 0)
-              return (
-                <div key={label} className="rounded-2xl p-3.5 bg-white/15 border border-white/10">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-6 h-6 rounded-lg bg-white/15 flex items-center justify-center">
-                      <Calendar className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{label}</span>
-                  </div>
-                  <p className="text-xl font-bold text-white tracking-tight">{formatCurrency(total)}</p>
-                  <p className="text-[11px] text-white/50 mt-0.5">{group.length} {group.length === 1 ? 'loan' : 'loans'}</p>
-                </div>
-              )
-            })}
+          {/* Period navigator */}
+          <div
+            className="flex items-center justify-between rounded-2xl bg-white/15 border border-white/10 px-2 py-2.5"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <button
+              onClick={() => setPeriod((p) => shiftPeriod(p, -1))}
+              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4.5 h-4.5 text-white" />
+            </button>
+            <button
+              onClick={() => setPeriod(currentPeriod())}
+              className="flex flex-col items-center min-w-0"
+            >
+              <span className="text-[15px] font-bold text-white tracking-tight">
+                {periodLabel(period)}
+              </span>
+              <span className="text-[11px] text-white/50">
+                {isCurrent ? 'Current period' : periodMonthYear(period)}
+              </span>
+            </button>
+            <button
+              onClick={() => setPeriod((p) => shiftPeriod(p, 1))}
+              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <ChevronRight className="w-4.5 h-4.5 text-white" />
+            </button>
+          </div>
+
+          {/* Summary */}
+          <div className="mt-3 flex items-center justify-between px-1">
+            <span className="text-[12px] text-white/60">
+              {periodLoans.length} {periodLoans.length === 1 ? 'loan' : 'loans'} due
+            </span>
+            <span className="text-xl font-bold text-white tracking-tight">{formatCurrency(total)}</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-3 pt-4 pb-8 space-y-5">
-        {activeLoans.length === 0 ? (
+      <div className="max-w-2xl mx-auto px-3 pt-4 pb-8">
+        {periodLoans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Calendar className="w-8 h-8 text-muted mb-3" />
-            <p className="text-[14px] font-medium text-secondary">No active loans</p>
-            <p className="text-[13px] text-muted">All loans are fully paid</p>
+            <p className="text-[14px] font-medium text-secondary">No loans due</p>
+            <p className="text-[13px] text-muted">No payments in this period</p>
           </div>
         ) : (
-          CYCLES.map(({ label, index }) => (
-            <CycleGroup
-              key={label}
-              label={label}
-              loans={groups[index]}
-              onLoanClick={(id) => navigate(`/loan/${id}`)}
-            />
-          ))
+          <div className="space-y-2">
+            {periodLoans.map((loan) => (
+              <ScheduleCard key={loan.id} loan={loan} onClick={() => navigate(`/loan/${loan.id}`)} />
+            ))}
+          </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function CycleGroup({
-  label,
-  loans,
-  onLoanClick,
-}: {
-  label: string
-  loans: Loan[]
-  onLoanClick: (id: string) => void
-}) {
-  const total = loans.reduce((s, l) => s + l.monthlyPayment, 0)
-
-  if (loans.length === 0) {
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <h2 className="text-[13px] font-bold text-muted uppercase tracking-wider">{label}</h2>
-        </div>
-        <div className="bg-card rounded-2xl border border-themed p-6 text-center">
-          <p className="text-[13px] text-muted">No loans due this cycle</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2 px-1">
-        <h2 className="text-[13px] font-bold text-muted uppercase tracking-wider">{label}</h2>
-        <span className="text-[13px] font-bold text-brand">{formatCurrency(total)}</span>
-      </div>
-      <div className="space-y-2">
-        {loans.map((loan) => (
-          <ScheduleCard key={loan.id} loan={loan} onClick={() => onLoanClick(loan.id)} />
-        ))}
       </div>
     </div>
   )
