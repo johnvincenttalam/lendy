@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import {
@@ -7,6 +7,7 @@ import {
   formatCurrency,
   remainingBalance,
   progressPercent,
+  debtFreeDate,
 } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
 import type { Loan } from '../features/loans/loanTypes'
@@ -51,32 +52,28 @@ function periodsEqual(a: Period, b: Period): boolean {
   return a.year === b.year && a.month === b.month && a.half === b.half
 }
 
-function isLoanActiveInPeriod(loan: Loan, period: Period): boolean {
+function isLoanDueInPeriod(loan: Loan, period: Period): boolean {
   const start = new Date(loan.startDate)
   const startYear = start.getFullYear()
   const startMonth = start.getMonth()
 
-  // Loan end: startDate + durationMonths
-  const endDate = new Date(loan.startDate)
-  endDate.setMonth(endDate.getMonth() + loan.durationMonths)
-  const endYear = endDate.getFullYear()
-  const endMonth = endDate.getMonth()
-  const endDay = endDate.getDate()
-
-  // Period start month/year
   const pStart = period.year * 12 + period.month
   const lStart = startYear * 12 + startMonth
-  const lEnd = endYear * 12 + endMonth
 
   // Loan hasn't started yet in this period's month
   if (pStart < lStart) return false
+
+  // Loan end: startDate + durationMonths
+  const endDate = new Date(loan.startDate)
+  endDate.setMonth(endDate.getMonth() + loan.durationMonths)
+  const lEnd = endDate.getFullYear() * 12 + endDate.getMonth()
+
   // Loan finished before this period
   if (pStart > lEnd) return false
-  // If same month as end, check if the due day falls before loan end day
-  if (pStart === lEnd) {
-    const dueDay = getDueDay(loan)
-    if (dueDay > endDay) return false
-  }
+
+  // Check if this month's payment is already made
+  const monthOffset = pStart - lStart
+  if (monthOffset < loan.monthsPaid) return false
 
   return true
 }
@@ -87,15 +84,39 @@ function getLoansForPeriod(loans: Loan[], period: Period): Loan[] {
     const dueDay = getDueDay(loan)
     const inHalf = period.half === 1 ? dueDay <= 15 : dueDay > 15
     if (!inHalf) return false
-    return isLoanActiveInPeriod(loan, period)
+    return isLoanDueInPeriod(loan, period)
   })
 }
 
 export default function PaySchedule() {
   const navigate = useNavigate()
   const { loans } = useLoanStore()
-  const [period, setPeriod] = useState<Period>(currentPeriod)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const period = useMemo<Period>(() => {
+    const y = searchParams.get('y')
+    const m = searchParams.get('m')
+    const h = searchParams.get('h')
+    if (y && m && h) return { year: +y, month: +m, half: (+h === 2 ? 2 : 1) }
+    return currentPeriod()
+  }, [searchParams])
+
+  const setPeriod = useCallback((p: Period | ((prev: Period) => Period)) => {
+    const next = typeof p === 'function' ? p(period) : p
+    setSearchParams({ y: String(next.year), m: String(next.month), h: String(next.half) }, { replace: true })
+  }, [period, setSearchParams])
+
   const isCurrent = periodsEqual(period, currentPeriod())
+
+  // Compute navigation bounds
+  const lastPeriod = useMemo<Period>(() => {
+    const end = debtFreeDate(loans)
+    if (!end) return currentPeriod()
+    return { year: end.getFullYear(), month: end.getMonth(), half: end.getDate() <= 15 ? 1 : 2 }
+  }, [loans])
+
+  const periodToIndex = (p: Period) => (p.year * 12 + p.month) * 2 + (p.half - 1)
+  const canGoNext = periodToIndex(period) < periodToIndex(lastPeriod)
 
   const periodLoans = useMemo(() => getLoansForPeriod(loans, period), [loans, period])
   const total = useMemo(() => periodLoans.reduce((s, l) => s + l.monthlyPayment, 0), [periodLoans])
@@ -109,6 +130,7 @@ export default function PaySchedule() {
     if (touchStartX.current === null) return
     const diff = e.changedTouches[0].clientX - touchStartX.current
     if (Math.abs(diff) > 50) {
+      if (diff < 0 && !canGoNext) { touchStartX.current = null; return }
       setPeriod((p) => shiftPeriod(p, diff < 0 ? 1 : -1))
     }
     touchStartX.current = null
@@ -155,8 +177,9 @@ export default function PaySchedule() {
               </span>
             </button>
             <button
-              onClick={() => setPeriod((p) => shiftPeriod(p, 1))}
-              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              onClick={() => canGoNext && setPeriod((p) => shiftPeriod(p, 1))}
+              disabled={!canGoNext}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${canGoNext ? 'bg-white/10 hover:bg-white/20' : 'bg-white/5 opacity-30 cursor-not-allowed'}`}
             >
               <ChevronRight className="w-4.5 h-4.5 text-white" />
             </button>
