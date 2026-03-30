@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ArrowLeft, Trash2, CheckCircle, Calendar, DollarSign,
-  Clock, TrendingUp, PiggyBank, CircleDot, Palette, Pencil,
+  Clock, TrendingUp, PiggyBank, CircleDot, Pencil,
 } from 'lucide-react'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
@@ -20,7 +20,6 @@ import {
   interestRemaining,
 } from './loanUtils'
 import { useLoanStore } from './loanStore'
-import ColorPicker from '../../components/ColorPicker'
 import LoanForm from './LoanForm'
 import { showToast } from '../../components/Toast'
 
@@ -33,7 +32,6 @@ type Props = {
 
 export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Props) {
   const [showConfirm, setShowConfirm] = useState<'pay' | 'delete' | null>(null)
-  const [showColorPicker, setShowColorPicker] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const updateLoan = useLoanStore((s) => s.updateLoan)
   const pct = progressPercent(loan)
@@ -112,28 +110,6 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           </div>
         </div>
 
-        {/* Color picker */}
-        <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-          <button
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            className="flex items-center gap-2 w-full"
-          >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}15` }}>
-              <Palette className="w-3.5 h-3.5" style={{ color }} />
-            </div>
-            <span className="text-[14px] font-semibold text-primary tracking-tight flex-1 text-left">Color</span>
-            <div className="w-6 h-6 rounded-lg border border-themed" style={{ backgroundColor: color }} />
-          </button>
-          {showColorPicker && (
-            <div className="mt-3 pt-3 border-t border-divider">
-              <ColorPicker
-                value={color}
-                onChange={(c) => updateLoan(loan.id, { color: c })}
-              />
-            </div>
-          )}
-        </div>
-
         {/* Interest overview */}
         {hasInterest && (
           <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
@@ -173,7 +149,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           <div className="px-4 pt-4 pb-2">
             <h3 className="font-semibold text-primary text-[14px] tracking-tight">Repayment Schedule</h3>
           </div>
-          <div className="max-h-[360px] overflow-y-auto custom-scroll">
+          <div>
             {schedule.map((p) => {
               const isPaid = p.month <= loan.monthsPaid
               const isNext = p.month === loan.monthsPaid + 1

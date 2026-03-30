@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Receipt, Search, Download, X, ArrowUpDown,
-  Upload, Settings, ChevronDown, Calendar, TrendingDown,
+  Upload, Settings, ChevronDown, Calendar, TrendingDown, BarChart3,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [showSort, setShowSort] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [showChart, setShowChart] = useState(true)
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -114,7 +115,18 @@ export default function Dashboard() {
       />
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
-        {activeCount > 0 && <DebtChart loans={loans} />}
+        {activeCount > 0 && (
+          <div className="mb-3">
+            <button
+              onClick={() => setShowChart(!showChart)}
+              className="flex items-center gap-1.5 text-[12px] font-medium text-muted hover:text-secondary transition-colors mb-2"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              {showChart ? 'Hide Chart' : 'Show Chart'}
+            </button>
+            {showChart && <DebtChart loans={loans} />}
+          </div>
+        )}
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
             {/* Search + actions */}
