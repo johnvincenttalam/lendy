@@ -1,0 +1,200 @@
+LENDY - LOAN TRACKER APP
+=========================
+"Track your loans, payments, and interest"
+
+Website: https://johnvincenttalam.github.io/lendy/
+Platform: Progressive Web App (PWA) - works on any device with a browser
+Tech Stack: React, TypeScript, Vite, Tailwind CSS, Zustand
+
+
+WHAT IS LENDY?
+==============
+Lendy is a free, mobile-first loan tracking app that helps people manage
+multiple loans, track payments, and plan their debt payoff journey. It works
+entirely offline with no sign-up required - all data stays on the user's device.
+
+
+WHO IS IT FOR?
+==============
+- People juggling multiple loans (cash loans, gadget installments, etc.)
+- Anyone who wants to see a clear picture of their total debt
+- Users who want to compare payment strategies to save money
+- People in the Philippines where flat/simple interest lending is common
+- Anyone who wants a simple, private way to track loan payments
+
+
+CORE FEATURES
+=============
+
+1. TWO LOAN MODES
+   - Standard Mode: For loans with interest rates (cash loans, personal loans).
+     Enter the amount, monthly interest rate, tenure, and monthly payment.
+   - Installment Mode: For gadget/appliance loans where the monthly payment
+     already includes interest. Just enter the monthly payment and number of
+     months - the app calculates the total automatically.
+
+2. PAYMENT TRACKING
+   - One-tap "Mark as Paid" button (sticky at the bottom for easy access)
+   - Confirmation dialog showing payment breakdown before marking
+   - Full repayment schedule showing every month's payment
+   - Principal and interest breakdown per payment (for interest-bearing loans)
+   - Visual status indicators: Paid, Next, Due
+   - Undo option if you accidentally mark a payment
+
+3. DASHBOARD OVERVIEW
+   - Total active loans count
+   - Total remaining debt across all loans
+   - Total monthly payment obligation
+   - Total interest across all loans
+   - Projected debt-free date
+   - Debt-to-Income (DTI) ratio with color-coded health indicator
+   - Search, filter (All/Active/Paid), and sort (6 options) for loans
+
+4. DEBT PAYOFF TIMELINE CHART
+   - Interactive line chart showing how debt decreases over time
+   - Hover/touch to see the balance at any specific month
+   - Toggle to show or hide the chart
+   - Motivational tool to visualize progress
+
+5. PAY SCHEDULE
+   - Calendar view grouped by half-month periods (1-15 and 16-31)
+   - Shows which loans are due in each period and how much total
+   - Swipe between periods on mobile
+   - Quick way to see upcoming payment obligations
+
+6. PAYMENT STRATEGIES
+   - Compare three strategies side by side:
+     * Current: Pay each loan as scheduled
+     * Snowball: Pay smallest balance first (for motivation)
+     * Avalanche: Pay highest interest first (saves the most money)
+   - Adjustable extra monthly payment slider
+   - Shows total months, total interest, total paid, and savings for each
+   - Highlights the best strategy with a badge
+   - Educational tool helping users optimize their payoff plan
+
+7. LOAN DETAILS
+   - Large remaining balance display with progress bar
+   - Interest overview: total interest, total repayment, interest paid/remaining
+   - Info grid: amount, monthly payment, months paid, start/end dates, total paid
+   - Full repayment schedule with all payments listed
+   - Edit and delete options
+
+8. SECURITY & PRIVACY
+   - Optional 4-digit PIN lock with SHA-256 hashing
+   - Auto-locks when switching apps or tabs
+   - All data stored locally on the device - no servers, no cloud, no tracking
+   - Complete user control over their data
+
+9. PAYMENT REMINDERS
+   - Browser notification reminders before payments are due
+   - Configurable: 1, 2, 3, 5, or 7 days before due date
+   - Non-intrusive, once-per-day check
+
+10. DATA MANAGEMENT
+    - Export to CSV for spreadsheet use
+    - Full JSON backup with one click
+    - Restore from backup file
+    - No vendor lock-in - your data is always yours
+
+11. PROGRESSIVE WEB APP (PWA)
+    - Install on your home screen like a native app
+    - Works offline after first visit
+    - No app store needed
+    - Lightweight and fast
+
+
+DESIGN & USER EXPERIENCE
+=========================
+- Mobile-first design optimized for phones
+- Dark mode and light mode with smooth transitions
+- Color-coding for each loan (12 colors to choose from)
+- Confetti celebration when a loan is fully paid off
+- Toast notifications for actions (with undo support)
+- Bottom sheet modals on mobile, centered modals on desktop
+- Smooth animations throughout (slide-up, fade-in, scale-in)
+- Clean, modern UI with the Outfit font family
+- Brand color: Orange (#F3622D)
+
+
+INTEREST CALCULATION MODEL
+===========================
+Lendy uses flat/simple interest calculation, which matches how informal and
+micro-finance lending works in the Philippines:
+
+  Total Interest = Principal x Monthly Rate x Number of Months
+  Monthly Interest Portion = Total Interest / Number of Months
+  Monthly Principal Portion = Principal / Number of Months
+
+This is different from compound interest used by banks in many countries.
+Each monthly payment is split into a fixed principal and fixed interest portion,
+making it easy to understand exactly where your money goes.
+
+
+KEY BENEFITS
+============
+1. FREE & NO SIGN-UP - Start tracking immediately, no account needed
+2. PRIVATE - All data stays on your device, never sent to any server
+3. OFFLINE-READY - Works without internet after first visit
+4. SIMPLE - Designed for real people, not accountants
+5. SMART - Payment strategy comparison helps you save money
+6. VISUAL - Charts and progress bars make debt tangible
+7. FLEXIBLE - Supports both interest loans and gadget installments
+8. PORTABLE - Export and backup your data anytime
+9. SECURE - Optional PIN lock protects your financial info
+10. MOTIVATING - Confetti on payoff, progress tracking, debt-free date
+
+
+IDEAL USE CASES
+===============
+- Tracking multiple gadget installments (phone, laptop, appliance)
+- Managing cash loans from lending apps or informal lenders
+- Planning how to pay off debt faster with extra payments
+- Keeping track of payment schedules across different due dates
+- Understanding how much of each payment goes to interest vs. principal
+- Setting reminders so you never miss a payment
+- Backing up loan data before switching phones
+
+
+APP SCREENSHOTS / SECTIONS FOR WEBSITE
+=======================================
+Suggested sections for a marketing website:
+
+1. Hero Section
+   - Tagline: "Track your loans, payments, and interest"
+   - CTA: "Start Tracking - It's Free"
+   - Phone mockup showing dashboard
+
+2. Features Grid
+   - Loan tracking (two modes)
+   - Payment schedule
+   - Debt chart
+   - Payment strategies
+   - PIN security
+   - Data backup
+
+3. How It Works
+   - Step 1: Add your loans (standard or installment)
+   - Step 2: Track payments with one tap
+   - Step 3: Compare strategies to pay off faster
+
+4. Payment Strategies Section
+   - Visual comparison of Snowball vs. Avalanche
+   - "Save money and time" messaging
+
+5. Privacy & Security Section
+   - "Your data never leaves your device"
+   - PIN lock, local storage, no tracking
+
+6. Install Section
+   - "Add to your home screen"
+   - Works on any device
+   - No app store needed
+
+7. Testimonials / Use Cases
+   - Gadget loans
+   - Cash loans
+   - Multiple loan management
+
+8. Footer CTA
+   - "Start your debt-free journey today"
+   - Link to app

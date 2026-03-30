@@ -138,24 +138,24 @@ export default function PaySchedule() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div className="bg-brand">
-        <div className="max-w-2xl mx-auto px-3 pt-5 pb-4">
+      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => navigate('/')}
-              className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors"
+              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
             >
               <ArrowLeft className="w-4.5 h-4.5 text-white" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
-              <p className="text-[12px] text-white/60">Browse by pay period</p>
+              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
+              <p className="text-[12px] text-white/55 font-medium">Browse by pay period</p>
             </div>
           </div>
 
           {/* Period navigator */}
           <div
-            className="flex items-center justify-between rounded-2xl bg-white/15 border border-white/10 px-2 py-2.5"
+            className="flex items-center justify-between rounded-2xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] px-2 py-2.5"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -195,11 +195,13 @@ export default function PaySchedule() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-3 pt-4 pb-8">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-8">
         {periodLoans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <Calendar className="w-8 h-8 text-muted mb-3" />
-            <p className="text-[14px] font-medium text-secondary">No loans due</p>
+            <div className="w-14 h-14 rounded-2xl bg-card border border-themed flex items-center justify-center mb-3">
+              <Calendar className="w-6 h-6 text-muted" />
+            </div>
+            <p className="text-[14px] font-semibold text-secondary">No loans due</p>
             <p className="text-[13px] text-muted">No payments in this period</p>
           </div>
         ) : (
@@ -227,7 +229,7 @@ function ScheduleCard({ loan, onClick }: { loan: Loan; onClick: () => void }) {
     >
       <div className="flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center text-white shrink-0"
+          className="w-10 h-10 rounded-[13px] flex flex-col items-center justify-center text-white shrink-0"
           style={{ backgroundColor: color }}
         >
           <span className="text-[10px] font-semibold leading-none opacity-80">Day</span>

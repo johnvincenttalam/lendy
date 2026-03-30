@@ -29,7 +29,7 @@ export default function LoanCard({ loan }: Props) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white"
+            className="w-10 h-10 rounded-[13px] flex items-center justify-center text-[14px] font-bold text-white"
             style={{ backgroundColor: paid ? '#10B981' : color }}
           >
             {loan.name.charAt(0).toUpperCase()}
@@ -43,7 +43,7 @@ export default function LoanCard({ loan }: Props) {
         </div>
         <div className="flex items-center gap-1.5">
           {paid && (
-            <span className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full">
               Paid
             </span>
           )}
@@ -65,18 +65,21 @@ export default function LoanCard({ loan }: Props) {
 
       {/* Progress */}
       <div className="mb-2.5">
-        <div className="w-full h-[6px] rounded-full" style={{ backgroundColor: `${color}18` }}>
+        <div className="w-full h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: `${color}15` }}>
           <div
             className="h-[6px] rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: color }}
+            style={{
+              width: `${Math.max(pct, 2)}%`,
+              background: `linear-gradient(90deg, ${color}, ${color}dd)`,
+            }}
           />
         </div>
       </div>
 
       <div className="flex justify-between items-center">
         <span
-          className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
-          style={{ backgroundColor: `${color}12`, color }}
+          className="text-[11px] font-semibold px-2.5 py-[3px] rounded-full"
+          style={{ backgroundColor: `${color}10`, color }}
         >
           {pct}%
         </span>

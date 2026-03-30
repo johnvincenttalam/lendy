@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import type { Loan, LoanFormData } from './loanTypes'
 import { formatCurrency, suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 type Props = {
   onSubmit: (data: LoanFormData) => void
@@ -16,6 +17,35 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     initial && initial.interestRate === 0 ? 'installment' : 'standard'
   )
   const isInstallment = mode === 'installment'
+  useBodyScrollLock(true)
+  const [dragY, setDragY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartY = useRef<number | null>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  const handleDragStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    dragStartY.current = clientY
+    setIsDragging(true)
+  }, [])
+
+  const handleDragMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    if (dragStartY.current === null) return
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const delta = Math.max(0, clientY - dragStartY.current)
+    setDragY(delta)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    if (dragY > 120) {
+      onClose()
+    } else {
+      setDragY(0)
+    }
+    dragStartY.current = null
+    setIsDragging(false)
+  }, [dragY, onClose])
+
   const [name, setName] = useState(initial?.name ?? '')
   const [color, setColor] = useState(initial?.color ?? '#F3622D')
   const [totalAmount, setTotalAmount] = useState(initial ? String(initial.totalAmount) : '')
@@ -62,17 +92,35 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-overlay z-50 flex items-end sm:items-center justify-center animate-fade-in">
-      <div className="bg-card w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl max-h-[92vh] overflow-y-auto border-t sm:border border-themed transition-colors animate-slide-up custom-scroll">
-        {/* Handle bar */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+    <div
+      className="fixed inset-0 bg-overlay z-50 flex items-end sm:items-center justify-center animate-fade-in"
+    >
+      <div
+        ref={sheetRef}
+        className="bg-card w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl max-h-[92vh] overflow-y-auto border-t sm:border border-themed animate-slide-up custom-scroll"
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        {/* Handle bar - draggable */}
+        <div
+          className="flex justify-center pt-3 pb-1 sm:hidden cursor-grab active:cursor-grabbing"
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={() => { if (isDragging) handleDragEnd() }}
+        >
           <div className="w-9 h-1 rounded-full bg-muted opacity-40" />
         </div>
 
         <div className="flex items-center justify-between px-5 pt-3 pb-4 sm:pt-5">
-          <h2 className="text-lg font-bold text-primary tracking-tight">{isEdit ? 'Edit Loan' : 'New Loan'}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-subtle flex items-center justify-center hover:opacity-70 transition-opacity">
-            <X className="w-4 h-4 text-secondary" />
+          <h2 className="text-[20px] font-bold text-primary tracking-tight">{isEdit ? 'Edit Loan' : 'New Loan'}</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:opacity-60 transition-opacity">
+            <X className="w-[18px] h-[18px] text-secondary" />
           </button>
         </div>
 
@@ -83,7 +131,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               type="button"
               onClick={() => setMode('standard')}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
-                !isInstallment ? 'bg-card text-primary shadow-sm' : 'text-muted hover:text-secondary'
+                !isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
               }`}
             >
               Standard
@@ -92,7 +140,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               type="button"
               onClick={() => setMode('installment')}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
-                isInstallment ? 'bg-card text-primary shadow-sm' : 'text-muted hover:text-secondary'
+                isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
               }`}
             >
               Installment
@@ -189,7 +237,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                       <button
                         type="button"
                         onClick={() => setMonthlyPayment(suggested.toFixed(2))}
-                        className="shrink-0 w-10 rounded-[14px] flex items-center justify-center border border-themed bg-subtle hover:opacity-70 transition-opacity"
+                        className="shrink-0 w-10 flex items-center justify-center hover:opacity-60 transition-opacity"
                         title="Auto-calculate"
                       >
                         <Sparkles className="w-4 h-4" style={{ color }} />
@@ -254,7 +302,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
 
           <button
             type="submit"
-            className="w-full text-white font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 text-[15px] tracking-tight hover:opacity-90"
+            className="w-full text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 text-[15px] tracking-tight hover:opacity-90"
             style={{ backgroundColor: color }}
           >
             {isEdit ? 'Save Changes' : 'Add Loan'}

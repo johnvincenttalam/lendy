@@ -7,7 +7,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="relative w-[52px] h-[30px] rounded-full transition-colors duration-300 active:scale-95 bg-white/20"
+      className="relative w-[52px] h-[30px] rounded-full transition-colors duration-300 active:scale-95 bg-white/[0.15] border border-white/[0.1]"
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       <div

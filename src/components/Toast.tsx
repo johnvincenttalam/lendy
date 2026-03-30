@@ -49,7 +49,7 @@ export default function ToastContainer() {
   return (
     <div className="fixed bottom-6 left-0 right-0 z-[100] flex justify-center px-3 pointer-events-none">
       <div
-        className="pointer-events-auto max-w-2xl w-full rounded-2xl bg-[#1C1C1E] dark:bg-[#2C2C2E] px-4 py-3.5 flex items-center gap-3 transition-all duration-300 ease-out"
+        className="pointer-events-auto max-w-2xl w-full rounded-xl bg-[#1C1C1E] dark:bg-[#2C2C2E] px-4 py-3.5 flex items-center gap-3 transition-all duration-300 ease-out"
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(20px)',
           opacity: visible ? 1 : 0,

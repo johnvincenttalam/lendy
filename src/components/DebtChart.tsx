@@ -61,8 +61,8 @@ export default function DebtChart({ loans }: { loans: Loan[] }) {
   const hoverPoint = hoverIdx !== null ? timeline[hoverIdx] : null
 
   return (
-    <div className="bg-card rounded-2xl border border-themed p-4 mb-3">
-      <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">
+    <div className="bg-card rounded-2xl border border-themed p-4">
+      <h3 className="text-[11px] font-bold text-muted uppercase tracking-widest mb-3">
         Debt Payoff Timeline
       </h3>
 
@@ -72,7 +72,7 @@ export default function DebtChart({ loans }: { loans: Loan[] }) {
           <span className="text-[12px] text-muted">
             {hoverPoint.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
-          <span className="text-[14px] font-bold text-brand">{formatCurrency(hoverPoint.balance)}</span>
+          <span className="text-[14px] font-bold text-brand tracking-tight">{formatCurrency(hoverPoint.balance)}</span>
         </div>
       )}
 

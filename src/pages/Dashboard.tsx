@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Receipt, Search, Download, X, ArrowUpDown,
-  Upload, Settings, ChevronDown, Calendar, TrendingDown, BarChart3,
+  Upload, Settings, ChevronDown, Calendar, TrendingDown, BarChart3, PieChart,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -119,7 +119,7 @@ export default function Dashboard() {
           <div className="mb-3">
             <button
               onClick={() => setShowChart(!showChart)}
-              className="flex items-center gap-1.5 text-[12px] font-medium text-muted hover:text-secondary transition-colors mb-2"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-muted hover:text-secondary transition-colors mb-2 uppercase tracking-wider"
             >
               <BarChart3 className="w-3.5 h-3.5" />
               {showChart ? 'Hide Chart' : 'Show Chart'}
@@ -151,24 +151,31 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => navigate('/schedule')}
-                className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
                 title="Pay Schedule"
               >
-                <Calendar className="w-4 h-4 text-secondary" />
+                <Calendar className="w-[18px] h-[18px] text-secondary" />
+              </button>
+              <button
+                onClick={() => navigate('/analytics')}
+                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
+                title="Analytics"
+              >
+                <PieChart className="w-[18px] h-[18px] text-secondary" />
               </button>
               <button
                 onClick={() => navigate('/strategies')}
-                className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
                 title="Payment Strategies"
               >
-                <TrendingDown className="w-4 h-4 text-secondary" />
+                <TrendingDown className="w-[18px] h-[18px] text-secondary" />
               </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="w-10 h-10 rounded-[14px] bg-subtle border border-themed flex items-center justify-center hover:opacity-70 transition-opacity shrink-0"
+                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
                 title="Settings"
               >
-                <Settings className="w-4 h-4 text-secondary" />
+                <Settings className="w-[18px] h-[18px] text-secondary" />
               </button>
             </div>
 
@@ -290,25 +297,36 @@ export default function Dashboard() {
         <div className="space-y-3">
           {loans.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-16 h-16 rounded-2xl bg-subtle border border-themed flex items-center justify-center mb-4">
-                <Receipt className="w-7 h-7 text-muted" />
+              <div className="w-[72px] h-[72px] rounded-[22px] bg-card border border-themed flex items-center justify-center mb-5">
+                <Receipt className="w-8 h-8 text-muted" />
               </div>
-              <p className="text-base font-semibold text-primary mb-1">No loans yet</p>
-              <p className="text-[13px] text-muted text-center max-w-[220px] mb-5">
-                Add your first loan or restore from a backup
+              <p className="text-[17px] font-bold text-primary mb-1 tracking-tight">No loans yet</p>
+              <p className="text-[13px] text-muted text-center max-w-[240px] mb-6 leading-relaxed">
+                Add your first loan to start tracking your payments
               </p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-subtle border border-themed text-[13px] font-semibold text-secondary hover:opacity-80 transition-opacity"
-              >
-                <Upload className="w-4 h-4" />
-                Import Backup
-              </button>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:opacity-90 transition-opacity active:scale-[0.97]"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Loan
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-themed text-[13px] font-semibold text-secondary hover:opacity-80 transition-opacity"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import
+                </button>
+              </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <Search className="w-8 h-8 text-muted mb-3" />
-              <p className="text-[14px] font-medium text-secondary">No loans found</p>
+              <div className="w-14 h-14 rounded-2xl bg-card border border-themed flex items-center justify-center mb-3">
+                <Search className="w-6 h-6 text-muted" />
+              </div>
+              <p className="text-[14px] font-semibold text-secondary">No loans found</p>
               <p className="text-[13px] text-muted">Try a different search or filter</p>
             </div>
           ) : (
@@ -321,7 +339,7 @@ export default function Dashboard() {
       <div className="fixed bottom-7 right-5 z-20">
         <button
           onClick={() => setShowForm(true)}
-          className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200"
+          className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 "
         >
           <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
         </button>

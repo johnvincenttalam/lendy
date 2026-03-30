@@ -21,26 +21,26 @@
   --color-input-bg: #F2F2F7;
   --color-input-bg-focus: #FFFFFF;
   --color-input-border: rgba(0, 0, 0, 0.08);
-  --color-overlay: rgba(0, 0, 0, 0.32);
+  --color-overlay: rgba(0, 0, 0, 0.4);
   --color-subtle-bg: rgba(0, 0, 0, 0.03);
   --color-divider: rgba(0, 0, 0, 0.05);
 }
 
 /* Dark mode */
 .dark {
-  --color-page: #121218;
-  --color-card: #1E1E26;
-  --color-card-hover: #262630;
-  --color-header: rgba(30, 30, 38, 0.88);
+  --color-page: #0E0E14;
+  --color-card: #1A1A22;
+  --color-card-hover: #222230;
+  --color-header: rgba(26, 26, 34, 0.88);
   --color-text-primary: #F0F0F5;
   --color-text-secondary: #A0A0AA;
   --color-text-muted: #5A5A66;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input-bg: #181820;
-  --color-input-bg-focus: #1E1E26;
-  --color-input-border: rgba(255, 255, 255, 0.10);
-  --color-overlay: rgba(0, 0, 0, 0.55);
-  --color-subtle-bg: rgba(255, 255, 255, 0.06);
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-input-bg: #141418;
+  --color-input-bg-focus: #1A1A22;
+  --color-input-border: rgba(255, 255, 255, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-subtle-bg: rgba(255, 255, 255, 0.05);
   --color-divider: rgba(255, 255, 255, 0.06);
 }
 
@@ -105,7 +105,6 @@ input[type="number"] {
 .border-themed { border-color: var(--color-border); }
 .border-divider { border-color: var(--color-divider); }
 .bg-overlay { background-color: var(--color-overlay); }
-
 /* Animations */
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
@@ -118,25 +117,25 @@ input[type="number"] {
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
+  from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
 .animate-slide-up {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.25s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Scrollbar */
 .custom-scroll::-webkit-scrollbar {
-  width: 3px;
+  width: 4px;
 }
 .custom-scroll::-webkit-scrollbar-track {
   background: transparent;
@@ -144,6 +143,7 @@ input[type="number"] {
 .custom-scroll::-webkit-scrollbar-thumb {
   background: var(--color-text-muted);
   border-radius: 10px;
+  opacity: 0.5;
 }
 
 /* Backdrop blur for header */

@@ -32,23 +32,23 @@ export default function StrategiesPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div className="bg-brand">
-        <div className="max-w-2xl mx-auto px-3 pt-5 pb-4">
+      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => navigate('/')}
-              className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors"
+              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
             >
               <ArrowLeft className="w-4.5 h-4.5 text-white" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Payment Strategies</h1>
-              <p className="text-[12px] text-white/60">Compare payoff methods</p>
+              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Payment Strategies</h1>
+              <p className="text-[12px] text-white/55 font-medium">Compare payoff methods</p>
             </div>
           </div>
 
           {/* Extra payment input */}
-          <div className="rounded-2xl bg-white/15 border border-white/10 p-3.5">
+          <div className="rounded-2xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] p-4">
             <label className="block text-[11px] font-semibold text-white/60 uppercase tracking-wider mb-1.5">
               Extra monthly payment
             </label>
@@ -70,7 +70,7 @@ export default function StrategiesPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-3 pt-4 pb-8 space-y-3">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-3">
         {/* Strategy cards */}
         {(['current', 'snowball', 'avalanche'] as Strategy[]).map((strategy) => {
           const meta = STRATEGY_META[strategy]
@@ -89,14 +89,14 @@ export default function StrategiesPage() {
             >
               <div className="flex items-center gap-2.5 mb-3">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: `${meta.color}18` }}
+                  className="w-10 h-10 rounded-[13px] flex items-center justify-center"
+                  style={{ backgroundColor: `${meta.color}12` }}
                 >
                   <Icon className="w-4.5 h-4.5" style={{ color: meta.color }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-bold text-primary tracking-tight">{meta.label}</h3>
+                    <h3 className="text-[16px] font-bold text-primary tracking-tight">{meta.label}</h3>
                     {isBest && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
                         Best

@@ -50,7 +50,7 @@ export default function InstallPrompt() {
     <div className="fixed bottom-6 left-0 right-0 z-[90] flex justify-center px-3 animate-slide-up">
       <div className="max-w-2xl w-full bg-card border border-themed rounded-2xl p-4 flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shrink-0"
+          className="w-10 h-10 rounded-[13px] bg-brand flex items-center justify-center shrink-0"
         >
           <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-6 h-6 rounded-md" />
         </div>
@@ -66,7 +66,7 @@ export default function InstallPrompt() {
         </button>
         <button
           onClick={handleDismiss}
-          className="shrink-0 w-7 h-7 rounded-full bg-subtle flex items-center justify-center hover:opacity-70 transition-opacity"
+          className="shrink-0 w-7 h-7 flex items-center justify-center hover:opacity-60 transition-opacity"
         >
           <X className="w-3.5 h-3.5 text-muted" />
         </button>
