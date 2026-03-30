@@ -208,16 +208,8 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           </div>
         </div>
 
-        {/* CTA */}
-        {!fullyPaid && (
-          <button
-            onClick={() => setShowConfirm('pay')}
-            className="w-full text-white font-semibold py-4 rounded-2xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-[15px] tracking-tight hover:opacity-90"
-            style={{ backgroundColor: color }}
-          >
-            Mark as Paid
-          </button>
-        )}
+        {/* Spacer for sticky CTA */}
+        {!fullyPaid && <div className="h-20" />}
 
         {fullyPaid && (
           <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold py-4 rounded-2xl text-center text-[15px] border border-emerald-500/15">
@@ -225,6 +217,21 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           </div>
         )}
       </div>
+
+      {/* Sticky CTA */}
+      {!fullyPaid && (
+        <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-page via-page to-transparent pt-4 pb-5 px-3">
+          <div className="max-w-2xl mx-auto">
+            <button
+              onClick={() => setShowConfirm('pay')}
+              className="w-full text-white font-semibold py-4 rounded-2xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-[15px] tracking-tight hover:opacity-90 shadow-lg"
+              style={{ backgroundColor: color }}
+            >
+              Mark as Paid
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Edit modal */}
       {showEdit && (

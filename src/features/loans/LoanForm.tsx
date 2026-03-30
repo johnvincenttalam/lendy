@@ -12,6 +12,10 @@ type Props = {
 
 export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   const isEdit = !!initial
+  const [mode, setMode] = useState<'standard' | 'installment'>(
+    initial && initial.interestRate === 0 ? 'installment' : 'standard'
+  )
+  const isInstallment = mode === 'installment'
   const [name, setName] = useState(initial?.name ?? '')
   const [color, setColor] = useState(initial?.color ?? '#F3622D')
   const [totalAmount, setTotalAmount] = useState(initial ? String(initial.totalAmount) : '')
@@ -21,9 +25,10 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   const [startDate, setStartDate] = useState(initial?.startDate ?? new Date().toISOString().split('T')[0])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const amt = Number(totalAmount) || 0
-  const rate = Number(interestRate) || 0
+  const monthly = Number(monthlyPayment) || 0
   const months = Number(durationMonths) || 0
+  const amt = isInstallment ? monthly * months : Number(totalAmount) || 0
+  const rate = isInstallment ? 0 : Number(interestRate) || 0
   const canAutoCalc = amt > 0 && months > 0
 
   const totalInterest = amt * (rate / 100) * months
@@ -33,9 +38,9 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
     if (!name.trim()) newErrors.name = 'Name is required'
-    if (!totalAmount || amt <= 0) newErrors.totalAmount = 'Enter a valid amount'
-    if (interestRate !== '' && Number(interestRate) < 0) newErrors.interestRate = 'Cannot be negative'
-    if (!monthlyPayment || Number(monthlyPayment) <= 0) newErrors.monthlyPayment = 'Enter a valid payment'
+    if (!isInstallment && (!totalAmount || amt <= 0)) newErrors.totalAmount = 'Enter a valid amount'
+    if (!isInstallment && interestRate !== '' && Number(interestRate) < 0) newErrors.interestRate = 'Cannot be negative'
+    if (!monthlyPayment || monthly <= 0) newErrors.monthlyPayment = 'Enter a valid payment'
     if (!durationMonths || months <= 0) newErrors.durationMonths = 'Enter valid duration'
     if (!startDate) newErrors.startDate = 'Required'
     setErrors(newErrors)
@@ -48,9 +53,9 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     onSubmit({
       name: name.trim(),
       color,
-      totalAmount: amt,
-      interestRate: rate,
-      monthlyPayment: Number(monthlyPayment),
+      totalAmount: isInstallment ? monthly * months : amt,
+      interestRate: isInstallment ? 0 : rate,
+      monthlyPayment: monthly,
       durationMonths: months,
       startDate,
     })
@@ -72,12 +77,40 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 pb-5 space-y-4">
+          {/* Mode toggle */}
+          <div className="flex rounded-xl bg-subtle p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setMode('standard')}
+              className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
+                !isInstallment ? 'bg-card text-primary shadow-sm' : 'text-muted hover:text-secondary'
+              }`}
+            >
+              Standard
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('installment')}
+              className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
+                isInstallment ? 'bg-card text-primary shadow-sm' : 'text-muted hover:text-secondary'
+              }`}
+            >
+              Installment
+            </button>
+          </div>
+
+          {isInstallment && (
+            <p className="text-[11px] text-muted">
+              For gadget loans or installments where the monthly payment already includes interest.
+            </p>
+          )}
+
           <Field label="Loan Name" error={errors.name}>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Cash Loan"
+              placeholder={isInstallment ? 'e.g. iPhone 16' : 'e.g. Cash Loan'}
               className="input-field"
             />
           </Field>
@@ -86,66 +119,92 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
             <ColorPicker value={color} onChange={setColor} />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Amount (₱)" error={errors.totalAmount}>
-              <input
-                type="number"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
-                placeholder="2,500"
-                className="input-field"
-              />
-            </Field>
-            <Field label="Interest (%/mo)" error={errors.interestRate}>
-              <input
-                type="number"
-                step="0.01"
-                value={interestRate}
-                onChange={(e) => setInterestRate(e.target.value)}
-                placeholder="4.95"
-                className="input-field"
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Tenure (months)" error={errors.durationMonths}>
-              <input
-                type="number"
-                value={durationMonths}
-                onChange={(e) => setDurationMonths(e.target.value)}
-                placeholder="6"
-                className="input-field"
-              />
-            </Field>
-            <Field label="Monthly (₱)" error={errors.monthlyPayment}>
-              <div className="flex gap-1.5">
+          {isInstallment ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Monthly (₱)" error={errors.monthlyPayment}>
                 <input
                   type="number"
                   step="0.01"
                   value={monthlyPayment}
                   onChange={(e) => setMonthlyPayment(e.target.value)}
-                  placeholder="540.41"
+                  placeholder="2,200"
                   className="input-field"
                 />
-                {canAutoCalc && suggested > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setMonthlyPayment(suggested.toFixed(2))}
-                    className="shrink-0 w-10 rounded-[14px] flex items-center justify-center border border-themed bg-subtle hover:opacity-70 transition-opacity"
-                    title="Auto-calculate"
-                  >
-                    <Sparkles className="w-4 h-4" style={{ color }} />
-                  </button>
-                )}
+              </Field>
+              <Field label="Tenure (months)" error={errors.durationMonths}>
+                <input
+                  type="number"
+                  value={durationMonths}
+                  onChange={(e) => setDurationMonths(e.target.value)}
+                  placeholder="6"
+                  className="input-field"
+                />
+              </Field>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Amount (₱)" error={errors.totalAmount}>
+                  <input
+                    type="number"
+                    value={totalAmount}
+                    onChange={(e) => setTotalAmount(e.target.value)}
+                    placeholder="2,500"
+                    className="input-field"
+                  />
+                </Field>
+                <Field label="Interest (%/mo)" error={errors.interestRate}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={interestRate}
+                    onChange={(e) => setInterestRate(e.target.value)}
+                    placeholder="4.95"
+                    className="input-field"
+                  />
+                </Field>
               </div>
-              {canAutoCalc && suggested > 0 && !monthlyPayment && (
-                <p className="text-[11px] text-muted mt-1">
-                  ~{formatCurrency(suggested)}
-                </p>
-              )}
-            </Field>
-          </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Tenure (months)" error={errors.durationMonths}>
+                  <input
+                    type="number"
+                    value={durationMonths}
+                    onChange={(e) => setDurationMonths(e.target.value)}
+                    placeholder="6"
+                    className="input-field"
+                  />
+                </Field>
+                <Field label="Monthly (₱)" error={errors.monthlyPayment}>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={monthlyPayment}
+                      onChange={(e) => setMonthlyPayment(e.target.value)}
+                      placeholder="540.41"
+                      className="input-field"
+                    />
+                    {canAutoCalc && suggested > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMonthlyPayment(suggested.toFixed(2))}
+                        className="shrink-0 w-10 rounded-[14px] flex items-center justify-center border border-themed bg-subtle hover:opacity-70 transition-opacity"
+                        title="Auto-calculate"
+                      >
+                        <Sparkles className="w-4 h-4" style={{ color }} />
+                      </button>
+                    )}
+                  </div>
+                  {canAutoCalc && suggested > 0 && !monthlyPayment && (
+                    <p className="text-[11px] text-muted mt-1">
+                      ~{formatCurrency(suggested)}
+                    </p>
+                  )}
+                </Field>
+              </div>
+            </>
+          )}
 
           <Field label="Start Date" error={errors.startDate}>
             <input
@@ -161,6 +220,14 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               className="rounded-2xl p-3.5 space-y-2 border"
               style={{ borderColor: `${color}20`, backgroundColor: `${color}08` }}
             >
+              {isInstallment && (
+                <>
+                  <Row label="Total amount">
+                    <span className="font-semibold text-primary text-[13px]">{formatCurrency(monthly * months)}</span>
+                  </Row>
+                  <div className="h-px border-t border-divider" />
+                </>
+              )}
               <Row label="End date">
                 <span className="font-semibold text-[13px]" style={{ color }}>
                   {(() => {
