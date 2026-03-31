@@ -18,12 +18,13 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-header backdrop-blur-header border-t border-themed transition-colors">
+    <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
+      <div className="bg-header backdrop-blur-header border-t border-themed transition-colors pointer-events-auto">
       <div className="max-w-2xl mx-auto grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
         {NAV_ITEMS.map((item) => {
           if (item.path === '__add__') {
             return (
-              <div key="add" className="flex justify-center -mt-4">
+              <div key="add" className="flex justify-center -mt-4 pointer-events-auto">
                 <button
                   onClick={onAdd}
                   className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 border-4"
@@ -53,6 +54,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
             </button>
           )
         })}
+      </div>
       </div>
     </div>
   )

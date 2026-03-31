@@ -27,11 +27,11 @@ export default function SummaryHeader({
 
   return (
     <div
-      className="transition-colors duration-300"
+      className="relative transition-colors duration-300"
       style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}
     >
       {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
       <div className="relative max-w-2xl mx-auto px-4 pt-5 pb-5">
         <div className="flex items-center justify-between mb-5">
