@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import type { Loan, LoanFormData } from './loanTypes'
+import { LOAN_TAGS } from './loanTypes'
 import { formatCurrency, suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
@@ -47,6 +48,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   }, [dragY, onClose])
 
   const [name, setName] = useState(initial?.name ?? '')
+  const [tag, setTag] = useState(initial?.tag ?? '')
   const [color, setColor] = useState(initial?.color ?? '#F3622D')
   const [totalAmount, setTotalAmount] = useState(initial ? String(initial.totalAmount) : '')
   const [interestRate, setInterestRate] = useState(initial ? String(initial.interestRate) : '')
@@ -83,6 +85,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     onSubmit({
       name: name.trim(),
       color,
+      tag: tag || undefined,
       totalAmount: isInstallment ? monthly * months : amt,
       interestRate: isInstallment ? 0 : rate,
       monthlyPayment: monthly,
@@ -161,6 +164,26 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               placeholder={isInstallment ? 'e.g. iPhone 16' : 'e.g. Cash Loan'}
               className="input-field"
             />
+          </Field>
+
+          <Field label="Tag">
+            <div className="flex flex-wrap gap-1.5">
+              {LOAN_TAGS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTag(tag === t ? '' : t)}
+                  className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
+                    tag === t
+                      ? 'text-white'
+                      : 'bg-subtle text-secondary hover:opacity-80'
+                  }`}
+                  style={tag === t ? { backgroundColor: color } : undefined}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </Field>
 
           <Field label="Color">

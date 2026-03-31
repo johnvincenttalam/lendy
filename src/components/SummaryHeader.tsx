@@ -27,7 +27,7 @@ export default function SummaryHeader({
 
   return (
     <div
-      className="sticky top-0 z-10 transition-colors duration-300"
+      className="transition-colors duration-300"
       style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}
     >
       {/* Subtle pattern overlay */}

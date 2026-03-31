@@ -1,21 +1,16 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Receipt, Search, Download, X, ArrowUpDown,
-  Upload, Settings, ChevronDown, Calendar, TrendingDown, BarChart3, PieChart,
+  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, PieChart,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
-  totalInterestAllLoans, debtToIncomeRatio, formatCurrency,
+  totalInterestAllLoans, debtToIncomeRatio,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
 import DebtChart from '../components/DebtChart'
 import LoanCard from '../features/loans/LoanCard'
-import LoanForm from '../features/loans/LoanForm'
-import PinSetup from '../features/lock/PinSetup'
-import NotificationSettings from '../features/notifications/NotificationSettings'
-import { showToast } from '../components/Toast'
 
 type Filter = 'all' | 'active' | 'paid'
 
@@ -29,18 +24,13 @@ const SORT_LABELS: Record<SortOption, string> = {
 }
 
 export default function Dashboard() {
-  const {
-    loans, addLoan, exportCSV, exportBackup, importBackup,
-    monthlyIncome, setMonthlyIncome, sortBy, setSortBy,
-  } = useLoanStore()
-  const [showForm, setShowForm] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const { loans, sortBy, setSortBy, monthlyIncome } = useLoanStore()
   const [showSort, setShowSort] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [showChart, setShowChart] = useState(true)
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const totalDebt = loans.reduce((sum, l) => sum + remainingBalance(l), 0)
   const totalMonthly = loans.reduce((sum, l) => {
@@ -48,18 +38,25 @@ export default function Dashboard() {
     return sum + l.monthlyPayment
   }, 0)
 
+  const tags = useMemo(() => {
+    const set = new Set<string>()
+    loans.forEach((l) => { if (l.tag) set.add(l.tag) })
+    return Array.from(set).sort()
+  }, [loans])
+
   const filtered = useMemo(() => {
     let result = [...loans]
 
     if (filter === 'active') result = result.filter((l) => !isFullyPaid(l))
     if (filter === 'paid') result = result.filter((l) => isFullyPaid(l))
 
+    if (tagFilter) result = result.filter((l) => l.tag === tagFilter)
+
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter((l) => l.name.toLowerCase().includes(q))
     }
 
-    // Sort
     result.sort((a, b) => {
       switch (sortBy) {
         case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -73,34 +70,10 @@ export default function Dashboard() {
     })
 
     return result
-  }, [loans, filter, search, sortBy])
+  }, [loans, filter, tagFilter, search, sortBy])
 
   const activeCount = loans.filter((l) => !isFullyPaid(l)).length
   const paidCount = loans.filter((l) => isFullyPaid(l)).length
-
-  function handleExportCSV() {
-    const csv = exportCSV()
-    downloadFile(csv, `lendy-export-${dateSuffix()}.csv`, 'text/csv')
-    showToast('CSV exported')
-  }
-
-  function handleExportBackup() {
-    const json = exportBackup()
-    downloadFile(json, `lendy-backup-${dateSuffix()}.json`, 'application/json')
-    showToast('Backup saved')
-  }
-
-  function handleImportBackup(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      importBackup(reader.result as string)
-      setShowSettings(false)
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -117,123 +90,46 @@ export default function Dashboard() {
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
         {activeCount > 0 && (
           <div className="mb-3">
-            <button
-              onClick={() => setShowChart(!showChart)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-muted hover:text-secondary transition-colors mb-2 uppercase tracking-wider"
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              {showChart ? 'Hide Chart' : 'Show Chart'}
-            </button>
+            <div className="flex items-center justify-between mb-2">
+              <button
+                onClick={() => setShowChart(!showChart)}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-muted hover:text-secondary transition-colors uppercase tracking-wider"
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                {showChart ? 'Hide Chart' : 'Show Chart'}
+              </button>
+              <button
+                onClick={() => navigate('/analytics')}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-brand hover:opacity-70 transition-opacity uppercase tracking-wider"
+              >
+                <PieChart className="w-3.5 h-3.5" />
+                Analytics
+              </button>
+            </div>
             {showChart && <DebtChart loans={loans} />}
           </div>
         )}
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
-            {/* Search + actions */}
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search loans..."
-                  className="input-field !pl-10 !py-0 !h-10 text-[14px]"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-subtle flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-muted" />
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => navigate('/schedule')}
-                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
-                title="Pay Schedule"
-              >
-                <Calendar className="w-[18px] h-[18px] text-secondary" />
-              </button>
-              <button
-                onClick={() => navigate('/analytics')}
-                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
-                title="Analytics"
-              >
-                <PieChart className="w-[18px] h-[18px] text-secondary" />
-              </button>
-              <button
-                onClick={() => navigate('/strategies')}
-                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
-                title="Payment Strategies"
-              >
-                <TrendingDown className="w-[18px] h-[18px] text-secondary" />
-              </button>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity shrink-0"
-                title="Settings"
-              >
-                <Settings className="w-[18px] h-[18px] text-secondary" />
-              </button>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search loans..."
+                className="input-field !pl-10 !py-0 !h-10 text-[14px]"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-subtle flex items-center justify-center"
+                >
+                  <X className="w-3 h-3 text-muted" />
+                </button>
+              )}
             </div>
-
-            {/* Settings panel */}
-            {showSettings && (
-              <div className="bg-card rounded-2xl border border-themed p-4 space-y-3 animate-scale-in">
-                {/* Income input */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1.5">
-                    Monthly Income (₱)
-                  </label>
-                  <input
-                    type="number"
-                    value={monthlyIncome || ''}
-                    onChange={(e) => setMonthlyIncome(Number(e.target.value) || 0)}
-                    placeholder="Enter monthly income"
-                    className="input-field !py-2.5 text-[14px]"
-                  />
-                  {monthlyIncome > 0 && totalMonthly > 0 && (
-                    <p className="text-[11px] text-muted mt-1">
-                      {Math.round(debtToIncomeRatio(loans, monthlyIncome) * 100)}% of income goes to loans
-                      {' '}({formatCurrency(monthlyIncome - totalMonthly)} remaining)
-                    </p>
-                  )}
-                </div>
-
-                {/* Notifications */}
-                <NotificationSettings />
-
-                {/* App Lock */}
-                <PinSetup />
-
-                {/* Data actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportCSV}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-subtle text-secondary text-[13px] font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    CSV
-                  </button>
-                  <button
-                    onClick={handleExportBackup}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-subtle text-secondary text-[13px] font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Backup
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-subtle text-secondary text-[13px] font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    Restore
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Filters + Sort */}
             <div className="flex items-center justify-between">
@@ -290,6 +186,33 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* Tag filter */}
+            {tags.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
+                {tags.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTagFilter(tagFilter === t ? null : t)}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all ${
+                      tagFilter === t
+                        ? 'bg-brand text-white'
+                        : 'bg-subtle text-muted hover:text-secondary'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+                {tagFilter && (
+                  <button
+                    onClick={() => setTagFilter(null)}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full text-muted hover:text-secondary transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -304,22 +227,7 @@ export default function Dashboard() {
               <p className="text-[13px] text-muted text-center max-w-[240px] mb-6 leading-relaxed">
                 Add your first loan to start tracking your payments
               </p>
-              <div className="flex gap-2.5">
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:opacity-90 transition-opacity active:scale-[0.97]"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Loan
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-themed text-[13px] font-semibold text-secondary hover:opacity-80 transition-opacity"
-                >
-                  <Upload className="w-4 h-4" />
-                  Import
-                </button>
-              </div>
+              <p className="text-[13px] text-muted">Tap <span className="text-brand font-semibold">+</span> below to get started</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -335,47 +243,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* FAB */}
-      <div className="fixed bottom-7 right-5 z-20">
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 "
-        >
-          <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
-        </button>
-      </div>
-
-      {showForm && (
-        <LoanForm
-          onSubmit={(data) => {
-            addLoan(data)
-            setShowForm(false)
-          }}
-          onClose={() => setShowForm(false)}
-        />
-      )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleImportBackup}
-        className="hidden"
-      />
     </div>
   )
-}
-
-function downloadFile(content: string, filename: string, type: string) {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function dateSuffix() {
-  return new Date().toISOString().split('T')[0]
 }

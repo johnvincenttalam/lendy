@@ -2,6 +2,7 @@ export type Loan = {
   id: string
   name: string
   color: string
+  tag?: string
   totalAmount: number
   monthlyPayment: number
   interestRate: number // monthly interest rate (e.g. 4.95 for 4.95%/month)
@@ -25,6 +26,10 @@ export type PaymentRecord = {
 }
 
 export type LoanFormData = Omit<Loan, 'id' | 'monthsPaid' | 'totalPaid' | 'totalInterestPaid' | 'createdAt'>
+
+export const LOAN_TAGS = [
+  'Gadget', 'Cash Loan', 'Vehicle', 'Housing', 'Personal', 'Education', 'Business', 'Other',
+] as const
 
 export type PaymentBreakdown = {
   month: number

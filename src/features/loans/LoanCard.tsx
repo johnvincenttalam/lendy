@@ -35,7 +35,12 @@ export default function LoanCard({ loan }: Props) {
             {loan.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 className="font-semibold text-primary text-[15px] leading-tight tracking-tight">{loan.name}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-semibold text-primary text-[15px] leading-tight tracking-tight">{loan.name}</h3>
+              {loan.tag && (
+                <span className="text-[10px] font-semibold text-muted bg-subtle px-1.5 py-[1px] rounded-md">{loan.tag}</span>
+              )}
+            </div>
             {loan.interestRate > 0 && (
               <span className="text-[11px] text-muted">{loan.interestRate}%/mo</span>
             )}

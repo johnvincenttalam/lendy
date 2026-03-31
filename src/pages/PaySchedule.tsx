@@ -1,6 +1,6 @@
 import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import {
   isFullyPaid,
@@ -140,17 +140,9 @@ export default function PaySchedule() {
     <div className="min-h-screen bg-page transition-colors duration-300">
       <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="flex items-center gap-3 mb-4">
-            <button
-              onClick={() => navigate('/')}
-              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-            >
-              <ArrowLeft className="w-4.5 h-4.5 text-white" />
-            </button>
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
-              <p className="text-[12px] text-white/55 font-medium">Browse by pay period</p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
+            <p className="text-[12px] text-white/55 font-medium">Browse by pay period</p>
           </div>
 
           {/* Period navigator */}
@@ -195,7 +187,7 @@ export default function PaySchedule() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-8">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-28">
         {periodLoans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-card border border-themed flex items-center justify-center mb-3">

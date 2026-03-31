@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingDown, Zap, Snowflake, Clock } from 'lucide-react'
+import { TrendingDown, Zap, Snowflake, Clock } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { formatCurrency } from '../features/loans/loanUtils'
 import { simulateStrategy } from '../features/strategies/strategyUtils'
@@ -15,7 +14,6 @@ const STRATEGY_META: Record<Strategy, { label: string; desc: string; color: stri
 }
 
 export default function StrategiesPage() {
-  const navigate = useNavigate()
   const { loans } = useLoanStore()
   const [extra, setExtra] = useState(0)
 
@@ -34,17 +32,9 @@ export default function StrategiesPage() {
     <div className="min-h-screen bg-page transition-colors duration-300">
       <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="flex items-center gap-3 mb-4">
-            <button
-              onClick={() => navigate('/')}
-              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-            >
-              <ArrowLeft className="w-4.5 h-4.5 text-white" />
-            </button>
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Payment Strategies</h1>
-              <p className="text-[12px] text-white/55 font-medium">Compare payoff methods</p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Payment Strategies</h1>
+            <p className="text-[12px] text-white/55 font-medium">Compare payoff methods</p>
           </div>
 
           {/* Extra payment input */}
@@ -70,7 +60,7 @@ export default function StrategiesPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-3">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-3">
         {/* Strategy cards */}
         {(['current', 'snowball', 'avalanche'] as Strategy[]).map((strategy) => {
           const meta = STRATEGY_META[strategy]
