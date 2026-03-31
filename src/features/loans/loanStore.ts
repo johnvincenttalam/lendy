@@ -122,9 +122,37 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
 
   updateLoan: (id, data) =>
     set((state) => {
-      const loans = state.loans.map((loan) =>
-        loan.id === id ? { ...loan, ...data } : loan
-      )
+      const loans = state.loans.map((loan) => {
+        if (loan.id !== id) return loan
+        const updated = { ...loan, ...data }
+
+        // Recalculate derived fields if loan has payments and core params changed
+        if (loan.monthsPaid > 0) {
+          const coreChanged =
+            updated.monthlyPayment !== loan.monthlyPayment ||
+            updated.totalAmount !== loan.totalAmount ||
+            updated.interestRate !== loan.interestRate ||
+            updated.durationMonths !== loan.durationMonths
+
+          if (coreChanged) {
+            // Clamp monthsPaid to not exceed new duration
+            updated.monthsPaid = Math.min(updated.monthsPaid, updated.durationMonths)
+
+            // Recalculate totalPaid and totalInterestPaid from the payment schedule
+            const schedule = paymentSchedule(updated)
+            let recalcPaid = 0
+            let recalcInterest = 0
+            for (let i = 0; i < updated.monthsPaid; i++) {
+              recalcPaid += schedule[i].payment
+              recalcInterest += schedule[i].interest
+            }
+            updated.totalPaid = Math.round(recalcPaid * 100) / 100
+            updated.totalInterestPaid = Math.round(recalcInterest * 100) / 100
+          }
+        }
+
+        return updated
+      })
       saveLoans(loans)
       return { loans }
     }),
@@ -136,10 +164,15 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         if (loan.id !== id) return loan
         if (loan.monthsPaid >= loan.durationMonths) return loan
 
-        const interestPortion = monthlyInterestPortion(loan)
-        const principalPortion = monthlyPrincipalPortion(loan)
         const newMonthsPaid = loan.monthsPaid + 1
         const fullyPaid = newMonthsPaid >= loan.durationMonths
+
+        // Use scheduled amount (handles last payment rounding adjustment)
+        const schedule = paymentSchedule(loan)
+        const scheduled = schedule[loan.monthsPaid]
+        const paymentAmount = scheduled ? scheduled.payment : loan.monthlyPayment
+        const interestPortion = scheduled ? scheduled.interest : Math.round(monthlyInterestPortion(loan) * 100) / 100
+        const principalPortion = scheduled ? scheduled.principal : Math.round(monthlyPrincipalPortion(loan) * 100) / 100
 
         // Calculate scheduled due date for this payment
         const dueDate = new Date(loan.startDate)
@@ -148,7 +181,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         newRecord = {
           id: crypto.randomUUID(),
           loanId: loan.id,
-          amount: loan.monthlyPayment,
+          amount: Math.round(paymentAmount * 100) / 100,
           principal: Math.round(principalPortion * 100) / 100,
           interest: Math.round(interestPortion * 100) / 100,
           paidAt: new Date().toISOString(),
@@ -174,8 +207,8 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         return {
           ...loan,
           monthsPaid: newMonthsPaid,
-          totalPaid: loan.totalPaid + loan.monthlyPayment,
-          totalInterestPaid: loan.totalInterestPaid + interestPortion,
+          totalPaid: Math.round((loan.totalPaid + paymentAmount) * 100) / 100,
+          totalInterestPaid: Math.round((loan.totalInterestPaid + interestPortion) * 100) / 100,
         }
       })
       const payments = newRecord ? [...state.payments, newRecord] : state.payments
@@ -186,22 +219,25 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
 
   undoMarkAsPaid: (id) =>
     set((state) => {
+      // Find the last payment record for this loan first
+      const loanPayments = state.payments.filter((p) => p.loanId === id)
+      const lastPayment = loanPayments[loanPayments.length - 1]
+
       const loans = state.loans.map((loan) => {
         if (loan.id !== id) return loan
         if (loan.monthsPaid <= 0) return loan
 
-        const interestPortion = monthlyInterestPortion(loan)
+        // Use recorded amounts from PaymentRecord instead of recalculating
+        const paidAmount = lastPayment ? lastPayment.amount : loan.monthlyPayment
+        const interestAmount = lastPayment ? lastPayment.interest : Math.round(monthlyInterestPortion(loan) * 100) / 100
 
         return {
           ...loan,
           monthsPaid: loan.monthsPaid - 1,
-          totalPaid: loan.totalPaid - loan.monthlyPayment,
-          totalInterestPaid: loan.totalInterestPaid - interestPortion,
+          totalPaid: Math.round((loan.totalPaid - paidAmount) * 100) / 100,
+          totalInterestPaid: Math.round((loan.totalInterestPaid - interestAmount) * 100) / 100,
         }
       })
-      // Remove the last payment record for this loan
-      const loanPayments = state.payments.filter((p) => p.loanId === id)
-      const lastPayment = loanPayments[loanPayments.length - 1]
       const payments = lastPayment
         ? state.payments.filter((p) => p.id !== lastPayment.id)
         : state.payments

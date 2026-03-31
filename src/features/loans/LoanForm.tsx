@@ -74,6 +74,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     if (!isInstallment && interestRate !== '' && Number(interestRate) < 0) newErrors.interestRate = 'Cannot be negative'
     if (!monthlyPayment || monthly <= 0) newErrors.monthlyPayment = 'Enter a valid payment'
     if (!durationMonths || months <= 0) newErrors.durationMonths = 'Enter valid duration'
+    else if (isEdit && initial && months < initial.monthsPaid) newErrors.durationMonths = `Min ${initial.monthsPaid} (already paid)`
     if (!startDate) newErrors.startDate = 'Required'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
