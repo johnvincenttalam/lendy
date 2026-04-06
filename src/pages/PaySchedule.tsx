@@ -1,6 +1,6 @@
 import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import {
   isFullyPaid,
@@ -10,6 +10,7 @@ import {
   debtFreeDate,
 } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
+import { BRAND_GRADIENT } from '../constants/styles'
 import type { Loan } from '../features/loans/loanTypes'
 
 function getDueDay(loan: Loan): number {
@@ -138,11 +139,20 @@ export default function PaySchedule() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+      <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="mb-4">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
-            <p className="text-[12px] text-white/55 font-medium">Browse by pay period</p>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Pay Schedule</h1>
+              <p className="text-[12px] text-white/55 font-medium">Browse by pay period</p>
+            </div>
+            <button
+              onClick={() => navigate('/calendar')}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-full"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              Calendar
+            </button>
           </div>
 
           {/* Period navigator */}

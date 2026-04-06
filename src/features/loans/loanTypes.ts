@@ -12,6 +12,7 @@ export type Loan = {
   totalPaid: number
   totalInterestPaid: number
   createdAt: string
+  archived?: boolean
 }
 
 export type PaymentRecord = {

@@ -1,7 +1,8 @@
-import { useRef } from 'react'
-import { Download, Upload } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { debtToIncomeRatio, formatCurrency } from '../features/loans/loanUtils'
+import { BRAND_GRADIENT } from '../constants/styles'
 import PinSetup from '../features/lock/PinSetup'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
@@ -12,6 +13,7 @@ export default function SettingsPage() {
     exportCSV, exportBackup, importBackup,
   } = useLoanStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showIncome, setShowIncome] = useState(false)
 
   const totalMonthly = loans.reduce((sum, l) => {
     if (l.monthsPaid >= l.durationMonths) return sum
@@ -43,7 +45,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+      <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
           <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Settings</h1>
           <p className="text-[12px] text-white/55 font-medium">Manage your preferences</p>
@@ -53,17 +55,28 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4">
         {/* Income */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-          <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1.5">
-            Monthly Income (₱)
-          </label>
-          <input
-            type="number"
-            value={monthlyIncome || ''}
-            onChange={(e) => setMonthlyIncome(Number(e.target.value) || 0)}
-            placeholder="Enter monthly income"
-            className="input-field !py-2.5 text-[14px]"
-          />
-          {monthlyIncome > 0 && totalMonthly > 0 && (
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
+              Monthly Income (₱)
+            </label>
+            <button
+              onClick={() => setShowIncome(!showIncome)}
+              className="flex items-center gap-1 text-[11px] text-muted hover:text-secondary transition-colors"
+            >
+              {showIncome ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showIncome ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <div className="relative">
+            <input
+              type={showIncome ? 'number' : 'password'}
+              value={monthlyIncome || ''}
+              onChange={(e) => setMonthlyIncome(Number(e.target.value) || 0)}
+              placeholder="Enter monthly income"
+              className="input-field !py-2.5 text-[14px]"
+            />
+          </div>
+          {monthlyIncome > 0 && totalMonthly > 0 && showIncome && (
             <p className="text-[11px] text-muted mt-1">
               {Math.round(debtToIncomeRatio(loans, monthlyIncome) * 100)}% of income goes to loans
               {' '}({formatCurrency(monthlyIncome - totalMonthly)} remaining)
@@ -80,6 +93,9 @@ export default function SettingsPage() {
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <PinSetup />
         </div>
+
+        {/* Storage */}
+        <StorageUsage />
 
         {/* Data */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
@@ -133,4 +149,59 @@ function downloadFile(content: string, filename: string, type: string) {
 
 function dateSuffix() {
   return new Date().toISOString().split('T')[0]
+}
+
+function StorageUsage() {
+  const [storage, setStorage] = useState({ used: 0, limit: 5 * 1024 * 1024 })
+
+  useEffect(() => {
+    const calculateUsage = () => {
+      let total = 0
+      for (const key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          total += localStorage.getItem(key)?.length || 0
+          total += key.length
+        }
+      }
+      // Characters are stored as UTF-16 (2 bytes each)
+      return total * 2
+    }
+    setStorage({ used: calculateUsage(), limit: 5 * 1024 * 1024 })
+  }, [])
+
+  const usedKB = (storage.used / 1024).toFixed(2)
+  const limitMB = (storage.limit / 1024 / 1024).toFixed(0)
+  const percentage = Math.min((storage.used / storage.limit) * 100, 100)
+
+  const getBarColor = () => {
+    if (percentage >= 90) return 'bg-red-500'
+    if (percentage >= 70) return 'bg-yellow-500'
+    return 'bg-[#E8541E]'
+  }
+
+  return (
+    <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
+      <div className="flex items-center gap-2 mb-3">
+        <HardDrive className="w-4 h-4 text-muted" />
+        <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Storage</p>
+      </div>
+      <div className="space-y-2">
+        <div className="h-2 bg-subtle rounded-full overflow-hidden">
+          <div
+            className={`h-full ${getBarColor()} transition-all duration-300 rounded-full`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[11px] text-muted">
+          <span>{usedKB} KB used</span>
+          <span>{limitMB} MB limit</span>
+        </div>
+        {percentage >= 80 && (
+          <p className="text-[11px] text-yellow-600 dark:text-yellow-400">
+            Storage is getting full. Consider exporting and clearing old data.
+          </p>
+        )}
+      </div>
+    </div>
+  )
 }

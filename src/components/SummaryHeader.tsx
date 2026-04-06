@@ -1,5 +1,6 @@
-import { Wallet, CreditCard, CalendarCheck, TrendingUp } from 'lucide-react'
+import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '../features/loans/loanUtils'
+import { BRAND_GRADIENT } from '../constants/styles'
 import ThemeToggle from './ThemeToggle'
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   debtFreeDate: Date | null
   debtToIncome: number
   hasIncome: boolean
+  overdueCount?: number
+  overdueAmount?: number
 }
 
 export default function SummaryHeader({
@@ -20,6 +23,8 @@ export default function SummaryHeader({
   debtFreeDate,
   debtToIncome,
   hasIncome,
+  overdueCount = 0,
+  overdueAmount = 0,
 }: Props) {
   const dtiPercent = Math.round(debtToIncome * 100)
   const dtiColor =
@@ -28,7 +33,7 @@ export default function SummaryHeader({
   return (
     <div
       className="relative transition-colors duration-300"
-      style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}
+      style={{ background: BRAND_GRADIENT }}
     >
       {/* Subtle pattern overlay */}
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
@@ -46,6 +51,22 @@ export default function SummaryHeader({
           </div>
           <ThemeToggle />
         </div>
+
+        {overdueCount > 0 && (
+          <div className="mb-4 rounded-xl bg-red-500/90 backdrop-blur-sm border border-red-400/30 p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-white">
+                {overdueCount} overdue {overdueCount === 1 ? 'payment' : 'payments'}
+              </p>
+              <p className="text-[11px] text-white/70">
+                {formatCurrency(overdueAmount)} total due
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">

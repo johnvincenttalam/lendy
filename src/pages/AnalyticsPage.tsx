@@ -10,6 +10,7 @@ import {
 } from '../features/loans/loanUtils'
 import type { Loan } from '../features/loans/loanTypes'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
+import { BRAND_GRADIENT } from '../constants/styles'
 
 function computePaymentStreak(loans: Loan[]): number {
   // Streak = sum of consecutive paid months from latest across all active loans
@@ -130,7 +131,7 @@ export default function AnalyticsPage() {
   if (loans.length === 0) {
     return (
       <div className="min-h-screen bg-page transition-colors duration-300">
-        <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+        <div style={{ background: BRAND_GRADIENT }}>
           <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate('/')} className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity">
@@ -151,7 +152,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+      <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={() => navigate('/')} className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity">

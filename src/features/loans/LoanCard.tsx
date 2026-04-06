@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, AlertTriangle } from 'lucide-react'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
 import {
@@ -8,6 +8,8 @@ import {
   progressPercent,
   formatCurrency,
   isFullyPaid,
+  isOverdue,
+  daysOverdue,
 } from './loanUtils'
 
 type Props = { loan: Loan }
@@ -18,6 +20,8 @@ export default function LoanCard({ loan }: Props) {
   const remaining = remainingBalance(loan)
   const left = monthsLeft(loan)
   const paid = isFullyPaid(loan)
+  const overdue = isOverdue(loan)
+  const overdueDays = daysOverdue(loan)
   const color = loan.color || DEFAULT_COLOR
 
   return (
@@ -47,6 +51,12 @@ export default function LoanCard({ loan }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          {overdue && (
+            <span className="text-[11px] font-semibold bg-red-500/10 text-red-500 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              {overdueDays}d overdue
+            </span>
+          )}
           {paid && (
             <span className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full">
               Paid

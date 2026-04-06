@@ -85,6 +85,8 @@ type LoanStore = {
   markAsPaid: (id: string) => void
   undoMarkAsPaid: (id: string) => void
   deleteLoan: (id: string) => void
+  archiveLoan: (id: string) => void
+  unarchiveLoan: (id: string) => void
   getPaymentsForLoan: (loanId: string) => PaymentRecord[]
   setMonthlyIncome: (income: number) => void
   setSortBy: (sort: SortOption) => void
@@ -256,6 +258,28 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       savePayments(payments)
       if (loan) showToast(`"${loan.name}" deleted`)
       return { loans, payments }
+    }),
+
+  archiveLoan: (id) =>
+    set((state) => {
+      const loans = state.loans.map((l) =>
+        l.id === id ? { ...l, archived: true } : l
+      )
+      saveLoans(loans)
+      const loan = loans.find((l) => l.id === id)
+      if (loan) showToast(`"${loan.name}" archived`)
+      return { loans }
+    }),
+
+  unarchiveLoan: (id) =>
+    set((state) => {
+      const loans = state.loans.map((l) =>
+        l.id === id ? { ...l, archived: false } : l
+      )
+      saveLoans(loans)
+      const loan = loans.find((l) => l.id === id)
+      if (loan) showToast(`"${loan.name}" restored`)
+      return { loans }
     }),
 
   getPaymentsForLoan: (loanId) => {

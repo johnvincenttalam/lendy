@@ -187,3 +187,62 @@ export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number 
     .reduce((sum, l) => sum + l.monthlyPayment, 0)
   return totalMonthly / monthlyIncome
 }
+
+// --- Overdue detection ---
+
+/**
+ * Get the next unpaid payment's due date for a loan
+ */
+export function nextDueDate(loan: Loan): Date | null {
+  if (isFullyPaid(loan)) return null
+  const schedule = paymentSchedule(loan)
+  const nextPayment = schedule[loan.monthsPaid]
+  return nextPayment?.date ?? null
+}
+
+/**
+ * Check if a loan has an overdue payment (due date has passed and not paid)
+ */
+export function isOverdue(loan: Loan): boolean {
+  if (isFullyPaid(loan) || loan.archived) return false
+  const dueDate = nextDueDate(loan)
+  if (!dueDate) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(dueDate)
+  due.setHours(0, 0, 0, 0)
+
+  return due < today
+}
+
+/**
+ * Get the number of days a payment is overdue (0 if not overdue)
+ */
+export function daysOverdue(loan: Loan): number {
+  if (!isOverdue(loan)) return 0
+  const dueDate = nextDueDate(loan)
+  if (!dueDate) return 0
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(dueDate)
+  due.setHours(0, 0, 0, 0)
+
+  const diffTime = today.getTime() - due.getTime()
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * Get all overdue loans from a list
+ */
+export function getOverdueLoans(loans: Loan[]): Loan[] {
+  return loans.filter((l) => !l.archived && isOverdue(l))
+}
+
+/**
+ * Get total overdue amount across all loans
+ */
+export function totalOverdueAmount(loans: Loan[]): number {
+  return getOverdueLoans(loans).reduce((sum, l) => sum + l.monthlyPayment, 0)
+}

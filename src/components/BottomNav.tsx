@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Calendar, TrendingDown, Settings, Plus } from 'lucide-react'
+import { Home, CalendarDays, TrendingDown, Settings, Plus } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/schedule', icon: Calendar, label: 'Schedule' },
+  { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { path: '__add__', icon: Plus, label: 'Add' },
   { path: '/strategies', icon: TrendingDown, label: 'Strategies' },
   { path: '/settings', icon: Settings, label: 'Settings' },

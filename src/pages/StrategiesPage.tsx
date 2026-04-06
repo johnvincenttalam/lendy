@@ -3,6 +3,7 @@ import { TrendingDown, Zap, Snowflake, Clock } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { formatCurrency } from '../features/loans/loanUtils'
 import { simulateStrategy } from '../features/strategies/strategyUtils'
+import { BRAND_GRADIENT } from '../constants/styles'
 import type { StrategyResult } from '../features/strategies/strategyUtils'
 
 type Strategy = 'current' | 'snowball' | 'avalanche'
@@ -30,7 +31,7 @@ export default function StrategiesPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: 'linear-gradient(135deg, #E8541E 0%, #F3622D 40%, #F87E54 100%)' }}>
+      <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
           <div className="mb-4">
             <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Payment Strategies</h1>

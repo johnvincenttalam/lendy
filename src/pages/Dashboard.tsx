@@ -1,18 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, PieChart,
+  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, PieChart, Archive,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
-  totalInterestAllLoans, debtToIncomeRatio,
+  totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
 import DebtChart from '../components/DebtChart'
 import LoanCard from '../features/loans/LoanCard'
+import { useSettings } from '../hooks/useSettings'
 
-type Filter = 'all' | 'active' | 'paid'
+type Filter = 'all' | 'active' | 'paid' | 'archived'
 
 const SORT_LABELS: Record<SortOption, string> = {
   'newest': 'Newest',
@@ -29,14 +30,24 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
-  const [showChart, setShowChart] = useState(true)
+  const { showChart, setShowChart } = useSettings()
   const navigate = useNavigate()
 
-  const totalDebt = loans.reduce((sum, l) => sum + remainingBalance(l), 0)
-  const totalMonthly = loans.reduce((sum, l) => {
-    if (l.monthsPaid >= l.durationMonths) return sum
-    return sum + l.monthlyPayment
-  }, 0)
+  // Memoized derived state
+  const { activeLoans, archivedLoans } = useMemo(() => ({
+    activeLoans: loans.filter((l) => !l.archived),
+    archivedLoans: loans.filter((l) => l.archived),
+  }), [loans])
+
+  const { totalDebt, totalMonthly, overdueLoans, overdueAmount } = useMemo(() => ({
+    totalDebt: activeLoans.reduce((sum, l) => sum + remainingBalance(l), 0),
+    totalMonthly: activeLoans.reduce((sum, l) => {
+      if (l.monthsPaid >= l.durationMonths) return sum
+      return sum + l.monthlyPayment
+    }, 0),
+    overdueLoans: getOverdueLoans(activeLoans),
+    overdueAmount: totalOverdueAmount(activeLoans),
+  }), [activeLoans])
 
   const tags = useMemo(() => {
     const set = new Set<string>()
@@ -47,8 +58,15 @@ export default function Dashboard() {
   const filtered = useMemo(() => {
     let result = [...loans]
 
-    if (filter === 'active') result = result.filter((l) => !isFullyPaid(l))
-    if (filter === 'paid') result = result.filter((l) => isFullyPaid(l))
+    // Handle archived filter separately
+    if (filter === 'archived') {
+      result = result.filter((l) => l.archived)
+    } else {
+      // For all other filters, exclude archived loans
+      result = result.filter((l) => !l.archived)
+      if (filter === 'active') result = result.filter((l) => !isFullyPaid(l))
+      if (filter === 'paid') result = result.filter((l) => isFullyPaid(l))
+    }
 
     if (tagFilter) result = result.filter((l) => l.tag === tagFilter)
 
@@ -72,8 +90,11 @@ export default function Dashboard() {
     return result
   }, [loans, filter, tagFilter, search, sortBy])
 
-  const activeCount = loans.filter((l) => !isFullyPaid(l)).length
-  const paidCount = loans.filter((l) => isFullyPaid(l)).length
+  const { activeCount, paidCount, archivedCount } = useMemo(() => ({
+    activeCount: activeLoans.filter((l) => !isFullyPaid(l)).length,
+    paidCount: activeLoans.filter((l) => isFullyPaid(l)).length,
+    archivedCount: archivedLoans.length,
+  }), [activeLoans, archivedLoans])
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -81,10 +102,12 @@ export default function Dashboard() {
         totalDebt={totalDebt}
         totalMonthly={totalMonthly}
         loanCount={activeCount}
-        totalInterest={totalInterestAllLoans(loans)}
-        debtFreeDate={debtFreeDate(loans)}
-        debtToIncome={debtToIncomeRatio(loans, monthlyIncome)}
+        totalInterest={totalInterestAllLoans(activeLoans)}
+        debtFreeDate={debtFreeDate(activeLoans)}
+        debtToIncome={debtToIncomeRatio(activeLoans, monthlyIncome)}
         hasIncome={monthlyIncome > 0}
+        overdueCount={overdueLoans.length}
+        overdueAmount={overdueAmount}
       />
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
@@ -133,16 +156,16 @@ export default function Dashboard() {
 
             {/* Filters + Sort */}
             <div className="flex items-center justify-between">
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 overflow-x-auto">
                 {([
-                  ['all', `All (${loans.length})`],
+                  ['all', `All (${activeLoans.length})`],
                   ['active', `Active (${activeCount})`],
                   ['paid', `Paid (${paidCount})`],
                 ] as [Filter, string][]).map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => setFilter(key)}
-                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
+                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${
                       filter === key
                         ? 'bg-brand text-white'
                         : 'bg-subtle text-secondary hover:opacity-80'
@@ -151,6 +174,19 @@ export default function Dashboard() {
                     {label}
                   </button>
                 ))}
+                {archivedCount > 0 && (
+                  <button
+                    onClick={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
+                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex items-center gap-1 ${
+                      filter === 'archived'
+                        ? 'bg-brand text-white'
+                        : 'bg-subtle text-secondary hover:opacity-80'
+                    }`}
+                  >
+                    <Archive className="w-3 h-3" />
+                    {archivedCount}
+                  </button>
+                )}
               </div>
 
               {/* Sort dropdown */}

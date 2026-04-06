@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import {
   ArrowLeft, Trash2, CheckCircle, Calendar, DollarSign,
-  Clock, TrendingUp, PiggyBank, CircleDot, Pencil, Undo2,
+  Clock, TrendingUp, PiggyBank, CircleDot, Pencil, Undo2, Archive, ArchiveRestore,
+  AlertTriangle,
 } from 'lucide-react'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
@@ -18,6 +19,9 @@ import {
   totalCostOfLoan,
   interestPaidSoFar,
   interestRemaining,
+  isOverdue,
+  daysOverdue,
+  nextDueDate,
 } from './loanUtils'
 import { useLoanStore } from './loanStore'
 import LoanForm from './LoanForm'
@@ -32,11 +36,13 @@ type Props = {
 }
 
 export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Props) {
-  const [showConfirm, setShowConfirm] = useState<'pay' | 'delete' | 'undo' | null>(null)
+  const [showConfirm, setShowConfirm] = useState<'pay' | 'delete' | 'undo' | 'archive' | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   useBodyScrollLock(showConfirm !== null || showEdit)
   const updateLoan = useLoanStore((s) => s.updateLoan)
   const undoMarkAsPaid = useLoanStore((s) => s.undoMarkAsPaid)
+  const archiveLoan = useLoanStore((s) => s.archiveLoan)
+  const unarchiveLoan = useLoanStore((s) => s.unarchiveLoan)
   const pct = progressPercent(loan)
   const remPrincipal = remainingPrincipal(loan)
   const remBalance = remainingBalance(loan)
@@ -46,6 +52,9 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const schedule = paymentSchedule(loan)
   const hasInterest = loan.interestRate > 0
   const color = loan.color || DEFAULT_COLOR
+  const overdue = isOverdue(loan)
+  const overdueDays = daysOverdue(loan)
+  const dueDateValue = nextDueDate(loan)
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -65,7 +74,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             <h1 className="font-semibold text-primary text-[16px] tracking-tight">{loan.name}</h1>
           </div>
           <div className="flex items-center gap-1.5">
-            {loan.monthsPaid > 0 && (
+            {loan.monthsPaid > 0 && !loan.archived && (
               <button
                 onClick={() => setShowConfirm('undo')}
                 className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
@@ -81,6 +90,17 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
               <Pencil className="w-[18px] h-[18px] text-secondary" />
             </button>
             <button
+              onClick={() => setShowConfirm('archive')}
+              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
+              title={loan.archived ? 'Restore loan' : 'Archive loan'}
+            >
+              {loan.archived ? (
+                <ArchiveRestore className="w-[18px] h-[18px] text-amber-500" />
+              ) : (
+                <Archive className="w-[18px] h-[18px] text-secondary" />
+              )}
+            </button>
+            <button
               onClick={() => setShowConfirm('delete')}
               className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
             >
@@ -93,6 +113,22 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-4">
         {/* Hero balance */}
         <div className="bg-card rounded-2xl border border-themed transition-colors overflow-hidden">
+          {loan.archived && (
+            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider text-center py-2 border-b border-amber-500/20">
+              Archived
+            </div>
+          )}
+          {overdue && (
+            <div className="bg-red-500/10 text-red-500 text-[12px] font-semibold text-center py-2.5 border-b border-red-500/20 flex items-center justify-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <span>
+                Payment overdue by {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
+                {dueDateValue && (
+                  <span className="text-red-400 font-normal"> (due {dueDateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
+                )}
+              </span>
+            </div>
+          )}
           <div className="px-4 pt-6 pb-4 text-center">
             <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Remaining Balance</p>
             <p className="text-[36px] font-bold text-primary tracking-tighter leading-none">{formatCurrency(remBalance)}</p>
@@ -266,11 +302,11 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
         <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">
-              {showConfirm === 'pay' ? 'Confirm Payment' : showConfirm === 'undo' ? 'Undo Payment' : 'Delete Loan'}
+              {showConfirm === 'pay' ? 'Confirm Payment' : showConfirm === 'undo' ? 'Undo Payment' : showConfirm === 'archive' ? (loan.archived ? 'Restore Loan' : 'Archive Loan') : 'Delete Loan'}
             </h3>
             {showConfirm === 'pay' ? (
               <div className="text-[13px] text-secondary mb-6 space-y-1">
-                <p>Mark payment {loan.monthsPaid + 1}/{loan.durationMonths} of {formatCurrency(loan.monthlyPayment)} as paid?</p>
+                <p>Mark payment {loan.monthsPaid + 1}/{loan.durationMonths} of {formatCurrency(schedule[loan.monthsPaid]?.payment ?? loan.monthlyPayment)} as paid?</p>
                 {hasInterest && schedule[loan.monthsPaid] && (
                   <p className="text-[12px] text-muted">
                     {formatCurrency(schedule[loan.monthsPaid].principal)} principal + {formatCurrency(schedule[loan.monthsPaid].interest)} interest
@@ -280,6 +316,12 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             ) : showConfirm === 'undo' ? (
               <p className="text-[13px] text-secondary mb-6">
                 Undo payment {loan.monthsPaid}/{loan.durationMonths}? This will revert the last recorded payment.
+              </p>
+            ) : showConfirm === 'archive' ? (
+              <p className="text-[13px] text-secondary mb-6">
+                {loan.archived
+                  ? `Restore "${loan.name}"? It will appear in your active loans again.`
+                  : `Archive "${loan.name}"? It will be hidden from your dashboard but can be restored later.`}
               </p>
             ) : (
               <p className="text-[13px] text-secondary mb-6">
@@ -299,16 +341,22 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                   else if (showConfirm === 'undo') {
                     undoMarkAsPaid(loan.id)
                     showToast('Payment reverted')
-                  }
-                  else onDelete()
+                  } else if (showConfirm === 'archive') {
+                    if (loan.archived) {
+                      unarchiveLoan(loan.id)
+                    } else {
+                      archiveLoan(loan.id)
+                      onBack()
+                    }
+                  } else onDelete()
                   setShowConfirm(null)
                 }}
                 className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
                 style={{
-                  backgroundColor: showConfirm === 'pay' ? color : showConfirm === 'undo' ? '#F59E0B' : '#EF4444',
+                  backgroundColor: showConfirm === 'pay' ? color : showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#6366F1' : '#EF4444',
                 }}
               >
-                {showConfirm === 'pay' ? 'Confirm' : showConfirm === 'undo' ? 'Undo' : 'Delete'}
+                {showConfirm === 'pay' ? 'Confirm' : showConfirm === 'undo' ? 'Undo' : showConfirm === 'archive' ? (loan.archived ? 'Restore' : 'Archive') : 'Delete'}
               </button>
             </div>
           </div>
