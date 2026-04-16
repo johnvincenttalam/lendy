@@ -66,14 +66,14 @@ export function useNotificationCheck() {
       if (overdue) {
         new Notification(`Overdue: ${loan.name}`, {
           body: `${formatCurrency(loan.monthlyPayment)} was due ${overdueDays} ${overdueDays === 1 ? 'day' : 'days'} ago`,
-          icon: '/lendy/icon-192.png',
+          icon: `${import.meta.env.BASE_URL}icon-192.png`,
           tag: `overdue-${loan.id}`,
         })
       } else {
         const when = daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`
         new Notification(`Payment due ${when}: ${loan.name}`, {
           body: `${formatCurrency(loan.monthlyPayment)} due ${when}`,
-          icon: '/lendy/icon-192.png',
+          icon: `${import.meta.env.BASE_URL}icon-192.png`,
           tag: `upcoming-${loan.id}`,
         })
       }

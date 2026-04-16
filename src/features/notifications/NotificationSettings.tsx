@@ -52,7 +52,7 @@ export default function NotificationSettings() {
     }
     new Notification('Test Reminder', {
       body: 'Your payment reminders are working!',
-      icon: '/lendy/icon-192.png',
+      icon: `${import.meta.env.BASE_URL}icon-192.png`,
     })
     showToast('Test notification sent')
   }
