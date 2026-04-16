@@ -34,12 +34,18 @@ export function paymentSchedule(loan: Loan): PaymentBreakdown[] {
       ? totalCostOfLoan(loan) - loan.monthlyPayment * (loan.durationMonths - 1)
       : loan.monthlyPayment
 
+    const roundedPayment = Math.round(payment * 100) / 100
+    const roundedInterest = Math.round(interestPerMonth * 100) / 100
+    const principal = isLast
+      ? Math.round((roundedPayment - roundedInterest) * 100) / 100
+      : Math.round(principalPerMonth * 100) / 100
+
     schedule.push({
       month: i + 1,
       date: payDate,
-      payment: Math.round(payment * 100) / 100,
-      principal: Math.round(principalPerMonth * 100) / 100,
-      interest: Math.round(interestPerMonth * 100) / 100,
+      payment: roundedPayment,
+      principal,
+      interest: roundedInterest,
     })
   }
 
@@ -47,6 +53,7 @@ export function paymentSchedule(loan: Loan): PaymentBreakdown[] {
 }
 
 export function remainingBalance(loan: Loan): number {
+  if (isFullyPaid(loan)) return 0
   const totalCost = totalCostOfLoan(loan)
   return Math.max(0, totalCost - loan.totalPaid)
 }

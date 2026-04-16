@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Flame, Target, TrendingDown, DollarSign, AlertTriangle,
+  Flame, Target, TrendingDown, DollarSign, AlertTriangle,
 } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import {
@@ -133,12 +133,7 @@ export default function AnalyticsPage() {
       <div className="min-h-screen bg-page transition-colors duration-300">
         <div style={{ background: BRAND_GRADIENT }}>
           <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate('/')} className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity">
-                <ArrowLeft className="w-[18px] h-[18px] text-white" />
-              </button>
-              <h1 className="text-[22px] font-bold text-white tracking-tight">Analytics</h1>
-            </div>
+            <h1 className="text-[22px] font-bold text-white tracking-tight">Analytics</h1>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-20 px-4">
@@ -154,14 +149,9 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => navigate('/')} className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity">
-              <ArrowLeft className="w-[18px] h-[18px] text-white" />
-            </button>
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Analytics</h1>
-              <p className="text-[12px] text-white/55 font-medium">Smart insights on your loans</p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Analytics</h1>
+            <p className="text-[12px] text-white/55 font-medium">Smart insights on your loans</p>
           </div>
 
           {/* Payment streak */}
@@ -181,7 +171,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4">
         {/* Debt-free countdown */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <div className="flex items-center gap-2.5 mb-4">

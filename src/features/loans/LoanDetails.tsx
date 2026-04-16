@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   ArrowLeft, Trash2, CheckCircle, Calendar, DollarSign,
   Clock, TrendingUp, PiggyBank, CircleDot, Pencil, Undo2, Archive, ArchiveRestore,
-  AlertTriangle,
+  AlertTriangle, MoreVertical,
 } from 'lucide-react'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan } from './loanTypes'
@@ -38,6 +38,7 @@ type Props = {
 export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Props) {
   const [showConfirm, setShowConfirm] = useState<'pay' | 'delete' | 'undo' | 'archive' | null>(null)
   const [showEdit, setShowEdit] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   useBodyScrollLock(showConfirm !== null || showEdit)
   const updateLoan = useLoanStore((s) => s.updateLoan)
   const undoMarkAsPaid = useLoanStore((s) => s.undoMarkAsPaid)
@@ -60,52 +61,83 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
     <div className="min-h-screen bg-page transition-colors duration-300">
       {/* Header */}
       <div className="bg-header backdrop-blur-header border-b border-themed sticky top-0 z-10 transition-colors duration-300">
-        <div className="max-w-2xl mx-auto flex items-center justify-between px-4 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <button onClick={onBack} className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2 px-4 py-3.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <button onClick={onBack} className="w-9 h-9 flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity">
               <ArrowLeft className="w-[18px] h-[18px] text-secondary" />
             </button>
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold text-white"
+              className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-[12px] font-bold text-white"
               style={{ backgroundColor: color }}
             >
               {loan.name.charAt(0).toUpperCase()}
             </div>
-            <h1 className="font-semibold text-primary text-[16px] tracking-tight">{loan.name}</h1>
+            <h1 className="font-semibold text-primary text-[16px] tracking-tight truncate">{loan.name}</h1>
           </div>
-          <div className="flex items-center gap-1.5">
-            {loan.monthsPaid > 0 && !loan.archived && (
-              <button
-                onClick={() => setShowConfirm('undo')}
-                className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-                title="Undo last payment"
-              >
-                <Undo2 className="w-[18px] h-[18px] text-secondary" />
-              </button>
+          <div className="flex items-center flex-shrink-0 relative">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
+              title="More actions"
+              aria-haspopup="menu"
+              aria-expanded={showMenu}
+            >
+              <MoreVertical className="w-[18px] h-[18px] text-secondary" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-11 bg-card border border-themed rounded-xl z-40 py-1 min-w-[180px] shadow-lg animate-scale-in"
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => { setShowMenu(false); setShowEdit(true) }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-secondary hover:bg-subtle transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </button>
+                  {loan.monthsPaid > 0 && !loan.archived && (
+                    <button
+                      role="menuitem"
+                      onClick={() => { setShowMenu(false); setShowConfirm('undo') }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-secondary hover:bg-subtle transition-colors"
+                    >
+                      <Undo2 className="w-4 h-4" />
+                      Undo last payment
+                    </button>
+                  )}
+                  <button
+                    role="menuitem"
+                    onClick={() => { setShowMenu(false); setShowConfirm('archive') }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-secondary hover:bg-subtle transition-colors"
+                  >
+                    {loan.archived ? (
+                      <>
+                        <ArchiveRestore className="w-4 h-4 text-amber-500" />
+                        Restore loan
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-4 h-4" />
+                        Archive loan
+                      </>
+                    )}
+                  </button>
+                  <div className="my-1 border-t border-themed" />
+                  <button
+                    role="menuitem"
+                    onClick={() => { setShowMenu(false); setShowConfirm('delete') }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-red-500 dark:text-red-400 hover:bg-subtle transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete loan
+                  </button>
+                </div>
+              </>
             )}
-            <button
-              onClick={() => setShowEdit(true)}
-              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-            >
-              <Pencil className="w-[18px] h-[18px] text-secondary" />
-            </button>
-            <button
-              onClick={() => setShowConfirm('archive')}
-              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-              title={loan.archived ? 'Restore loan' : 'Archive loan'}
-            >
-              {loan.archived ? (
-                <ArchiveRestore className="w-[18px] h-[18px] text-amber-500" />
-              ) : (
-                <Archive className="w-[18px] h-[18px] text-secondary" />
-              )}
-            </button>
-            <button
-              onClick={() => setShowConfirm('delete')}
-              className="w-9 h-9 flex items-center justify-center hover:opacity-60 transition-opacity"
-            >
-              <Trash2 className="w-[18px] h-[18px] text-red-500 dark:text-red-400" />
-            </button>
           </div>
         </div>
       </div>

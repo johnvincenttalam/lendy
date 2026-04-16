@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
-  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, PieChart, Archive,
+  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, Archive,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -31,7 +30,6 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<Filter>('all')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const { showChart, setShowChart } = useSettings()
-  const navigate = useNavigate()
 
   // Memoized derived state
   const { activeLoans, archivedLoans } = useMemo(() => ({
@@ -113,20 +111,13 @@ export default function Dashboard() {
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
         {activeCount > 0 && (
           <div className="mb-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2">
               <button
                 onClick={() => setShowChart(!showChart)}
                 className="flex items-center gap-1.5 text-[11px] font-semibold text-muted hover:text-secondary transition-colors uppercase tracking-wider"
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 {showChart ? 'Hide Chart' : 'Show Chart'}
-              </button>
-              <button
-                onClick={() => navigate('/analytics')}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-brand hover:opacity-70 transition-opacity uppercase tracking-wider"
-              >
-                <PieChart className="w-3.5 h-3.5" />
-                Analytics
               </button>
             </div>
             {showChart && <DebtChart loans={loans} />}
@@ -155,8 +146,8 @@ export default function Dashboard() {
             </div>
 
             {/* Filters + Sort */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1.5 overflow-x-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex gap-1.5 overflow-x-auto flex-1 min-w-0">
                 {([
                   ['all', `All (${activeLoans.length})`],
                   ['active', `Active (${activeCount})`],
@@ -190,7 +181,7 @@ export default function Dashboard() {
               </div>
 
               {/* Sort dropdown */}
-              <div className="relative">
+              <div className="relative flex-shrink-0 self-end sm:self-auto">
                 <button
                   onClick={() => setShowSort(!showSort)}
                   className="flex items-center gap-1 text-[12px] font-semibold text-secondary bg-subtle px-2.5 py-1.5 rounded-full hover:opacity-80 transition-opacity"

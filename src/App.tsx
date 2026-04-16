@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import LoanDetailsPage from './pages/LoanDetailsPage'
 import PaySchedule from './pages/PaySchedule'
-import StrategiesPage from './pages/StrategiesPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/CalendarPage'
@@ -45,7 +44,6 @@ function AppContent() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/loan/:id" element={<LoanDetailsPage />} />
         <Route path="/schedule" element={<PaySchedule />} />
-        <Route path="/strategies" element={<StrategiesPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/settings" element={<SettingsPage />} />

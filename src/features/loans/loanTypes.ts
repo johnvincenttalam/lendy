@@ -44,15 +44,13 @@ export const DEFAULT_COLOR = '#F3622D'
 
 export const LOAN_COLORS = [
   DEFAULT_COLOR, // brand orange
-  '#3B82F6', // blue
-  '#8B5CF6', // purple
-  '#EC4899', // pink
-  '#10B981', // emerald
-  '#F59E0B', // amber
-  '#06B6D4', // cyan
   '#EF4444', // red
-  '#6366F1', // indigo
-  '#14B8A6', // teal
-  '#F97316', // orange
+  '#EC4899', // pink
+  '#A855F7', // violet
+  '#3B82F6', // blue
+  '#06B6D4', // cyan
+  '#10B981', // emerald
   '#84CC16', // lime
+  '#F59E0B', // amber
+  '#64748B', // slate
 ]

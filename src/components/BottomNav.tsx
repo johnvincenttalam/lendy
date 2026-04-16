@@ -1,11 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, CalendarDays, TrendingDown, Settings, Plus } from 'lucide-react'
+import { Home, CalendarDays, BarChart3, Settings, Plus } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { path: '__add__', icon: Plus, label: 'Add' },
-  { path: '/strategies', icon: TrendingDown, label: 'Strategies' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ] as const
 
@@ -14,7 +14,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   const navigate = useNavigate()
 
   // Hide on detail pages
-  const hiddenPaths = ['/loan/', '/analytics']
+  const hiddenPaths = ['/loan/']
   if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return null
 
   return (
