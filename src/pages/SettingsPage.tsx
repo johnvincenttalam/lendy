@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { debtToIncomeRatio, formatCurrency } from '../features/loans/loanUtils'
@@ -6,6 +6,9 @@ import { BRAND_GRADIENT } from '../constants/styles'
 import PinSetup from '../features/lock/PinSetup'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
+
+type PendingImport = { json: string; incomingCount: number }
 
 export default function SettingsPage() {
   const {
@@ -14,6 +17,9 @@ export default function SettingsPage() {
   } = useLoanStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+
+  useBodyScrollLock(pendingImport !== null)
 
   const totalMonthly = loans.reduce((sum, l) => {
     if (l.monthsPaid >= l.durationMonths) return sum
@@ -26,9 +32,22 @@ export default function SettingsPage() {
     showToast('CSV exported')
   }
 
-  function handleExportBackup() {
+  async function handleExportBackup() {
     const json = exportBackup()
-    downloadFile(json, `lendy-backup-${dateSuffix()}.json`, 'application/json')
+    const filename = `lendy-backup-${dateSuffix()}.json`
+    const file = new File([json], filename, { type: 'application/json' })
+
+    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Lendy backup' })
+        showToast('Backup shared')
+        return
+      } catch (err) {
+        if ((err as DOMException).name === 'AbortError') return
+      }
+    }
+
+    downloadFile(json, filename, 'application/json')
     showToast('Backup saved')
   }
 
@@ -37,10 +56,27 @@ export default function SettingsPage() {
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
-      importBackup(reader.result as string)
+      const json = reader.result as string
+      try {
+        const data = JSON.parse(json)
+        if (!Array.isArray(data.loans)) {
+          showToast('Invalid backup file')
+          return
+        }
+        setPendingImport({ json, incomingCount: data.loans.length })
+      } catch {
+        showToast('Invalid backup file')
+      }
     }
     reader.readAsText(file)
     e.target.value = ''
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return
+    const ok = importBackup(pendingImport.json)
+    if (!ok) showToast('Failed to restore backup')
+    setPendingImport(null)
   }
 
   return (
@@ -133,6 +169,34 @@ export default function SettingsPage() {
         onChange={handleImportBackup}
         className="hidden"
       />
+
+      {pendingImport && (
+        <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
+          <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
+            <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
+            <p className="text-[13px] text-secondary mb-6">
+              {loans.length > 0
+                ? `This will replace your ${loans.length} existing ${loans.length === 1 ? 'loan' : 'loans'} with ${pendingImport.incomingCount} from the backup. This cannot be undone.`
+                : `Import ${pendingImport.incomingCount} ${pendingImport.incomingCount === 1 ? 'loan' : 'loans'} from the backup?`}
+            </p>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setPendingImport(null)}
+                className="flex-1 py-3 rounded-xl bg-subtle text-secondary font-semibold text-[14px] hover:opacity-80 transition-opacity"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmImport}
+                className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: loans.length > 0 ? '#EF4444' : '#6366F1' }}
+              >
+                {loans.length > 0 ? 'Replace' : 'Restore'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -151,23 +215,20 @@ function dateSuffix() {
   return new Date().toISOString().split('T')[0]
 }
 
-function StorageUsage() {
-  const [storage, setStorage] = useState({ used: 0, limit: 5 * 1024 * 1024 })
-
-  useEffect(() => {
-    const calculateUsage = () => {
-      let total = 0
-      for (const key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          total += localStorage.getItem(key)?.length || 0
-          total += key.length
-        }
-      }
-      // Characters are stored as UTF-16 (2 bytes each)
-      return total * 2
+function calculateStorageUsage() {
+  let total = 0
+  for (const key in localStorage) {
+    if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
+      total += localStorage.getItem(key)?.length || 0
+      total += key.length
     }
-    setStorage({ used: calculateUsage(), limit: 5 * 1024 * 1024 })
-  }, [])
+  }
+  // Characters are stored as UTF-16 (2 bytes each)
+  return total * 2
+}
+
+function StorageUsage() {
+  const [storage] = useState(() => ({ used: calculateStorageUsage(), limit: 5 * 1024 * 1024 }))
 
   const usedKB = (storage.used / 1024).toFixed(2)
   const limitMB = (storage.limit / 1024 / 1024).toFixed(0)

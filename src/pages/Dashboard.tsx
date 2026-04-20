@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  Receipt, Search, X, ArrowUpDown, ChevronDown, BarChart3, Archive,
+  Receipt, Search, X, ArrowUpDown, ChevronDown, Archive,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -8,9 +8,7 @@ import {
   totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
-import DebtChart from '../components/DebtChart'
 import LoanCard from '../features/loans/LoanCard'
-import { useSettings } from '../hooks/useSettings'
 
 type Filter = 'all' | 'active' | 'paid' | 'archived'
 
@@ -29,7 +27,6 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
-  const { showChart, setShowChart } = useSettings()
 
   // Memoized derived state
   const { activeLoans, archivedLoans } = useMemo(() => ({
@@ -109,20 +106,6 @@ export default function Dashboard() {
       />
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
-        {activeCount > 0 && (
-          <div className="mb-3">
-            <div className="mb-2">
-              <button
-                onClick={() => setShowChart(!showChart)}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-muted hover:text-secondary transition-colors uppercase tracking-wider"
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                {showChart ? 'Hide Chart' : 'Show Chart'}
-              </button>
-            </div>
-            {showChart && <DebtChart loans={loans} />}
-          </div>
-        )}
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
             {/* Search */}

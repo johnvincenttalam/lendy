@@ -129,7 +129,7 @@ export function suggestedMonthlyPayment(totalAmount: number, monthlyRate: number
 // --- Aggregate calculations across all loans ---
 
 export function debtFreeDate(loans: Loan[]): Date | null {
-  const active = loans.filter((l) => !isFullyPaid(l))
+  const active = loans.filter((l) => !l.archived && !isFullyPaid(l))
   if (active.length === 0) return null
 
   let latest = new Date(0)

@@ -30,7 +30,7 @@ function periodMonthYear(p: Period): string {
 }
 
 function shiftPeriod(p: Period, delta: number): Period {
-  let { year, month, half } = p
+  const { year, month, half } = p
   const totalHalves = (year * 12 + month) * 2 + (half - 1) + delta
   const monthIndex = Math.floor(totalHalves / 2)
   return {
@@ -81,7 +81,7 @@ function isLoanDueInPeriod(loan: Loan, period: Period): boolean {
 
 function getLoansForPeriod(loans: Loan[], period: Period): Loan[] {
   return loans.filter((loan) => {
-    if (isFullyPaid(loan)) return false
+    if (loan.archived || isFullyPaid(loan)) return false
     const dueDay = getDueDay(loan)
     const inHalf = period.half === 1 ? dueDay <= 15 : dueDay > 15
     if (!inHalf) return false
@@ -135,7 +135,7 @@ export default function PaySchedule() {
       setPeriod((p) => shiftPeriod(p, diff < 0 ? 1 : -1))
     }
     touchStartX.current = null
-  }, [])
+  }, [canGoNext, setPeriod])
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
