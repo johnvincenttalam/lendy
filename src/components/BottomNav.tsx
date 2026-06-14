@@ -27,6 +27,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
               <div key="add" className="flex justify-center -mt-4 pointer-events-auto">
                 <button
                   onClick={onAdd}
+                  aria-label="Add loan"
                   className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 border-4"
                   style={{ borderColor: 'var(--color-card)' }}
                 >

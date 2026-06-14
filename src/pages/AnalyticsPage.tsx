@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Flame, Target, TrendingDown, DollarSign, AlertTriangle,
+  Flame, Target, TrendingDown, DollarSign, AlertTriangle, BarChart3,
 } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
+import EmptyState from '../components/EmptyState'
 import {
   formatCurrency, isFullyPaid, totalInterestOverLife, totalCostOfLoan,
   interestPaidSoFar, remainingBalance, debtFreeDate, monthsLeft,
@@ -136,10 +137,11 @@ export default function AnalyticsPage() {
             <h1 className="text-[22px] font-bold text-white tracking-tight">Analytics</h1>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center py-20 px-4">
-          <p className="text-[15px] font-semibold text-primary mb-1">No data yet</p>
-          <p className="text-[13px] text-muted">Add loans to see your analytics</p>
-        </div>
+        <EmptyState
+          icon={BarChart3}
+          title="No data yet"
+          subtitle="Add loans to see your analytics"
+        />
       </div>
     )
   }

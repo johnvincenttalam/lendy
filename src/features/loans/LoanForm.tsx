@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import type { Loan, LoanFormData } from './loanTypes'
-import { LOAN_TAGS } from './loanTypes'
+import { LOAN_TAGS, DEFAULT_COLOR } from './loanTypes'
 import { formatCurrency, suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
@@ -49,7 +49,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
 
   const [name, setName] = useState(initial?.name ?? '')
   const [tag, setTag] = useState(initial?.tag ?? '')
-  const [color, setColor] = useState(initial?.color ?? '#F3622D')
+  const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR)
   const [totalAmount, setTotalAmount] = useState(initial ? String(initial.totalAmount) : '')
   const [interestRate, setInterestRate] = useState(initial ? String(initial.interestRate) : '')
   const [monthlyPayment, setMonthlyPayment] = useState(initial ? String(initial.monthlyPayment) : '')
@@ -123,7 +123,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
 
         <div className="flex items-center justify-between px-5 pt-3 pb-4 sm:pt-5">
           <h2 className="text-[20px] font-bold text-primary tracking-tight">{isEdit ? 'Edit Loan' : 'New Loan'}</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:opacity-60 transition-opacity">
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center hover:opacity-60 transition-opacity">
             <X className="w-[18px] h-[18px] text-secondary" />
           </button>
         </div>
@@ -199,7 +199,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                   step="0.01"
                   value={monthlyPayment}
                   onChange={(e) => setMonthlyPayment(e.target.value)}
-                  placeholder="2,200"
+                  inputMode="decimal" placeholder="2,200"
                   className="input-field"
                 />
               </Field>
@@ -208,7 +208,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                   type="number"
                   value={durationMonths}
                   onChange={(e) => setDurationMonths(e.target.value)}
-                  placeholder="6"
+                  inputMode="numeric" placeholder="6"
                   className="input-field"
                 />
               </Field>
@@ -221,7 +221,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                     type="number"
                     value={totalAmount}
                     onChange={(e) => setTotalAmount(e.target.value)}
-                    placeholder="2,500"
+                    inputMode="decimal" placeholder="2,500"
                     className="input-field"
                   />
                 </Field>
@@ -231,7 +231,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                     step="0.01"
                     value={interestRate}
                     onChange={(e) => setInterestRate(e.target.value)}
-                    placeholder="4.95"
+                    inputMode="decimal" placeholder="4.95"
                     className="input-field"
                   />
                 </Field>
@@ -243,7 +243,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                     type="number"
                     value={durationMonths}
                     onChange={(e) => setDurationMonths(e.target.value)}
-                    placeholder="6"
+                    inputMode="numeric" placeholder="6"
                     className="input-field"
                   />
                 </Field>
@@ -254,7 +254,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                       step="0.01"
                       value={monthlyPayment}
                       onChange={(e) => setMonthlyPayment(e.target.value)}
-                      placeholder="540.41"
+                      inputMode="decimal" placeholder="540.41"
                       className="input-field"
                     />
                     {canAutoCalc && suggested > 0 && (

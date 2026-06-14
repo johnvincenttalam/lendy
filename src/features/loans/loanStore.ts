@@ -9,8 +9,10 @@ const STORAGE_KEY = 'loan-tracker-loans'
 const PAYMENTS_KEY = 'loan-tracker-payments'
 const INCOME_KEY = 'loan-tracker-income'
 const SORT_KEY = 'loan-tracker-sort'
+const VIEW_KEY = 'loan-tracker-view'
 
 export type SortOption = 'newest' | 'oldest' | 'balance-high' | 'balance-low' | 'progress' | 'payment'
+export type ViewMode = 'list' | 'grid'
 
 function loadLoans(): Loan[] {
   try {
@@ -80,6 +82,7 @@ type LoanStore = {
   payments: PaymentRecord[]
   monthlyIncome: number
   sortBy: SortOption
+  viewMode: ViewMode
   addLoan: (data: LoanFormData) => void
   updateLoan: (id: string, data: Partial<Loan>) => void
   markAsPaid: (id: string) => void
@@ -90,6 +93,7 @@ type LoanStore = {
   getPaymentsForLoan: (loanId: string) => PaymentRecord[]
   setMonthlyIncome: (income: number) => void
   setSortBy: (sort: SortOption) => void
+  setViewMode: (mode: ViewMode) => void
   exportCSV: () => string
   exportBackup: () => string
   importBackup: (json: string) => boolean
@@ -105,6 +109,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   payments: initialPayments,
   monthlyIncome: Number(localStorage.getItem(INCOME_KEY)) || 0,
   sortBy: (localStorage.getItem(SORT_KEY) as SortOption) || 'newest',
+  viewMode: (localStorage.getItem(VIEW_KEY) as ViewMode) || 'list',
 
   addLoan: (data) =>
     set((state) => {
@@ -296,6 +301,11 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   setSortBy: (sort) => {
     localStorage.setItem(SORT_KEY, sort)
     set({ sortBy: sort })
+  },
+
+  setViewMode: (mode) => {
+    localStorage.setItem(VIEW_KEY, mode)
+    set({ viewMode: mode })
   },
 
   exportCSV: () => {

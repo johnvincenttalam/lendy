@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, CalendarDays, ListFilter } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { formatCurrency, paymentSchedule } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
 import { BRAND_GRADIENT } from '../constants/styles'
+import EmptyState from '../components/EmptyState'
 import type { Loan } from '../features/loans/loanTypes'
 
 type CalendarPayment = {
@@ -65,6 +66,7 @@ export default function CalendarPage() {
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  const scheduleRef = useRef<HTMLDivElement>(null)
 
   const payments = useMemo(
     () => getPaymentsForMonth(activeLoans, viewYear, viewMonth),
@@ -119,32 +121,50 @@ export default function CalendarPage() {
     return { total, paid, pending: total - paid }
   }, [payments])
 
-  const selectedPayments = selectedDay ? payments.get(selectedDay) || [] : []
+  // Flatten the month's payments and split into half-month groups (1–15 / 16–end)
+  const scheduleGroups = useMemo(() => {
+    const all: (CalendarPayment & { day: number })[] = []
+    payments.forEach((dayPayments, day) => {
+      dayPayments.forEach((p) => all.push({ ...p, day }))
+    })
+    all.sort((a, b) => a.day - b.day || a.loan.name.localeCompare(b.loan.name))
+
+    const sum = (arr: (CalendarPayment & { day: number })[]) =>
+      arr.reduce((s, p) => s + p.amount, 0)
+
+    const firstHalf = all.filter((p) => p.day <= 15)
+    const secondHalf = all.filter((p) => p.day > 15)
+
+    const groups: { key: string; label: string; total: number; items: typeof all }[] = []
+    if (firstHalf.length) groups.push({ key: 'h1', label: '1 – 15', total: sum(firstHalf), items: firstHalf })
+    if (secondHalf.length) groups.push({ key: 'h2', label: `16 – ${daysInMonth}`, total: sum(secondHalf), items: secondHalf })
+    return { groups, count: all.length }
+  }, [payments, daysInMonth])
+
+  // Scroll the schedule to the first card of the tapped day
+  useEffect(() => {
+    if (!selectedDay || !scheduleRef.current) return
+    const target = scheduleRef.current.querySelector<HTMLElement>(`[data-day="${selectedDay}"]`)
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+  }, [selectedDay])
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
       <div style={{ background: BRAND_GRADIENT }}>
         <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">
-                Payment Calendar
-              </h1>
-              <p className="text-[12px] text-white/55 font-medium">View all payments at a glance</p>
-            </div>
-            <button
-              onClick={() => navigate('/schedule')}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-full"
-            >
-              <ListFilter className="w-3.5 h-3.5" />
-              Cycle View
-            </button>
+          <div className="mb-4">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">
+              Payment Calendar
+            </h1>
+            <p className="text-[12px] text-white/55 font-medium">View all payments at a glance</p>
           </div>
 
           {/* Month navigator */}
           <div className="flex items-center justify-between rounded-2xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] px-2 py-2.5">
             <button
               onClick={goToPrevMonth}
+              aria-label="Previous month"
               className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
             >
               <ChevronLeft className="w-4.5 h-4.5 text-white" />
@@ -157,6 +177,7 @@ export default function CalendarPage() {
             </button>
             <button
               onClick={goToNextMonth}
+              aria-label="Next month"
               className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
             >
               <ChevronRight className="w-4.5 h-4.5 text-white" />
@@ -256,94 +277,140 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-brand" />
-            <span className="text-[11px] text-muted">Pending</span>
+        {activeLoans.length > 0 && (
+          <div className="flex items-center justify-center gap-3.5 mt-2.5">
+            {([
+              ['bg-brand', 'Pending'],
+              ['bg-red-500', 'Overdue'],
+              ['bg-emerald-500', 'Paid'],
+            ] as const).map(([dot, label]) => (
+              <div key={label} className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                <span className="text-[10px] text-muted">{label}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="text-[11px] text-muted">Overdue</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[11px] text-muted">Paid</span>
-          </div>
-        </div>
+        )}
 
-        {/* Selected day details */}
-        {selectedDay && (
-          <div className="mt-4 space-y-2">
-            <h3 className="text-[13px] font-semibold text-secondary px-1">
-              {new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </h3>
-            {selectedPayments.length === 0 ? (
-              <div className="bg-card rounded-2xl border border-themed p-4 text-center">
-                <p className="text-[13px] text-muted">No payments on this day</p>
+        {/* Month schedule, grouped by half-month */}
+        {activeLoans.length > 0 && (
+          <div className="mt-5" ref={scheduleRef}>
+            <div className="flex items-center justify-between px-1 mb-3">
+              <h2 className="text-[15px] font-bold text-primary tracking-tight">
+                {monthName.split(' ')[0]} Schedule
+              </h2>
+              {selectedDay ? (
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="text-[11px] font-semibold text-brand hover:opacity-80 transition-opacity"
+                >
+                  Clear
+                </button>
+              ) : (
+                <span className="text-[11px] text-muted">
+                  {scheduleGroups.count} {scheduleGroups.count === 1 ? 'payment' : 'payments'}
+                </span>
+              )}
+            </div>
+
+            {scheduleGroups.count === 0 ? (
+              <div className="bg-card rounded-2xl border border-themed p-5 text-center">
+                <p className="text-[13px] text-muted">No payments scheduled this month</p>
               </div>
             ) : (
-              selectedPayments.map((p) => (
-                <button
-                  key={p.loan.id}
-                  onClick={() => navigate(`/loan/${p.loan.id}`)}
-                  className="w-full bg-card rounded-2xl p-4 border border-themed text-left transition-all duration-200 active:scale-[0.97] hover:bg-card-hover"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-[13px] flex items-center justify-center text-white text-[14px] font-bold shrink-0"
-                      style={{ backgroundColor: p.loan.color || DEFAULT_COLOR }}
-                    >
-                      {p.loan.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-primary text-[14px] truncate">
-                          {p.loan.name}
-                        </h4>
-                        <span
-                          className="text-[14px] font-bold tracking-tight ml-2"
-                          style={{ color: p.loan.color || DEFAULT_COLOR }}
-                        >
-                          {formatCurrency(p.amount)}
+              <div className="space-y-5">
+                {scheduleGroups.groups.map((group) => {
+                  return (
+                    <div key={group.key} className="space-y-2">
+                      {/* Group header */}
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-bold text-secondary tracking-tight">{group.label}</span>
+                          <span className="text-[10px] font-semibold text-muted bg-subtle px-1.5 py-0.5 rounded-md">
+                            {group.items.length}
+                          </span>
+                        </div>
+                        <span className="text-[12px] font-semibold text-muted tracking-tight">
+                          {formatCurrency(group.total)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[11px] text-muted">
-                          Payment {p.month}/{p.loan.durationMonths}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${
-                            p.isPaid
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                              : p.isOverdue
-                                ? 'bg-red-500/10 text-red-500'
-                                : 'bg-brand/10 text-brand'
-                          }`}
-                        >
-                          {p.isPaid ? 'Paid' : p.isOverdue ? 'Overdue' : 'Pending'}
-                        </span>
-                      </div>
+
+                      {/* Cards */}
+                      {group.items.map((p) => {
+                        const weekday = new Date(viewYear, viewMonth, p.day).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                        })
+                        const isHighlighted = selectedDay === p.day
+                        const color = p.loan.color || DEFAULT_COLOR
+                        return (
+                          <button
+                            key={`${p.loan.id}-${p.day}`}
+                            data-day={p.day}
+                            onClick={() => navigate(`/loan/${p.loan.id}`)}
+                            className={`w-full bg-card rounded-2xl p-3 border text-left transition-all duration-200 active:scale-[0.97] hover:bg-card-hover ${
+                              isHighlighted ? 'border-brand ring-1 ring-brand animate-pulse-highlight' : 'border-themed'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              {/* Date pill */}
+                              <div className="flex flex-col items-center justify-center w-10 shrink-0">
+                                <span className="text-[10px] font-semibold text-muted uppercase leading-none mb-0.5">
+                                  {weekday}
+                                </span>
+                                <span className="text-[18px] font-bold text-primary leading-none">{p.day}</span>
+                              </div>
+                              <div className="w-px h-9 bg-divider shrink-0" />
+                              {/* Avatar */}
+                              <div
+                                className="w-9 h-9 rounded-[12px] flex items-center justify-center text-white text-[13px] font-bold shrink-0"
+                                style={{ backgroundColor: p.isPaid ? '#10B981' : color }}
+                              >
+                                {p.loan.name.charAt(0).toUpperCase()}
+                              </div>
+                              {/* Details */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <h4 className="font-semibold text-primary text-[14px] truncate">{p.loan.name}</h4>
+                                  <span className="text-[14px] font-bold tracking-tight" style={{ color }}>
+                                    {formatCurrency(p.amount)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5 gap-2">
+                                  <span className="text-[11px] text-muted">
+                                    Payment {p.month}/{p.loan.durationMonths}
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${
+                                      p.isPaid
+                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                        : p.isOverdue
+                                          ? 'bg-red-500/10 text-red-500'
+                                          : 'bg-brand/10 text-brand'
+                                    }`}
+                                  >
+                                    {p.isPaid ? 'Paid' : p.isOverdue ? 'Overdue' : 'Pending'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  </div>
-                </button>
-              ))
+                  )
+                })}
+              </div>
             )}
           </div>
         )}
 
         {/* Empty state when no loans */}
         {activeLoans.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-card border border-themed flex items-center justify-center mb-3">
-              <CalendarDays className="w-6 h-6 text-muted" />
-            </div>
-            <p className="text-[14px] font-semibold text-secondary">No loans yet</p>
-            <p className="text-[13px] text-muted">Add loans to see them on the calendar</p>
-          </div>
+          <EmptyState
+            icon={CalendarDays}
+            title="No loans yet"
+            subtitle="Add loans to see them on the calendar"
+          />
         )}
       </div>
     </div>

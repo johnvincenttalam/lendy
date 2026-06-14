@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  Receipt, Search, X, ArrowUpDown, ChevronDown, Archive,
+  Receipt, Search, X, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
@@ -8,6 +8,7 @@ import {
   totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
+import EmptyState from '../components/EmptyState'
 import LoanCard from '../features/loans/LoanCard'
 
 type Filter = 'all' | 'active' | 'paid' | 'archived'
@@ -22,7 +23,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 }
 
 export default function Dashboard() {
-  const { loans, sortBy, setSortBy, monthlyIncome } = useLoanStore()
+  const { loans, sortBy, setSortBy, monthlyIncome, viewMode, setViewMode } = useLoanStore()
   const [showSort, setShowSort] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
@@ -116,11 +117,12 @@ export default function Dashboard() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search loans..."
-                className="input-field !pl-10 !py-0 !h-10 text-[14px]"
+                className="input-field input-sm !pl-10"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
+                  aria-label="Clear search"
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-subtle flex items-center justify-center"
                 >
                   <X className="w-3 h-3 text-muted" />
@@ -139,7 +141,7 @@ export default function Dashboard() {
                   <button
                     key={key}
                     onClick={() => setFilter(key)}
-                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${
+                    className={`flex-1 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-center ${
                       filter === key
                         ? 'bg-brand text-white'
                         : 'bg-subtle text-secondary hover:opacity-80'
@@ -151,7 +153,7 @@ export default function Dashboard() {
                 {archivedCount > 0 && (
                   <button
                     onClick={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
-                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex items-center gap-1 ${
+                    className={`flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex items-center justify-center gap-1 ${
                       filter === 'archived'
                         ? 'bg-brand text-white'
                         : 'bg-subtle text-secondary hover:opacity-80'
@@ -163,8 +165,10 @@ export default function Dashboard() {
                 )}
               </div>
 
+              {/* Sort (left) + View toggle (right) */}
+              <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:flex-shrink-0">
               {/* Sort dropdown */}
-              <div className="relative flex-shrink-0 self-end sm:self-auto">
+              <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
                   className="flex items-center gap-1 text-[12px] font-semibold text-secondary bg-subtle px-2.5 py-1.5 rounded-full hover:opacity-80 transition-opacity"
@@ -194,6 +198,29 @@ export default function Dashboard() {
                     </div>
                   </>
                 )}
+              </div>
+
+              {/* View toggle */}
+              <div className="flex items-center gap-0.5 bg-subtle rounded-full p-0.5">
+                {([
+                  ['list', List],
+                  ['grid', LayoutGrid],
+                ] as const).map(([mode, Icon]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    aria-label={`${mode} view`}
+                    aria-pressed={viewMode === mode}
+                    className={`p-1.5 rounded-full transition-all ${
+                      viewMode === mode
+                        ? 'bg-card text-primary shadow-sm'
+                        : 'text-muted hover:text-secondary'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
               </div>
             </div>
 
@@ -227,28 +254,27 @@ export default function Dashboard() {
         )}
 
         {/* Loan list */}
-        <div className="space-y-3">
+        <div className={loans.length === 0 || filtered.length === 0
+          ? ''
+          : viewMode === 'grid'
+            ? 'grid grid-cols-2 gap-3 items-stretch'
+            : 'space-y-3'}>
           {loans.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-[72px] h-[72px] rounded-[22px] bg-card border border-themed flex items-center justify-center mb-5">
-                <Receipt className="w-8 h-8 text-muted" />
-              </div>
-              <p className="text-[17px] font-bold text-primary mb-1 tracking-tight">No loans yet</p>
-              <p className="text-[13px] text-muted text-center max-w-[240px] mb-6 leading-relaxed">
-                Add your first loan to start tracking your payments
-              </p>
+            <EmptyState
+              icon={Receipt}
+              title="No loans yet"
+              subtitle="Add your first loan to start tracking your payments"
+            >
               <p className="text-[13px] text-muted">Tap <span className="text-brand font-semibold">+</span> below to get started</p>
-            </div>
+            </EmptyState>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-14 h-14 rounded-2xl bg-card border border-themed flex items-center justify-center mb-3">
-                <Search className="w-6 h-6 text-muted" />
-              </div>
-              <p className="text-[14px] font-semibold text-secondary">No loans found</p>
-              <p className="text-[13px] text-muted">Try a different search or filter</p>
-            </div>
+            <EmptyState
+              icon={Search}
+              title="No loans found"
+              subtitle="Try a different search or filter"
+            />
           ) : (
-            filtered.map((loan) => <LoanCard key={loan.id} loan={loan} />)
+            filtered.map((loan) => <LoanCard key={loan.id} loan={loan} view={viewMode} />)
           )}
         </div>
       </div>

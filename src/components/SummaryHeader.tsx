@@ -94,15 +94,15 @@ export default function SummaryHeader({
           <div className={`grid ${hasIncome ? 'grid-cols-3' : 'grid-cols-2'} gap-2.5 mt-3`}>
             <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
               <div className="flex items-center gap-1 mb-1">
-                <TrendingUp className="w-3 h-3 text-white/50" />
-                <span className="text-[10px] font-medium text-white/45 uppercase tracking-wider">Interest</span>
+                <TrendingUp className="w-3 h-3 text-white/60" />
+                <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Interest</span>
               </div>
               <p className="text-[14px] font-bold text-white tracking-tight">{formatCurrency(totalInterest)}</p>
             </div>
             <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
               <div className="flex items-center gap-1 mb-1">
-                <CalendarCheck className="w-3 h-3 text-white/50" />
-                <span className="text-[10px] font-medium text-white/45 uppercase tracking-wider">Debt-free</span>
+                <CalendarCheck className="w-3 h-3 text-white/60" />
+                <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Debt-free</span>
               </div>
               <p className="text-[14px] font-bold text-white tracking-tight">
                 {debtFreeDate
@@ -113,8 +113,8 @@ export default function SummaryHeader({
             {hasIncome && (
               <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
                 <div className="flex items-center gap-1 mb-1">
-                  <Wallet className="w-3 h-3 text-white/50" />
-                  <span className="text-[10px] font-medium text-white/45 uppercase tracking-wider">DTI</span>
+                  <Wallet className="w-3 h-3 text-white/60" />
+                  <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">DTI</span>
                 </div>
                 <p className={`text-[14px] font-bold tracking-tight ${dtiColor}`}>
                   {dtiPercent}%

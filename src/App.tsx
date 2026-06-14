@@ -2,7 +2,6 @@ import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-route
 import { useEffect, useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import LoanDetailsPage from './pages/LoanDetailsPage'
-import PaySchedule from './pages/PaySchedule'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/CalendarPage'
@@ -43,7 +42,6 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/loan/:id" element={<LoanDetailsPage />} />
-        <Route path="/schedule" element={<PaySchedule />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/settings" element={<SettingsPage />} />
