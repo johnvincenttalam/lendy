@@ -44,6 +44,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
                 isActive ? 'text-brand' : 'text-muted hover:text-secondary'
               }`}

@@ -358,7 +358,7 @@ function Field({
   return (
     <div>
       <label className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">{label}</label>
-      {children}
+      <div className={error ? 'rounded-[14px] ring-2 ring-red-500/50' : undefined}>{children}</div>
       {error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 font-medium">{error}</p>}
     </div>
   )

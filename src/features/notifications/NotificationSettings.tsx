@@ -4,6 +4,7 @@ import { useNotificationStore } from './notificationStore'
 import { useLoanStore } from '../loans/loanStore'
 import { getUpcomingPaymentsPreview } from './useNotificationCheck'
 import { formatCurrency } from '../loans/loanUtils'
+import { DEFAULT_COLOR } from '../loans/loanTypes'
 import { showToast } from '../../components/Toast'
 
 export default function NotificationSettings() {
@@ -102,32 +103,20 @@ export default function NotificationSettings() {
             </div>
 
             {/* On due date toggle */}
-            <button
-              onClick={() => setRemindOnDueDate(!remindOnDueDate)}
-              className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl bg-subtle"
-            >
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted" />
-                <span className="text-[13px] text-secondary">Remind on due date</span>
-              </div>
-              <div className={`w-10 h-6 rounded-full transition-colors ${remindOnDueDate ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${remindOnDueDate ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
+            <ToggleRow
+              icon={<Clock className="w-4 h-4 text-muted" />}
+              label="Remind on due date"
+              checked={remindOnDueDate}
+              onToggle={() => setRemindOnDueDate(!remindOnDueDate)}
+            />
 
             {/* Overdue toggle */}
-            <button
-              onClick={() => setRemindOverdue(!remindOverdue)}
-              className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl bg-subtle"
-            >
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-                <span className="text-[13px] text-secondary">Remind if overdue</span>
-              </div>
-              <div className={`w-10 h-6 rounded-full transition-colors ${remindOverdue ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${remindOverdue ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
+            <ToggleRow
+              icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
+              label="Remind if overdue"
+              checked={remindOverdue}
+              onToggle={() => setRemindOverdue(!remindOverdue)}
+            />
           </div>
 
           {/* Test & Preview buttons */}
@@ -161,7 +150,7 @@ export default function NotificationSettings() {
                   <div className="flex items-center gap-2 min-w-0">
                     <div
                       className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                      style={{ backgroundColor: loan.color || '#E8541E' }}
+                      style={{ backgroundColor: loan.color || DEFAULT_COLOR }}
                     >
                       {loan.name.charAt(0)}
                     </div>
@@ -197,5 +186,34 @@ export default function NotificationSettings() {
         </>
       )}
     </div>
+  )
+}
+
+function ToggleRow({
+  icon,
+  label,
+  checked,
+  onToggle,
+}: {
+  icon: React.ReactNode
+  label: string
+  checked: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      role="switch"
+      aria-checked={checked}
+      className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl bg-subtle"
+    >
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className="text-[13px] text-secondary">{label}</span>
+      </div>
+      <div className={`w-10 h-6 rounded-full transition-colors ${checked ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}`}>
+        <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${checked ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+      </div>
+    </button>
   )
 }

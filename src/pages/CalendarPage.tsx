@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { formatCurrency, paymentSchedule } from '../features/loans/loanUtils'
@@ -63,9 +63,19 @@ export default function CalendarPage() {
   const activeLoans = loans.filter((l) => !l.archived)
 
   const today = new Date()
-  const [viewYear, setViewYear] = useState(today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  // Read the initial month from the URL (if present) so that navigating to a
+  // loan and back restores the month the user was viewing, instead of always
+  // remounting to today's month.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [viewYear, setViewYear] = useState(() =>
+    searchParams.has('y') ? Number(searchParams.get('y')) : today.getFullYear()
+  )
+  const [viewMonth, setViewMonth] = useState(() =>
+    searchParams.has('m') ? Number(searchParams.get('m')) : today.getMonth()
+  )
+  const [selectedDay, setSelectedDay] = useState<number | null>(() =>
+    searchParams.has('d') ? Number(searchParams.get('d')) : null
+  )
   const scheduleRef = useRef<HTMLDivElement>(null)
 
   const payments = useMemo(
@@ -82,30 +92,46 @@ export default function CalendarPage() {
 
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth()
 
+  // Mirror the viewed month and selected day into the URL (replacing, not
+  // pushing) so that navigating to a loan and back restores the view the
+  // user was on. All three fields are set in a single setSearchParams call
+  // — calling it more than once per event would have each call build off
+  // the same stale `prev`, silently clobbering the other's change.
+  const updateView = (params: { year?: number; month?: number; day?: number | null }) => {
+    if (params.year !== undefined) setViewYear(params.year)
+    if (params.month !== undefined) setViewMonth(params.month)
+    if (params.day !== undefined) setSelectedDay(params.day)
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (params.year !== undefined) next.set('y', String(params.year))
+      if (params.month !== undefined) next.set('m', String(params.month))
+      if (params.day !== undefined) {
+        if (params.day) next.set('d', String(params.day))
+        else next.delete('d')
+      }
+      return next
+    }, { replace: true })
+  }
+
   const goToPrevMonth = () => {
     if (viewMonth === 0) {
-      setViewYear(viewYear - 1)
-      setViewMonth(11)
+      updateView({ year: viewYear - 1, month: 11, day: null })
     } else {
-      setViewMonth(viewMonth - 1)
+      updateView({ year: viewYear, month: viewMonth - 1, day: null })
     }
-    setSelectedDay(null)
   }
 
   const goToNextMonth = () => {
     if (viewMonth === 11) {
-      setViewYear(viewYear + 1)
-      setViewMonth(0)
+      updateView({ year: viewYear + 1, month: 0, day: null })
     } else {
-      setViewMonth(viewMonth + 1)
+      updateView({ year: viewYear, month: viewMonth + 1, day: null })
     }
-    setSelectedDay(null)
   }
 
   const goToToday = () => {
-    setViewYear(today.getFullYear())
-    setViewMonth(today.getMonth())
-    setSelectedDay(null)
+    updateView({ year: today.getFullYear(), month: today.getMonth(), day: null })
   }
 
   // Calculate monthly totals
@@ -231,7 +257,7 @@ export default function CalendarPage() {
               return (
                 <button
                   key={day}
-                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  onClick={() => updateView({ day: isSelected ? null : day })}
                   className={`aspect-square rounded-xl flex items-center justify-center transition-all relative ${
                     isSelected
                       ? 'bg-brand text-white'
@@ -301,7 +327,7 @@ export default function CalendarPage() {
               </h2>
               {selectedDay ? (
                 <button
-                  onClick={() => setSelectedDay(null)}
+                  onClick={() => updateView({ day: null })}
                   className="text-[11px] font-semibold text-brand hover:opacity-80 transition-opacity"
                 >
                   Clear

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Receipt, Search, X, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List,
 } from 'lucide-react'
@@ -25,9 +26,51 @@ const SORT_LABELS: Record<SortOption, string> = {
 export default function Dashboard() {
   const { loans, sortBy, setSortBy, monthlyIncome, viewMode, setViewMode } = useLoanStore()
   const [showSort, setShowSort] = useState(false)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
-  const [tagFilter, setTagFilter] = useState<string | null>(null)
+
+  // Search/filter/tag are mirrored into the URL (replacing, not pushing) so
+  // that navigating to a loan and back restores the view instead of
+  // resetting to the unfiltered list — Dashboard unmounts on that trip.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearchValue] = useState(() => searchParams.get('q') ?? '')
+  const [filter, setFilterValue] = useState<Filter>(() => {
+    const f = searchParams.get('filter')
+    return f === 'active' || f === 'paid' || f === 'archived' ? f : 'all'
+  })
+  const [tagFilter, setTagFilterValue] = useState<string | null>(() => searchParams.get('tag'))
+
+  const updateParams = (next: { q?: string; filter?: Filter; tag?: string | null }) => {
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev)
+      if (next.q !== undefined) {
+        if (next.q) params.set('q', next.q)
+        else params.delete('q')
+      }
+      if (next.filter !== undefined) {
+        if (next.filter !== 'all') params.set('filter', next.filter)
+        else params.delete('filter')
+      }
+      if (next.tag !== undefined) {
+        if (next.tag) params.set('tag', next.tag)
+        else params.delete('tag')
+      }
+      return params
+    }, { replace: true })
+  }
+
+  const setSearch = (value: string) => {
+    setSearchValue(value)
+    updateParams({ q: value })
+  }
+
+  const setFilter = (value: Filter) => {
+    setFilterValue(value)
+    updateParams({ filter: value })
+  }
+
+  const setTagFilter = (value: string | null) => {
+    setTagFilterValue(value)
+    updateParams({ tag: value })
+  }
 
   // Memoized derived state
   const { activeLoans, archivedLoans } = useMemo(() => ({
