@@ -55,6 +55,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   const [monthlyPayment, setMonthlyPayment] = useState(initial ? String(initial.monthlyPayment) : '')
   const [durationMonths, setDurationMonths] = useState(initial ? String(initial.durationMonths) : '')
   const [startDate, setStartDate] = useState(initial?.startDate ?? new Date().toISOString().split('T')[0])
+  const [notes, setNotes] = useState(initial?.notes ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   function clearError(field: string) {
@@ -96,6 +97,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
       name: name.trim(),
       color,
       tag: tag || undefined,
+      notes: notes.trim() || undefined,
       totalAmount: isInstallment ? monthly * months : amt,
       interestRate: isInstallment ? 0 : rate,
       monthlyPayment: monthly,
@@ -321,6 +323,18 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               aria-invalid={!!errors.startDate}
               aria-describedby={errors.startDate ? 'loan-start-date-error' : undefined}
               className="input-field"
+            />
+          </Field>
+
+          <Field label="Notes" id="loan-notes">
+            <textarea
+              id="loan-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="What's this loan for? (optional)"
+              maxLength={300}
+              rows={3}
+              className="input-field resize-none"
             />
           </Field>
 
