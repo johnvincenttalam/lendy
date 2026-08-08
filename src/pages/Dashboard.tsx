@@ -111,7 +111,7 @@ export default function Dashboard() {
 
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter((l) => l.name.toLowerCase().includes(q))
+      result = result.filter((l) => l.name.toLowerCase().includes(q) || (l.notes ?? '').toLowerCase().includes(q))
     }
 
     result.sort((a, b) => {
