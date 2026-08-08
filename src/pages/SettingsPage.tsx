@@ -22,7 +22,7 @@ export default function SettingsPage() {
   useBodyScrollLock(pendingImport !== null)
 
   const totalMonthly = loans.reduce((sum, l) => {
-    if (l.monthsPaid >= l.durationMonths) return sum
+    if (l.archived || l.monthsPaid >= l.durationMonths) return sum
     return sum + l.monthlyPayment
   }, 0)
 
