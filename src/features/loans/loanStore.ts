@@ -310,7 +310,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
 
   exportCSV: () => {
     const { loans } = get()
-    const headers = ['Name', 'Total Amount', 'Monthly Payment', 'Interest Rate (%/mo)', 'Duration (months)', 'Months Paid', 'Total Paid', 'Start Date', 'Status']
+    const headers = ['Name', 'Total Amount', 'Monthly Payment', 'Interest Rate (%/mo)', 'Duration (months)', 'Months Paid', 'Total Paid', 'Start Date', 'Status', 'Notes']
     const rows = loans.map((l) => [
       `"${l.name}"`,
       l.totalAmount.toFixed(2),
@@ -321,6 +321,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       l.totalPaid.toFixed(2),
       l.startDate,
       l.monthsPaid >= l.durationMonths ? 'Paid' : 'Active',
+      `"${(l.notes ?? '').replace(/"/g, '""')}"`,
     ])
     return [headers, ...rows].map((r) => r.join(',')).join('\n')
   },
