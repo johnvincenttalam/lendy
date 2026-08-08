@@ -57,6 +57,15 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   const [startDate, setStartDate] = useState(initial?.startDate ?? new Date().toISOString().split('T')[0])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  function clearError(field: string) {
+    setErrors((prev) => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
   const monthly = Number(monthlyPayment) || 0
   const months = Number(durationMonths) || 0
   const amt = isInstallment ? monthly * months : Number(totalAmount) || 0
@@ -101,7 +110,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     >
       <div
         ref={sheetRef}
-        className="bg-card w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl max-h-[92vh] overflow-y-auto border-t sm:border border-themed animate-slide-up custom-scroll"
+        className="bg-card w-full h-full sm:h-auto sm:max-w-lg sm:rounded-2xl rounded-none sm:max-h-[92vh] overflow-y-auto border-0 sm:border border-themed animate-slide-up custom-scroll"
         style={{
           transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -121,19 +130,20 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
           <div className="w-9 h-1 rounded-full bg-muted opacity-40" />
         </div>
 
-        <div className="flex items-center justify-between px-5 pt-3 pb-4 sm:pt-5">
+        <div className="sticky top-0 z-10 bg-card flex items-center justify-between px-5 pt-3 pb-4 sm:static sm:pt-5 sm:border-b-0 border-b border-divider">
           <h2 className="text-[20px] font-bold text-primary tracking-tight">{isEdit ? 'Edit Loan' : 'New Loan'}</h2>
           <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center hover:opacity-60 transition-opacity">
             <X className="w-[18px] h-[18px] text-secondary" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 pb-5 space-y-4">
+        <form onSubmit={handleSubmit} className="px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4">
           {/* Mode toggle */}
           <div className="flex rounded-xl bg-subtle p-1 gap-1">
             <button
               type="button"
-              onClick={() => setMode('standard')}
+              onClick={() => { setMode('standard'); setErrors({}) }}
+              aria-pressed={!isInstallment}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
                 !isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
               }`}
@@ -142,7 +152,8 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setMode('installment')}
+              onClick={() => { setMode('installment'); setErrors({}) }}
+              aria-pressed={isInstallment}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
                 isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
               }`}
@@ -157,12 +168,15 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
             </p>
           )}
 
-          <Field label="Loan Name" error={errors.name}>
+          <Field label="Loan Name" id="loan-name" error={errors.name}>
             <input
+              id="loan-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); clearError('name') }}
               placeholder={isInstallment ? 'e.g. iPhone 16' : 'e.g. Cash Loan'}
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'loan-name-error' : undefined}
               className="input-field"
             />
           </Field>
@@ -174,6 +188,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                   key={t}
                   type="button"
                   onClick={() => setTag(tag === t ? '' : t)}
+                  aria-pressed={tag === t}
                   className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
                     tag === t
                       ? 'text-white'
@@ -193,22 +208,28 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
 
           {isInstallment ? (
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Monthly (₱)" error={errors.monthlyPayment}>
+              <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
                 <input
+                  id="loan-monthly"
                   type="number"
                   step="0.01"
                   value={monthlyPayment}
-                  onChange={(e) => setMonthlyPayment(e.target.value)}
+                  onChange={(e) => { setMonthlyPayment(e.target.value); clearError('monthlyPayment') }}
                   inputMode="decimal" placeholder="2,200"
+                  aria-invalid={!!errors.monthlyPayment}
+                  aria-describedby={errors.monthlyPayment ? 'loan-monthly-error' : undefined}
                   className="input-field"
                 />
               </Field>
-              <Field label="Tenure (months)" error={errors.durationMonths}>
+              <Field label="Tenure (months)" id="loan-duration" error={errors.durationMonths}>
                 <input
+                  id="loan-duration"
                   type="number"
                   value={durationMonths}
-                  onChange={(e) => setDurationMonths(e.target.value)}
+                  onChange={(e) => { setDurationMonths(e.target.value); clearError('durationMonths') }}
                   inputMode="numeric" placeholder="6"
+                  aria-invalid={!!errors.durationMonths}
+                  aria-describedby={errors.durationMonths ? 'loan-duration-error' : undefined}
                   className="input-field"
                 />
               </Field>
@@ -216,59 +237,72 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Amount (₱)" error={errors.totalAmount}>
+                <Field label="Amount (₱)" id="loan-amount" error={errors.totalAmount}>
                   <input
+                    id="loan-amount"
                     type="number"
                     value={totalAmount}
-                    onChange={(e) => setTotalAmount(e.target.value)}
+                    onChange={(e) => { setTotalAmount(e.target.value); clearError('totalAmount') }}
                     inputMode="decimal" placeholder="2,500"
+                    aria-invalid={!!errors.totalAmount}
+                    aria-describedby={errors.totalAmount ? 'loan-amount-error' : undefined}
                     className="input-field"
                   />
                 </Field>
-                <Field label="Interest (%/mo)" error={errors.interestRate}>
+                <Field label="Interest (%/mo)" id="loan-interest" error={errors.interestRate}>
                   <input
+                    id="loan-interest"
                     type="number"
                     step="0.01"
                     value={interestRate}
-                    onChange={(e) => setInterestRate(e.target.value)}
+                    onChange={(e) => { setInterestRate(e.target.value); clearError('interestRate') }}
                     inputMode="decimal" placeholder="4.95"
+                    aria-invalid={!!errors.interestRate}
+                    aria-describedby={errors.interestRate ? 'loan-interest-error' : undefined}
                     className="input-field"
                   />
                 </Field>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Tenure (months)" error={errors.durationMonths}>
+                <Field label="Tenure (months)" id="loan-duration" error={errors.durationMonths}>
                   <input
+                    id="loan-duration"
                     type="number"
                     value={durationMonths}
-                    onChange={(e) => setDurationMonths(e.target.value)}
+                    onChange={(e) => { setDurationMonths(e.target.value); clearError('durationMonths') }}
                     inputMode="numeric" placeholder="6"
+                    aria-invalid={!!errors.durationMonths}
+                    aria-describedby={errors.durationMonths ? 'loan-duration-error' : undefined}
                     className="input-field"
                   />
                 </Field>
-                <Field label="Monthly (₱)" error={errors.monthlyPayment}>
+                <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
                   <div className="flex gap-1.5">
                     <input
+                      id="loan-monthly"
                       type="number"
                       step="0.01"
                       value={monthlyPayment}
-                      onChange={(e) => setMonthlyPayment(e.target.value)}
+                      onChange={(e) => { setMonthlyPayment(e.target.value); clearError('monthlyPayment') }}
                       inputMode="decimal" placeholder="540.41"
+                      aria-invalid={!!errors.monthlyPayment}
+                      aria-describedby={errors.monthlyPayment ? 'loan-monthly-error' : undefined}
                       className="input-field"
                     />
                     {canAutoCalc && suggested > 0 && (
                       <button
                         type="button"
-                        onClick={() => setMonthlyPayment(suggested.toFixed(2))}
+                        onClick={() => { setMonthlyPayment(suggested.toFixed(2)); clearError('monthlyPayment') }}
                         className="shrink-0 w-10 flex items-center justify-center hover:opacity-60 transition-opacity"
                         title="Auto-calculate"
+                        aria-label="Auto-calculate monthly payment"
                       >
                         <Sparkles className="w-4 h-4" style={{ color }} />
                       </button>
                     )}
                   </div>
-                  {canAutoCalc && suggested > 0 && !monthlyPayment && (
+                  {canAutoCalc && suggested > 0 && !monthlyPayment && !errors.monthlyPayment && (
                     <p className="text-[11px] text-muted mt-1">
                       ~{formatCurrency(suggested)}
                     </p>
@@ -278,11 +312,14 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
             </>
           )}
 
-          <Field label="Start Date" error={errors.startDate}>
+          <Field label="Start Date" id="loan-start-date" error={errors.startDate}>
             <input
+              id="loan-start-date"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); clearError('startDate') }}
+              aria-invalid={!!errors.startDate}
+              aria-describedby={errors.startDate ? 'loan-start-date-error' : undefined}
               className="input-field"
             />
           </Field>
@@ -348,18 +385,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function Field({
   label,
+  id,
   error,
   children,
 }: {
   label: string
+  id?: string
   error?: string
   children: React.ReactNode
 }) {
   return (
     <div>
-      <label className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">{label}</label>
       <div className={error ? 'rounded-[14px] ring-2 ring-red-500/50' : undefined}>{children}</div>
-      {error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 font-medium">{error}</p>}
+      {error && <p id={id ? `${id}-error` : undefined} className="text-[11px] text-red-500 dark:text-red-400 mt-1 font-medium">{error}</p>}
     </div>
   )
 }

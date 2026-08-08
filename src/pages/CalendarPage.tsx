@@ -11,6 +11,8 @@ import type { Loan } from '../features/loans/loanTypes'
 type CalendarPayment = {
   loan: Loan
   amount: number
+  principal: number
+  interest: number
   isPaid: boolean
   isOverdue: boolean
   month: number
@@ -37,6 +39,8 @@ function getPaymentsForMonth(loans: Loan[], year: number, month: number): Map<nu
         existing.push({
           loan,
           amount: p.payment,
+          principal: p.principal,
+          interest: p.interest,
           isPaid,
           isOverdue,
           month: i + 1,
@@ -138,13 +142,15 @@ export default function CalendarPage() {
   const monthlyTotal = useMemo(() => {
     let total = 0
     let paid = 0
+    let overdue = 0
     payments.forEach((dayPayments) => {
       dayPayments.forEach((p) => {
         total += p.amount
         if (p.isPaid) paid += p.amount
+        else if (p.isOverdue) overdue += p.amount
       })
     })
-    return { total, paid, pending: total - paid }
+    return { total, paid, overdue, pending: total - paid - overdue }
   }, [payments])
 
   // Flatten the month's payments and split into half-month groups (1–15 / 16–end)
@@ -216,6 +222,11 @@ export default function CalendarPage() {
               <span className="text-[12px] text-white/60">
                 <span className="text-emerald-300">{formatCurrency(monthlyTotal.paid)}</span> paid
               </span>
+              {monthlyTotal.overdue > 0 && (
+                <span className="text-[12px] text-white/60">
+                  <span className="text-red-300">{formatCurrency(monthlyTotal.overdue)}</span> overdue
+                </span>
+              )}
               <span className="text-[12px] text-white/60">
                 <span className="text-white">{formatCurrency(monthlyTotal.pending)}</span> pending
               </span>
@@ -258,6 +269,8 @@ export default function CalendarPage() {
                 <button
                   key={day}
                   onClick={() => updateView({ day: isSelected ? null : day })}
+                  aria-label={`${monthName.split(' ')[0]} ${day}${hasPayments ? `, ${dayPayments.length} payment${dayPayments.length === 1 ? '' : 's'} due` : ''}`}
+                  aria-pressed={isSelected}
                   className={`aspect-square rounded-xl flex items-center justify-center transition-all relative ${
                     isSelected
                       ? 'bg-brand text-on-brand'
@@ -417,6 +430,13 @@ export default function CalendarPage() {
                                     {p.isPaid ? 'Paid' : p.isOverdue ? 'Overdue' : 'Pending'}
                                   </span>
                                 </div>
+                                {p.loan.interestRate > 0 && (
+                                  <div className="text-[10px] text-muted mt-0.5">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(p.principal)}</span>
+                                    {' + '}
+                                    <span className="text-red-500 dark:text-red-400 font-medium">{formatCurrency(p.interest)}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </button>
