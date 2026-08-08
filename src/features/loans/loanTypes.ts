@@ -3,6 +3,7 @@ export type Loan = {
   name: string
   color: string
   tag?: string
+  notes?: string
   totalAmount: number
   monthlyPayment: number
   interestRate: number // monthly interest rate (e.g. 4.95 for 4.95%/month)
