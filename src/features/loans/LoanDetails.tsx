@@ -244,7 +244,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
         {loan.notes && (
           <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
             <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Notes</p>
-            <p className="text-[13px] text-secondary whitespace-pre-wrap leading-relaxed">{loan.notes}</p>
+            <p className="text-[13px] text-secondary whitespace-pre-wrap break-words leading-relaxed">{loan.notes}</p>
           </div>
         )}
 
