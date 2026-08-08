@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const COLORS = ['#F3622D', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4']
+const COLORS = ['#3ECF8E', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4']
 const PARTICLE_COUNT = 60
 
 type Particle = {

@@ -3,45 +3,54 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand: #F3622D;
-  --color-brand-light: #F5784A;
-  --color-brand-dark: #D94F1E;
+  /* Supabase-inspired signature green */
+  --color-brand: #3ECF8E;
+  --color-brand-light: #5EDBA3;
+  --color-brand-dark: #00C573;
+  /* Bright green needs dark text/icons on top of it, not white */
+  --color-on-brand: #0B2B1E;
+
+  /* Tighter, flatter corners than the default scale */
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1.125rem;
 }
 
-/* Light mode */
+/* Light mode (secondary) */
 :root {
-  --color-page: #F2F2F7;
+  --color-page: #FAFAFA;
   --color-card: #FFFFFF;
-  --color-card-hover: #F9F9FB;
-  --color-header: rgba(255, 255, 255, 0.82);
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #6E6E73;
-  --color-text-muted: #AEAEB2;
-  --color-border: rgba(0, 0, 0, 0.06);
-  --color-input-bg: #F2F2F7;
+  --color-card-hover: #F5F5F5;
+  --color-header: rgba(255, 255, 255, 0.85);
+  --color-text-primary: #171717;
+  --color-text-secondary: #5C5C5C;
+  --color-text-muted: #9A9A9A;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-input-bg: #F2F2F2;
   --color-input-bg-focus: #FFFFFF;
-  --color-input-border: rgba(0, 0, 0, 0.08);
+  --color-input-border: rgba(0, 0, 0, 0.1);
   --color-overlay: rgba(0, 0, 0, 0.4);
-  --color-subtle-bg: rgba(0, 0, 0, 0.03);
-  --color-divider: rgba(0, 0, 0, 0.05);
+  --color-subtle-bg: rgba(0, 0, 0, 0.035);
+  --color-divider: rgba(0, 0, 0, 0.06);
 }
 
-/* Dark mode */
+/* Dark mode (default) */
 .dark {
-  --color-page: #0E0E14;
-  --color-card: #1A1A22;
-  --color-card-hover: #222230;
-  --color-header: rgba(26, 26, 34, 0.88);
-  --color-text-primary: #F0F0F5;
-  --color-text-secondary: #A0A0AA;
-  --color-text-muted: #5A5A66;
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-input-bg: #141418;
-  --color-input-bg-focus: #1A1A22;
-  --color-input-border: rgba(255, 255, 255, 0.08);
-  --color-overlay: rgba(0, 0, 0, 0.6);
-  --color-subtle-bg: rgba(255, 255, 255, 0.05);
-  --color-divider: rgba(255, 255, 255, 0.06);
+  --color-page: #171717;
+  --color-card: #1C1C1C;
+  --color-card-hover: #242424;
+  --color-header: rgba(23, 23, 23, 0.88);
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #A1A1A1;
+  --color-text-muted: #6B6B6B;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input-bg: #1F1F1F;
+  --color-input-bg-focus: #262626;
+  --color-input-border: rgba(255, 255, 255, 0.12);
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-subtle-bg: rgba(255, 255, 255, 0.045);
+  --color-divider: rgba(255, 255, 255, 0.07);
 }
 
 * {
@@ -49,7 +58,7 @@
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-page);
   color: var(--color-text-secondary);
   margin: 0;
@@ -72,8 +81,8 @@ input[type="number"] {
   width: 100%;
   padding: 0.8rem 1rem;
   border: 1.5px solid var(--color-input-border);
-  border-radius: 14px;
-  font-family: 'Outfit', sans-serif;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--color-text-primary);
@@ -124,6 +133,7 @@ textarea:focus-visible,
 .border-divider { border-color: var(--color-divider); }
 .bg-divider { background-color: var(--color-divider); }
 .bg-overlay { background-color: var(--color-overlay); }
+.text-on-brand { color: var(--color-on-brand); }
 /* Animations */
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }

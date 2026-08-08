@@ -72,7 +72,7 @@ export default function NotificationSettings() {
           onClick={handleToggle}
           className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all ${
             enabled
-              ? 'bg-brand text-white'
+              ? 'bg-brand text-on-brand'
               : 'bg-subtle text-secondary hover:opacity-80'
           }`}
         >

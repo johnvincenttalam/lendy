@@ -237,7 +237,7 @@ function StorageUsage() {
   const getBarColor = () => {
     if (percentage >= 90) return 'bg-red-500'
     if (percentage >= 70) return 'bg-yellow-500'
-    return 'bg-[#E8541E]'
+    return 'bg-brand'
   }
 
   return (

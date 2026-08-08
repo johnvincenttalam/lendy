@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
-  ArrowLeft, Trash2, CheckCircle, Calendar, DollarSign,
+  ArrowLeft, Trash2, CheckCircle, CheckCircle2, Calendar, DollarSign,
   Clock, TrendingUp, PiggyBank, CircleDot, Pencil, Undo2, Archive, ArchiveRestore,
   AlertTriangle, MoreVertical,
 } from 'lucide-react'
 import { DEFAULT_COLOR } from './loanTypes'
-import type { Loan } from './loanTypes'
+import type { Loan, PaymentRecord } from './loanTypes'
 import {
   remainingPrincipal,
   remainingBalance,
@@ -35,6 +35,19 @@ type Props = {
   onBack: () => void
 }
 
+function startOfDay(date: Date): Date {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// Negative = paid early, 0 = on the due date, positive = days late
+function paymentDeltaDays(payment: PaymentRecord): number {
+  const paid = startOfDay(new Date(payment.paidAt))
+  const due = startOfDay(new Date(payment.dueDate))
+  return Math.round((paid.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Props) {
   const [showConfirm, setShowConfirm] = useState<'pay' | 'delete' | 'undo' | 'archive' | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -44,6 +57,15 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const undoMarkAsPaid = useLoanStore((s) => s.undoMarkAsPaid)
   const archiveLoan = useLoanStore((s) => s.archiveLoan)
   const unarchiveLoan = useLoanStore((s) => s.unarchiveLoan)
+  const payments = useLoanStore((s) => s.payments)
+  const loanPayments = useMemo(
+    () => payments.filter((p) => p.loanId === loan.id).sort((a, b) => a.month - b.month),
+    [payments, loan.id],
+  )
+  const paymentByMonth = useMemo(() => new Map(loanPayments.map((p) => [p.month, p])), [loanPayments])
+  const onTimeRate = loanPayments.length > 0
+    ? Math.round((loanPayments.filter((p) => paymentDeltaDays(p) <= 0).length / loanPayments.length) * 100)
+    : null
   const pct = progressPercent(loan)
   const remPrincipal = remainingPrincipal(loan)
   const remBalance = remainingBalance(loan)
@@ -56,6 +78,9 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const overdue = isOverdue(loan)
   const overdueDays = daysOverdue(loan)
   const dueDateValue = nextDueDate(loan)
+  const daysUntilDue = dueDateValue
+    ? Math.round((startOfDay(dueDateValue).getTime() - startOfDay(new Date()).getTime()) / (1000 * 60 * 60 * 24))
+    : null
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -72,7 +97,12 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             >
               {loan.name.charAt(0).toUpperCase()}
             </div>
-            <h1 className="font-semibold text-primary text-[16px] tracking-tight truncate">{loan.name}</h1>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-primary text-[16px] tracking-tight truncate">{loan.name}</h1>
+              {loan.tag && (
+                <span className="text-[10px] font-semibold text-muted bg-subtle px-1.5 py-[1px] rounded-md">{loan.tag}</span>
+              )}
+            </div>
           </div>
           <div className="flex items-center flex-shrink-0 relative">
             <button
@@ -161,9 +191,18 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
               </span>
             </div>
           )}
+          {!overdue && !fullyPaid && !loan.archived && dueDateValue && daysUntilDue !== null && (
+            <div className="bg-subtle text-secondary text-[12px] font-medium text-center py-2.5 border-b border-divider flex items-center justify-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-muted" />
+              <span>
+                Next payment {daysUntilDue === 0 ? 'due today' : daysUntilDue === 1 ? 'due tomorrow' : `due in ${daysUntilDue} days`}
+                <span className="text-muted font-normal"> ({dueDateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
+              </span>
+            </div>
+          )}
           <div className="px-4 pt-6 pb-4 text-center">
             <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Remaining Balance</p>
-            <p className="text-[36px] font-bold text-primary tracking-tighter leading-none">{formatCurrency(remBalance)}</p>
+            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none">{formatCurrency(remBalance)}</p>
             {hasInterest && (
               <p className="text-[12px] text-muted mt-2">
                 Principal: {formatCurrency(remPrincipal)}
@@ -188,8 +227,17 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
               >
                 {pct}% complete
               </span>
-              <span className="text-[12px] font-medium text-muted">{left} months left</span>
+              <span className="text-[12px] font-medium text-muted">{left} {left === 1 ? 'month' : 'months'} left</span>
             </div>
+            {onTimeRate !== null && (
+              <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-divider">
+                <CheckCircle2 className={`w-3.5 h-3.5 ${onTimeRate >= 90 ? 'text-emerald-500' : onTimeRate >= 70 ? 'text-amber-500' : 'text-red-500'}`} />
+                <span className={`text-[11px] font-bold ${onTimeRate >= 90 ? 'text-emerald-500' : onTimeRate >= 70 ? 'text-amber-500' : 'text-red-500'}`}>
+                  {onTimeRate}% on-time
+                </span>
+                <span className="text-[11px] text-muted">· {loanPayments.length} payment{loanPayments.length === 1 ? '' : 's'} recorded</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -236,6 +284,8 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             {schedule.map((p) => {
               const isPaid = p.month <= loan.monthsPaid
               const isNext = p.month === loan.monthsPaid + 1
+              const payment = paymentByMonth.get(p.month)
+              const delta = payment ? paymentDeltaDays(payment) : 0
               return (
                 <div
                   key={p.month}
@@ -261,7 +311,12 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-[11px] text-muted">
-                        {p.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {isPaid && payment
+                          ? `Paid ${new Date(payment.paidAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : p.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {isPaid && payment && delta > 0 && (
+                          <span className="text-red-500 dark:text-red-400 font-semibold"> · {delta}d late</span>
+                        )}
                       </span>
                       {hasInterest && (
                         <span className="text-[11px] text-muted">

@@ -260,7 +260,7 @@ export default function CalendarPage() {
                   onClick={() => updateView({ day: isSelected ? null : day })}
                   className={`aspect-square rounded-xl flex items-center justify-center transition-all relative ${
                     isSelected
-                      ? 'bg-brand text-white'
+                      ? 'bg-brand text-on-brand'
                       : isToday
                         ? 'bg-brand/10 text-brand font-bold'
                         : 'hover:bg-subtle'

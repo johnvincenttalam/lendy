@@ -45,7 +45,7 @@ export default function PinScreen() {
     <div className="fixed inset-0 z-[200] bg-page flex flex-col items-center justify-center">
       <div className="flex flex-col items-center mb-10">
         <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mb-4">
-          <Lock className="w-7 h-7 text-white" />
+          <Lock className="w-7 h-7 text-on-brand" />
         </div>
         <h1 className="text-xl font-bold text-primary tracking-tight">Enter PIN</h1>
         <p className="text-[13px] text-muted mt-1">Enter your 4-digit PIN to unlock</p>

@@ -63,7 +63,7 @@ export default function LoanCard({ loan, view = 'list' }: Props) {
         {/* Remaining */}
         <div className="mt-auto">
           <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-0.5">Remaining</p>
-          <p className="text-[18px] font-bold text-primary tracking-tight leading-none mb-3">{formatCurrency(remaining)}</p>
+          <p className="text-[18px] font-bold font-mono text-primary tracking-tight leading-none mb-3">{formatCurrency(remaining)}</p>
 
           {/* Progress */}
           <div className="w-full h-[5px] rounded-full overflow-hidden mb-2" style={{ backgroundColor: `${color}15` }}>
@@ -138,11 +138,11 @@ export default function LoanCard({ loan, view = 'list' }: Props) {
       <div className="flex justify-between items-end mb-4">
         <div>
           <p className="text-[11px] font-medium text-muted uppercase tracking-wider mb-0.5">Monthly</p>
-          <p className="text-[20px] font-bold tracking-tight leading-none" style={{ color }}>{formatCurrency(loan.monthlyPayment)}</p>
+          <p className="text-[20px] font-bold font-mono tracking-tight leading-none" style={{ color }}>{formatCurrency(loan.monthlyPayment)}</p>
         </div>
         <div className="text-right">
           <p className="text-[11px] font-medium text-muted uppercase tracking-wider mb-0.5">Remaining</p>
-          <p className="text-[20px] font-bold text-primary tracking-tight leading-none">{formatCurrency(remaining)}</p>
+          <p className="text-[20px] font-bold font-mono text-primary tracking-tight leading-none">{formatCurrency(remaining)}</p>
         </div>
       </div>
 

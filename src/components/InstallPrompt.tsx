@@ -66,7 +66,7 @@ export default function InstallPrompt() {
         </div>
         <button
           onClick={handleInstall}
-          className="shrink-0 bg-brand text-white text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"
+          className="shrink-0 bg-brand text-on-brand text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"
         >
           Install
         </button>
@@ -96,9 +96,7 @@ function PromptShell({ children, onDismiss }: { children: React.ReactNode; onDis
   return (
     <div className="fixed bottom-6 left-0 right-0 z-[90] flex justify-center px-3 animate-slide-up">
       <div className="max-w-2xl w-full bg-card border border-themed rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-[13px] bg-brand flex items-center justify-center shrink-0">
-          <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-6 h-6 rounded-md" />
-        </div>
+        <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-10 h-10 rounded-[13px] shrink-0" />
         {children}
         <button
           onClick={onDismiss}

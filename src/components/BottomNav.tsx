@@ -31,7 +31,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
                   className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 border-4"
                   style={{ borderColor: 'var(--color-card)' }}
                 >
-                  <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
+                  <Plus className="w-7 h-7 text-on-brand" strokeWidth={2.5} />
                 </button>
               </div>
             )

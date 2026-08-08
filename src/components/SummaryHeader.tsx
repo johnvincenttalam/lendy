@@ -1,7 +1,6 @@
 import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
-import ThemeToggle from './ThemeToggle'
 
 type Props = {
   totalDebt: number
@@ -39,17 +38,14 @@ export default function SummaryHeader({
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
       <div className="relative max-w-2xl mx-auto px-4 pt-5 pb-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-10 h-10 rounded-[13px]" />
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Lendy</h1>
-              <p className="text-[12px] text-white/55 font-medium">
-                {loanCount} active {loanCount === 1 ? 'loan' : 'loans'}
-              </p>
-            </div>
+        <div className="flex items-center gap-3 mb-5">
+          <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-10 h-10 rounded-[13px]" />
+          <div>
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Lendy</h1>
+            <p className="text-[12px] text-white/55 font-medium">
+              {loanCount} active {loanCount === 1 ? 'loan' : 'loans'}
+            </p>
           </div>
-          <ThemeToggle />
         </div>
 
         {overdueCount > 0 && (
@@ -76,7 +72,7 @@ export default function SummaryHeader({
               </div>
               <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Debt</span>
             </div>
-            <p className="text-[22px] font-bold text-white tracking-tight">{formatCurrency(totalDebt)}</p>
+            <p className="text-[22px] font-bold font-mono text-white tracking-tight">{formatCurrency(totalDebt)}</p>
           </div>
           <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
             <div className="flex items-center gap-1.5 mb-2.5">
@@ -85,7 +81,7 @@ export default function SummaryHeader({
               </div>
               <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Monthly</span>
             </div>
-            <p className="text-[22px] font-bold text-white tracking-tight">{formatCurrency(totalMonthly)}</p>
+            <p className="text-[22px] font-bold font-mono text-white tracking-tight">{formatCurrency(totalMonthly)}</p>
           </div>
         </div>
 

@@ -20,7 +20,7 @@ export default function LoanDetailsPage() {
         >
           <button
             onClick={() => navigate('/')}
-            className="bg-brand text-white text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"
+            className="bg-brand text-on-brand text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"
           >
             Back to loans
           </button>

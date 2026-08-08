@@ -186,7 +186,7 @@ export default function Dashboard() {
                     onClick={() => setFilter(key)}
                     className={`flex-1 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-center ${
                       filter === key
-                        ? 'bg-brand text-white'
+                        ? 'bg-brand text-on-brand'
                         : 'bg-subtle text-secondary hover:opacity-80'
                     }`}
                   >
@@ -198,7 +198,7 @@ export default function Dashboard() {
                     onClick={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
                     className={`flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex items-center justify-center gap-1 ${
                       filter === 'archived'
-                        ? 'bg-brand text-white'
+                        ? 'bg-brand text-on-brand'
                         : 'bg-subtle text-secondary hover:opacity-80'
                     }`}
                   >
@@ -276,7 +276,7 @@ export default function Dashboard() {
                     onClick={() => setTagFilter(tagFilter === t ? null : t)}
                     className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all ${
                       tagFilter === t
-                        ? 'bg-brand text-white'
+                        ? 'bg-brand text-on-brand'
                         : 'bg-subtle text-muted hover:text-secondary'
                     }`}
                   >

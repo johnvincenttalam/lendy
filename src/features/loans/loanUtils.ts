@@ -190,7 +190,7 @@ export function debtPayoffTimeline(loans: Loan[]): Array<{ date: Date; balance: 
 export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
   if (monthlyIncome <= 0) return 0
   const totalMonthly = loans
-    .filter((l) => !isFullyPaid(l))
+    .filter((l) => !l.archived && !isFullyPaid(l))
     .reduce((sum, l) => sum + l.monthlyPayment, 0)
   return totalMonthly / monthlyIncome
 }

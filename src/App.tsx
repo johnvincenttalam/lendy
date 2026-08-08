@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import LoanDetailsPage from './pages/LoanDetailsPage'
@@ -23,13 +23,8 @@ function ScrollToTop() {
 function AppContent() {
   const [showForm, setShowForm] = useState(false)
   const addLoan = useLoanStore((s) => s.addLoan)
-  const navigate = useNavigate()
-  const location = useLocation()
 
   const handleAdd = () => {
-    if (location.pathname !== '/') {
-      navigate('/')
-    }
     setShowForm(true)
   }
 
