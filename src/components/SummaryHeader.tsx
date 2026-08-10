@@ -1,5 +1,6 @@
-import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle, CalendarClock } from 'lucide-react'
 import { formatCurrency } from '../features/loans/loanUtils'
+import type { UpcomingPayments } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
 
 type Props = {
@@ -12,6 +13,16 @@ type Props = {
   hasIncome: boolean
   overdueCount?: number
   overdueAmount?: number
+  upcoming?: UpcomingPayments | null
+}
+
+function formatDateRange(from: Date, to: Date): string {
+  const sameDay = from.getTime() === to.getTime()
+  const fromLabel = from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (sameDay) return fromLabel
+  const sameMonth = from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
+  const toLabel = to.toLocaleDateString('en-US', sameMonth ? { day: 'numeric' } : { month: 'short', day: 'numeric' })
+  return `${fromLabel} – ${toLabel}`
 }
 
 export default function SummaryHeader({
@@ -24,6 +35,7 @@ export default function SummaryHeader({
   hasIncome,
   overdueCount = 0,
   overdueAmount = 0,
+  upcoming = null,
 }: Props) {
   const dtiPercent = Math.round(debtToIncome * 100)
   const dtiColor =
@@ -59,6 +71,22 @@ export default function SummaryHeader({
               </p>
               <p className="text-[11px] text-white/70">
                 {formatCurrency(overdueAmount)} total due
+              </p>
+            </div>
+          </div>
+        )}
+
+        {upcoming && (
+          <div className="mb-4 rounded-xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+              <CalendarClock className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-white">
+                Next due {formatDateRange(upcoming.from, upcoming.to)}
+              </p>
+              <p className="text-[11px] text-white/70">
+                {formatCurrency(upcoming.amount)} for {upcoming.count} {upcoming.count === 1 ? 'payment' : 'payments'}
               </p>
             </div>
           </div>

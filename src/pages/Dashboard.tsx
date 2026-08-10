@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Receipt, Search, X, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List,
+  Receipt, Search, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
-  totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount,
+  totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount, upcomingPayments,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
 import EmptyState from '../components/EmptyState'
@@ -27,24 +27,19 @@ export default function Dashboard() {
   const { loans, sortBy, setSortBy, monthlyIncome, viewMode, setViewMode } = useLoanStore()
   const [showSort, setShowSort] = useState(false)
 
-  // Search/filter/tag are mirrored into the URL (replacing, not pushing) so
+  // Filter/tag are mirrored into the URL (replacing, not pushing) so
   // that navigating to a loan and back restores the view instead of
   // resetting to the unfiltered list — Dashboard unmounts on that trip.
   const [searchParams, setSearchParams] = useSearchParams()
-  const [search, setSearchValue] = useState(() => searchParams.get('q') ?? '')
   const [filter, setFilterValue] = useState<Filter>(() => {
     const f = searchParams.get('filter')
     return f === 'active' || f === 'paid' || f === 'archived' ? f : 'all'
   })
   const [tagFilter, setTagFilterValue] = useState<string | null>(() => searchParams.get('tag'))
 
-  const updateParams = (next: { q?: string; filter?: Filter; tag?: string | null }) => {
+  const updateParams = (next: { filter?: Filter; tag?: string | null }) => {
     setSearchParams((prev) => {
       const params = new URLSearchParams(prev)
-      if (next.q !== undefined) {
-        if (next.q) params.set('q', next.q)
-        else params.delete('q')
-      }
       if (next.filter !== undefined) {
         if (next.filter !== 'all') params.set('filter', next.filter)
         else params.delete('filter')
@@ -55,11 +50,6 @@ export default function Dashboard() {
       }
       return params
     }, { replace: true })
-  }
-
-  const setSearch = (value: string) => {
-    setSearchValue(value)
-    updateParams({ q: value })
   }
 
   const setFilter = (value: Filter) => {
@@ -88,6 +78,8 @@ export default function Dashboard() {
     overdueAmount: totalOverdueAmount(activeLoans),
   }), [activeLoans])
 
+  const upcoming = useMemo(() => upcomingPayments(activeLoans), [activeLoans])
+
   const tags = useMemo(() => {
     const set = new Set<string>()
     loans.forEach((l) => { if (l.tag) set.add(l.tag) })
@@ -109,11 +101,6 @@ export default function Dashboard() {
 
     if (tagFilter) result = result.filter((l) => l.tag === tagFilter)
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((l) => l.name.toLowerCase().includes(q) || (l.notes ?? '').toLowerCase().includes(q))
-    }
-
     result.sort((a, b) => {
       switch (sortBy) {
         case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -127,7 +114,7 @@ export default function Dashboard() {
     })
 
     return result
-  }, [loans, filter, tagFilter, search, sortBy])
+  }, [loans, filter, tagFilter, sortBy])
 
   const { activeCount, paidCount, archivedCount } = useMemo(() => ({
     activeCount: activeLoans.filter((l) => !isFullyPaid(l)).length,
@@ -147,32 +134,12 @@ export default function Dashboard() {
         hasIncome={monthlyIncome > 0}
         overdueCount={overdueLoans.length}
         overdueAmount={overdueAmount}
+        upcoming={upcoming}
       />
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search loans..."
-                className="input-field input-sm !pl-10"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-subtle flex items-center justify-center"
-                >
-                  <X className="w-3 h-3 text-muted" />
-                </button>
-              )}
-            </div>
-
             {/* Filters + Sort */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="flex gap-1.5 overflow-x-auto flex-1 min-w-0">
@@ -223,7 +190,7 @@ export default function Dashboard() {
                 {showSort && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setShowSort(false)} />
-                    <div className="absolute right-0 top-9 bg-card border border-themed rounded-xl z-40 py-1 min-w-[150px] animate-scale-in">
+                    <div className="absolute left-0 sm:left-auto sm:right-0 top-9 bg-card border border-themed rounded-xl z-40 py-1 min-w-[150px] animate-scale-in">
                       {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
                         <button
                           key={key}
@@ -314,7 +281,7 @@ export default function Dashboard() {
             <EmptyState
               icon={Search}
               title="No loans found"
-              subtitle="Try a different search or filter"
+              subtitle="Try a different filter"
             />
           ) : (
             filtered.map((loan) => <LoanCard key={loan.id} loan={loan} view={viewMode} />)

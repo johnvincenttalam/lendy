@@ -253,3 +253,47 @@ export function getOverdueLoans(loans: Loan[]): Loan[] {
 export function totalOverdueAmount(loans: Loan[]): number {
   return getOverdueLoans(loans).reduce((sum, l) => sum + l.monthlyPayment, 0)
 }
+
+// --- Upcoming payments ---
+
+export type UpcomingPayments = {
+  count: number
+  amount: number
+  from: Date
+  to: Date
+}
+
+/**
+ * Summarize payments due (not yet overdue) within the next `days` days,
+ * for the homepage "what's coming up" hint.
+ */
+export function upcomingPayments(loans: Loan[], days = 14): UpcomingPayments | null {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const windowEnd = new Date(today)
+  windowEnd.setDate(windowEnd.getDate() + days)
+
+  const dueDates: Date[] = []
+  let amount = 0
+
+  for (const loan of loans) {
+    if (loan.archived || isFullyPaid(loan) || isOverdue(loan)) continue
+    const due = nextDueDate(loan)
+    if (!due) continue
+    due.setHours(0, 0, 0, 0)
+    if (due >= today && due <= windowEnd) {
+      dueDates.push(due)
+      amount += loan.monthlyPayment
+    }
+  }
+
+  if (dueDates.length === 0) return null
+
+  const times = dueDates.map((d) => d.getTime())
+  return {
+    count: dueDates.length,
+    amount,
+    from: new Date(Math.min(...times)),
+    to: new Date(Math.max(...times)),
+  }
+}
