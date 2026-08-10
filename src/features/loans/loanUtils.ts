@@ -264,34 +264,39 @@ export type UpcomingPayments = {
 }
 
 /**
- * Summarize payments due (not yet overdue) within the next `days` days,
- * for the homepage "what's coming up" hint.
+ * The half-month bucket (1–15 / 16–end) a date falls into, as its start date —
+ * matches the grouping used by the Calendar page's schedule view.
  */
-export function upcomingPayments(loans: Loan[], days = 14): UpcomingPayments | null {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const windowEnd = new Date(today)
-  windowEnd.setDate(windowEnd.getDate() + days)
+function halfMonthStart(date: Date): Date {
+  const half = date.getDate() <= 15 ? 1 : 16
+  return new Date(date.getFullYear(), date.getMonth(), half)
+}
 
-  const dueDates: Date[] = []
-  let amount = 0
+/**
+ * Summarize payments due (not yet overdue) in the nearest half-month bucket
+ * that has any — today's bucket if something's due there, otherwise the
+ * next one with payments — for the homepage "what's coming up" hint.
+ */
+export function upcomingPayments(loans: Loan[]): UpcomingPayments | null {
+  const entries: { date: Date; amount: number }[] = []
 
   for (const loan of loans) {
     if (loan.archived || isFullyPaid(loan) || isOverdue(loan)) continue
     const due = nextDueDate(loan)
     if (!due) continue
     due.setHours(0, 0, 0, 0)
-    if (due >= today && due <= windowEnd) {
-      dueDates.push(due)
-      amount += loan.monthlyPayment
-    }
+    entries.push({ date: due, amount: loan.monthlyPayment })
   }
 
-  if (dueDates.length === 0) return null
+  if (entries.length === 0) return null
 
-  const times = dueDates.map((d) => d.getTime())
+  const nearestBucket = Math.min(...entries.map((e) => halfMonthStart(e.date).getTime()))
+  const inBucket = entries.filter((e) => halfMonthStart(e.date).getTime() === nearestBucket)
+  const amount = inBucket.reduce((sum, e) => sum + e.amount, 0)
+  const times = inBucket.map((e) => e.date.getTime())
+
   return {
-    count: dueDates.length,
+    count: inBucket.length,
     amount,
     from: new Date(Math.min(...times)),
     to: new Date(Math.max(...times)),
