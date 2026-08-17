@@ -5,6 +5,7 @@ import LoanDetailsPage from './pages/LoanDetailsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/CalendarPage'
+import BillsPage from './pages/BillsPage'
 import ToastContainer from './components/Toast'
 import ConfettiContainer from './components/Confetti'
 import InstallPrompt from './components/InstallPrompt'
@@ -40,6 +41,7 @@ function AppContent() {
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/bills" element={<BillsPage />} />
       </Routes>
       <BottomNav onAdd={handleAdd} />
       {showForm && (
