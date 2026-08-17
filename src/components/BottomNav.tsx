@@ -1,20 +1,23 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, CalendarDays, BarChart3, Settings, Plus } from 'lucide-react'
+import { Home, CalendarDays, MoreHorizontal, Settings, Plus } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { path: '__add__', icon: Plus, label: 'Add' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/more', icon: MoreHorizontal, label: 'More' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ] as const
+
+// Paths that fall under the "More" tab even though they're not /more itself
+const MORE_PREFIXES = ['/more', '/analytics', '/bills', '/savings']
 
 export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
 
   // Hide on detail pages
-  const hiddenPaths = ['/loan/']
+  const hiddenPaths = ['/loan/', '/bills/', '/savings/']
   if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return null
 
   return (
@@ -27,7 +30,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
               <div key="add" className="flex justify-center -mt-4 pointer-events-auto">
                 <button
                   onClick={onAdd}
-                  aria-label="Add loan"
+                  aria-label="Add"
                   className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light active:scale-90 transition-all duration-200 border-4"
                   style={{ borderColor: 'var(--color-card)' }}
                 >
@@ -37,7 +40,9 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
             )
           }
 
-          const isActive = location.pathname === item.path
+          const isActive = item.path === '/more'
+            ? MORE_PREFIXES.some((p) => location.pathname.startsWith(p))
+            : location.pathname === item.path
           const Icon = item.icon
 
           return (
