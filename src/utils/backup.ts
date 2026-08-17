@@ -1,6 +1,7 @@
 import { useLoanStore } from '../features/loans/loanStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
+import { showToast } from '../components/Toast'
 
 export function exportAllData(): string {
   const { loans, payments, monthlyIncome } = useLoanStore.getState()
@@ -46,5 +47,24 @@ export function importAllData(json: string): boolean {
   const loanOk = useLoanStore.getState().importBackup(json)
   useBillStore.getState().importBackup(json)
   useSavingsStore.getState().importBackup(json)
+
+  if (loanOk) {
+    const counts = parseBackupCounts(json)
+    if (counts) showToast(describeRestoredCounts(counts))
+  }
+
   return loanOk
+}
+
+function describeCount(n: number, singular: string): string {
+  return `${n} ${n === 1 ? singular : `${singular}s`}`
+}
+
+function describeRestoredCounts(counts: BackupCounts): string {
+  const parts: string[] = []
+  if (counts.loans > 0) parts.push(describeCount(counts.loans, 'loan'))
+  if (counts.bills > 0) parts.push(describeCount(counts.bills, 'bill'))
+  if (counts.savingsGoals > 0) parts.push(describeCount(counts.savingsGoals, 'savings goal'))
+  const text = parts.length > 0 ? parts.join(', ') : 'No data'
+  return `${text} restored`
 }

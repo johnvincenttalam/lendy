@@ -12,6 +12,7 @@ import SavingsTransactionForm from './SavingsTransactionForm'
 import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
+import { formatDate } from '../../utils/dateUtils'
 
 type Props = {
   goal: SavingsGoal
@@ -193,7 +194,7 @@ export default function SavingsGoalDetails({ goal, onDelete, onBack }: Props) {
                   )}
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] font-bold text-primary">
-                      {new Date(t.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatDate(t.createdAt)}
                     </span>
                     {t.note && <p className="text-[11px] text-muted truncate">{t.note}</p>}
                   </div>

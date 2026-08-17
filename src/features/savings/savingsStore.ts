@@ -168,8 +168,16 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
     try {
       const data = JSON.parse(json)
       if (!Array.isArray(data.savingsGoals)) return
-      const goals: SavingsGoal[] = data.savingsGoals
-      const transactions: SavingsTransaction[] = Array.isArray(data.savingsTransactions) ? data.savingsTransactions : []
+      const goals: SavingsGoal[] = data.savingsGoals.filter(
+        (g: unknown): g is SavingsGoal =>
+          !!g && typeof g === 'object' && typeof (g as SavingsGoal).id === 'string' && typeof (g as SavingsGoal).name === 'string'
+      )
+      const transactions: SavingsTransaction[] = Array.isArray(data.savingsTransactions)
+        ? data.savingsTransactions.filter(
+            (t: unknown): t is SavingsTransaction =>
+              !!t && typeof t === 'object' && typeof (t as SavingsTransaction).id === 'string' && typeof (t as SavingsTransaction).goalId === 'string'
+          )
+        : []
       saveGoals(goals)
       saveTransactions(transactions)
       set({ goals, transactions })

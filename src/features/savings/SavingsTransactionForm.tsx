@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { SavingsGoal } from './savingsTypes'
+import { DEFAULT_COLOR } from '../loans/loanTypes'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
@@ -86,7 +87,7 @@ export default function SavingsTransactionForm({ goal, mode, onSubmit, onClose }
           <button
             type="submit"
             className="w-full text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 text-[15px] tracking-tight hover:opacity-90"
-            style={{ backgroundColor: isDeposit ? goal.color : '#EF4444' }}
+            style={{ backgroundColor: isDeposit ? (goal.color || DEFAULT_COLOR) : '#EF4444' }}
           >
             {isDeposit ? 'Add Funds' : 'Withdraw'}
           </button>

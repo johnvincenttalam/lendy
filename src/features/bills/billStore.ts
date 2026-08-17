@@ -154,8 +154,16 @@ export const useBillStore = create<BillStore>((set, get) => ({
     try {
       const data = JSON.parse(json)
       if (!Array.isArray(data.bills)) return
-      const bills: Bill[] = data.bills
-      const billPayments: BillPaymentRecord[] = Array.isArray(data.billPayments) ? data.billPayments : []
+      const bills: Bill[] = data.bills.filter(
+        (b: unknown): b is Bill =>
+          !!b && typeof b === 'object' && typeof (b as Bill).id === 'string' && typeof (b as Bill).name === 'string'
+      )
+      const billPayments: BillPaymentRecord[] = Array.isArray(data.billPayments)
+        ? data.billPayments.filter(
+            (p: unknown): p is BillPaymentRecord =>
+              !!p && typeof p === 'object' && typeof (p as BillPaymentRecord).id === 'string' && typeof (p as BillPaymentRecord).billId === 'string'
+          )
+        : []
       saveBills(bills)
       saveBillPayments(billPayments)
       set({ bills, billPayments })

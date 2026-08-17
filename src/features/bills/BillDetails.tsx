@@ -11,6 +11,7 @@ import BillForm from './BillForm'
 import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
+import { formatDate } from '../../utils/dateUtils'
 
 type Props = {
   bill: Bill
@@ -179,10 +180,10 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
                   <CheckCircle className="w-[18px] h-[18px] text-emerald-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] font-bold text-primary">
-                      {new Date(p.paidAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatDate(p.paidAt)}
                     </span>
                     <p className="text-[11px] text-muted">
-                      For cycle due {new Date(p.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      For cycle due {formatDate(p.dueDate)}
                     </p>
                   </div>
                   <span className="text-[14px] font-bold text-primary"><CurrencyAmount value={p.amount} /></span>

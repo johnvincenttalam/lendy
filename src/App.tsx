@@ -40,6 +40,17 @@ function AppContent() {
     setShowForm(true)
   }
 
+  // Close any open form sheet the moment the route changes, so it never
+  // silently morphs into a different form (e.g. "New Bill" -> "New Loan").
+  // Adjusted during render (not an effect) so it applies before paint and
+  // never fires on the initial mount, following React's "adjusting state
+  // when a prop changes" pattern.
+  const [prevPathname, setPrevPathname] = useState(location.pathname)
+  if (location.pathname !== prevPathname) {
+    setPrevPathname(location.pathname)
+    setShowForm(false)
+  }
+
   const addTarget: 'loan' | 'bill' | 'goal' =
     location.pathname === '/bills' ? 'bill' : location.pathname === '/savings' ? 'goal' : 'loan'
 
