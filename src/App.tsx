@@ -16,7 +16,11 @@ import InstallPrompt from './components/InstallPrompt'
 import BottomNav from './components/BottomNav'
 import PinScreen from './features/lock/PinScreen'
 import LoanForm from './features/loans/LoanForm'
+import BillForm from './features/bills/BillForm'
+import SavingsGoalForm from './features/savings/SavingsGoalForm'
 import { useLoanStore } from './features/loans/loanStore'
+import { useBillStore } from './features/bills/billStore'
+import { useSavingsStore } from './features/savings/savingsStore'
 import { useNotificationCheck } from './features/notifications/useNotificationCheck'
 
 function ScrollToTop() {
@@ -27,11 +31,17 @@ function ScrollToTop() {
 
 function AppContent() {
   const [showForm, setShowForm] = useState(false)
+  const location = useLocation()
   const addLoan = useLoanStore((s) => s.addLoan)
+  const addBill = useBillStore((s) => s.addBill)
+  const addGoal = useSavingsStore((s) => s.addGoal)
 
   const handleAdd = () => {
     setShowForm(true)
   }
+
+  const addTarget: 'loan' | 'bill' | 'goal' =
+    location.pathname === '/bills' ? 'bill' : location.pathname === '/savings' ? 'goal' : 'loan'
 
   return (
     <>
@@ -52,10 +62,28 @@ function AppContent() {
         <Route path="/more" element={<MorePage />} />
       </Routes>
       <BottomNav onAdd={handleAdd} />
-      {showForm && (
+      {showForm && addTarget === 'loan' && (
         <LoanForm
           onSubmit={(data) => {
             addLoan(data)
+            setShowForm(false)
+          }}
+          onClose={() => setShowForm(false)}
+        />
+      )}
+      {showForm && addTarget === 'bill' && (
+        <BillForm
+          onSubmit={(data) => {
+            addBill(data)
+            setShowForm(false)
+          }}
+          onClose={() => setShowForm(false)}
+        />
+      )}
+      {showForm && addTarget === 'goal' && (
+        <SavingsGoalForm
+          onSubmit={(data) => {
+            addGoal(data)
             setShowForm(false)
           }}
           onClose={() => setShowForm(false)}
