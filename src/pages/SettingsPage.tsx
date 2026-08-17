@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
+import { useBillStore } from '../features/bills/billStore'
+import { useSavingsStore } from '../features/savings/savingsStore'
 import { debtToIncomeRatio } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
 import PinSetup from '../features/lock/PinSetup'
@@ -8,14 +10,15 @@ import NotificationSettings from '../features/notifications/NotificationSettings
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
+import { exportAllData, importAllData, parseBackupCounts } from '../utils/backup'
+import type { BackupCounts } from '../utils/backup'
 
-type PendingImport = { json: string; incomingCount: number }
+type PendingImport = { json: string; counts: BackupCounts }
 
 export default function SettingsPage() {
-  const {
-    loans, monthlyIncome, setMonthlyIncome,
-    exportCSV, exportBackup, importBackup,
-  } = useLoanStore()
+  const { loans, monthlyIncome, setMonthlyIncome, exportCSV } = useLoanStore()
+  const { bills } = useBillStore()
+  const { goals } = useSavingsStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
@@ -34,7 +37,7 @@ export default function SettingsPage() {
   }
 
   async function handleExportBackup() {
-    const json = exportBackup()
+    const json = exportAllData()
     const filename = `lendy-backup-${dateSuffix()}.json`
     const file = new File([json], filename, { type: 'application/json' })
 
@@ -58,16 +61,12 @@ export default function SettingsPage() {
     const reader = new FileReader()
     reader.onload = () => {
       const json = reader.result as string
-      try {
-        const data = JSON.parse(json)
-        if (!Array.isArray(data.loans)) {
-          showToast('Invalid backup file')
-          return
-        }
-        setPendingImport({ json, incomingCount: data.loans.length })
-      } catch {
+      const counts = parseBackupCounts(json)
+      if (!counts) {
         showToast('Invalid backup file')
+        return
       }
+      setPendingImport({ json, counts })
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -75,7 +74,7 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    const ok = importBackup(pendingImport.json)
+    const ok = importAllData(pendingImport.json)
     if (!ok) showToast('Failed to restore backup')
     setPendingImport(null)
   }
@@ -176,9 +175,7 @@ export default function SettingsPage() {
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
             <p className="text-[13px] text-secondary mb-6">
-              {loans.length > 0
-                ? `This will replace your ${loans.length} existing ${loans.length === 1 ? 'loan' : 'loans'} with ${pendingImport.incomingCount} from the backup. This cannot be undone.`
-                : `Import ${pendingImport.incomingCount} ${pendingImport.incomingCount === 1 ? 'loan' : 'loans'} from the backup?`}
+              {describeBackupImport(pendingImport.counts, { loans: loans.length, bills: bills.length, goals: goals.length })}
             </p>
             <div className="flex gap-2.5">
               <button
@@ -190,9 +187,9 @@ export default function SettingsPage() {
               <button
                 onClick={confirmImport}
                 className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: loans.length > 0 ? '#EF4444' : '#6366F1' }}
+                style={{ backgroundColor: hasExistingData(loans.length, bills.length, goals.length) ? '#EF4444' : '#6366F1' }}
               >
-                {loans.length > 0 ? 'Replace' : 'Restore'}
+                {hasExistingData(loans.length, bills.length, goals.length) ? 'Replace' : 'Restore'}
               </button>
             </div>
           </div>
@@ -200,6 +197,29 @@ export default function SettingsPage() {
       )}
     </div>
   )
+}
+
+function hasExistingData(loanCount: number, billCount: number, goalCount: number): boolean {
+  return loanCount > 0 || billCount > 0 || goalCount > 0
+}
+
+function describeCount(n: number, singular: string): string {
+  return `${n} ${n === 1 ? singular : `${singular}s`}`
+}
+
+function describeBackupImport(
+  incoming: BackupCounts,
+  existing: { loans: number; bills: number; goals: number },
+): string {
+  const parts: string[] = []
+  if (incoming.loans > 0) parts.push(describeCount(incoming.loans, 'loan'))
+  if (incoming.bills > 0) parts.push(describeCount(incoming.bills, 'bill'))
+  if (incoming.savingsGoals > 0) parts.push(describeCount(incoming.savingsGoals, 'savings goal'))
+  const incomingText = parts.length > 0 ? parts.join(', ') : 'no data'
+
+  return hasExistingData(existing.loans, existing.bills, existing.goals)
+    ? `This will replace your existing data with ${incomingText} from the backup. This cannot be undone.`
+    : `Import ${incomingText} from the backup?`
 }
 
 function downloadFile(content: string, filename: string, type: string) {
