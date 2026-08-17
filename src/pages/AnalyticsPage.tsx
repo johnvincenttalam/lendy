@@ -7,13 +7,14 @@ import {
 import { useLoanStore } from '../features/loans/loanStore'
 import EmptyState from '../components/EmptyState'
 import {
-  formatCurrency, isFullyPaid, totalInterestOverLife, totalCostOfLoan,
+  isFullyPaid, totalInterestOverLife, totalCostOfLoan,
   interestPaidSoFar, remainingBalance, debtFreeDate, monthsLeft,
   interestRemaining, debtToIncomeRatio,
 } from '../features/loans/loanUtils'
 import type { Loan, PaymentRecord } from '../features/loans/loanTypes'
 import { DEFAULT_COLOR, LOAN_COLORS, LOAN_TAGS } from '../features/loans/loanTypes'
 import { BRAND_GRADIENT } from '../constants/styles'
+import CurrencyAmount from '../components/CurrencyAmount'
 
 function computePaymentStreak(loans: Loan[]): number {
   // Total payments made across all loans (lifetime, including archived/paid-off)
@@ -295,7 +296,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Remaining</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight">{formatCurrency(totalRemainingDebt)}</p>
+                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={totalRemainingDebt} /></p>
                 </div>
               </div>
             </div>
@@ -340,11 +341,11 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="bg-subtle rounded-xl p-3">
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Monthly Income</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight">{formatCurrency(monthlyIncome)}</p>
+                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={monthlyIncome} /></p>
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Monthly Debt</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight">{formatCurrency(dtiMonthly)}</p>
+                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={dtiMonthly} /></p>
                 </div>
               </div>
             </div>
@@ -400,11 +401,11 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="bg-subtle rounded-xl p-3">
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Principal Paid</p>
-                  <p className="text-[14px] font-bold font-mono text-emerald-500 tracking-tight">{formatCurrency(totalPrincipalPaid)}</p>
+                  <p className="text-[14px] font-bold font-mono text-emerald-500 tracking-tight"><CurrencyAmount value={totalPrincipalPaid} /></p>
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Interest Paid</p>
-                  <p className="text-[14px] font-bold font-mono text-red-500 tracking-tight">{formatCurrency(totalInterestPaid)}</p>
+                  <p className="text-[14px] font-bold font-mono text-red-500 tracking-tight"><CurrencyAmount value={totalInterestPaid} /></p>
                 </div>
               </div>
             </>
@@ -418,15 +419,15 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Borrowed</span>
-                <span className="text-[13px] font-bold font-mono text-primary">{formatCurrency(lifetimePrincipal)}</span>
+                <span className="text-[13px] font-bold font-mono text-primary"><CurrencyAmount value={lifetimePrincipal} /></span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Total Interest</span>
-                <span className="text-[13px] font-bold font-mono text-red-500">{formatCurrency(lifetimeInterest)}</span>
+                <span className="text-[13px] font-bold font-mono text-red-500"><CurrencyAmount value={lifetimeInterest} /></span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Total Cost</span>
-                <span className="text-[13px] font-bold font-mono text-primary">{formatCurrency(lifetimeTotal)}</span>
+                <span className="text-[13px] font-bold font-mono text-primary"><CurrencyAmount value={lifetimeTotal} /></span>
               </div>
             </div>
           </div>
@@ -466,7 +467,7 @@ export default function AnalyticsPage() {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[13px] font-bold font-mono text-primary tracking-tight">{formatCurrency(c.remaining)}</p>
+                    <p className="text-[13px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={c.remaining} /></p>
                     <p className="text-[10px] text-muted">{categoryTotal > 0 ? Math.round((c.remaining / categoryTotal) * 100) : 0}%</p>
                   </div>
                 </div>
@@ -486,7 +487,7 @@ export default function AnalyticsPage() {
                 <h3 className="font-bold text-primary text-[15px] tracking-tight">Monthly Burden</h3>
                 <p className="text-[11px] text-muted">Your total monthly payment over time</p>
               </div>
-              <span className="text-[14px] font-bold font-mono text-primary tracking-tight">{formatCurrency(currentBurden)}/mo</span>
+              <span className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={currentBurden} />/mo</span>
             </div>
 
             {/* Simple bar chart */}
@@ -535,7 +536,7 @@ export default function AnalyticsPage() {
               <p className="text-[13px] text-secondary">
                 Pay off <span className="font-bold text-primary">{payoffPriority[0].loan.name}</span> first — it carries the highest rate at{' '}
                 <span className="font-bold text-primary">{payoffPriority[0].loan.interestRate}%/mo</span>, costing{' '}
-                <span className="font-bold font-mono text-cyan-500">{formatCurrency(payoffPriority[0].remainingInterest)}</span> more in interest.
+                <span className="font-bold font-mono text-cyan-500"><CurrencyAmount value={payoffPriority[0].remainingInterest} /></span> more in interest.
               </p>
             </button>
 
@@ -599,7 +600,7 @@ export default function AnalyticsPage() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[13px] font-bold font-mono text-red-500 tracking-tight">{formatCurrency(totalInterest)}</p>
+                        <p className="text-[13px] font-bold font-mono text-red-500 tracking-tight"><CurrencyAmount value={totalInterest} /></p>
                         <p className="text-[10px] text-muted">{Math.round(costRatio * 100)}% of principal</p>
                       </div>
                     </div>

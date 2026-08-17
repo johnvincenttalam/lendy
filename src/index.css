@@ -109,6 +109,13 @@ input[type="number"] {
   font-size: 0.875rem;
 }
 
+/* Financial values use font-mono, whose default stack has no ₱ glyph.
+   Render just the currency symbol in the Inter/sans-serif stack so it
+   doesn't fall back to a missing-glyph box, without touching the digits. */
+.currency-symbol {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 /* Visible keyboard focus for interactive elements */
 button:focus-visible,
 a:focus-visible,

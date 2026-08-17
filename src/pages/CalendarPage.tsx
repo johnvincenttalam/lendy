@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
-import { formatCurrency, paymentSchedule } from '../features/loans/loanUtils'
+import { paymentSchedule } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
 import { BRAND_GRADIENT } from '../constants/styles'
 import EmptyState from '../components/EmptyState'
+import CurrencyAmount from '../components/CurrencyAmount'
 import type { Loan } from '../features/loans/loanTypes'
 
 type CalendarPayment = {
@@ -220,19 +221,19 @@ export default function CalendarPage() {
           <div className="mt-3 flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <span className="text-[12px] text-white/60">
-                <span className="text-emerald-300">{formatCurrency(monthlyTotal.paid)}</span> paid
+                <span className="text-emerald-300"><CurrencyAmount value={monthlyTotal.paid} /></span> paid
               </span>
               {monthlyTotal.overdue > 0 && (
                 <span className="text-[12px] text-white/60">
-                  <span className="text-red-300">{formatCurrency(monthlyTotal.overdue)}</span> overdue
+                  <span className="text-red-300"><CurrencyAmount value={monthlyTotal.overdue} /></span> overdue
                 </span>
               )}
               <span className="text-[12px] text-white/60">
-                <span className="text-white">{formatCurrency(monthlyTotal.pending)}</span> pending
+                <span className="text-white"><CurrencyAmount value={monthlyTotal.pending} /></span> pending
               </span>
             </div>
             <span className="text-xl font-bold text-white tracking-tight">
-              {formatCurrency(monthlyTotal.total)}
+              <CurrencyAmount value={monthlyTotal.total} />
             </span>
           </div>
         </div>
@@ -370,7 +371,7 @@ export default function CalendarPage() {
                           </span>
                         </div>
                         <span className="text-[12px] font-semibold text-muted tracking-tight">
-                          {formatCurrency(group.total)}
+                          <CurrencyAmount value={group.total} />
                         </span>
                       </div>
 
@@ -411,7 +412,7 @@ export default function CalendarPage() {
                                 <div className="flex items-center justify-between gap-2">
                                   <h4 className="font-semibold text-primary text-[14px] truncate">{p.loan.name}</h4>
                                   <span className="text-[14px] font-bold tracking-tight" style={{ color }}>
-                                    {formatCurrency(p.amount)}
+                                    <CurrencyAmount value={p.amount} />
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between mt-0.5 gap-2">
@@ -432,9 +433,9 @@ export default function CalendarPage() {
                                 </div>
                                 {p.loan.interestRate > 0 && (
                                   <div className="text-[10px] text-muted mt-0.5">
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(p.principal)}</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium"><CurrencyAmount value={p.principal} /></span>
                                     {' + '}
-                                    <span className="text-red-500 dark:text-red-400 font-medium">{formatCurrency(p.interest)}</span>
+                                    <span className="text-red-500 dark:text-red-400 font-medium"><CurrencyAmount value={p.interest} /></span>
                                   </div>
                                 )}
                               </div>

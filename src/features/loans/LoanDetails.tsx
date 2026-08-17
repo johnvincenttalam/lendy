@@ -11,7 +11,6 @@ import {
   remainingBalance,
   monthsLeft,
   progressPercent,
-  formatCurrency,
   endDate,
   isFullyPaid,
   paymentSchedule,
@@ -27,6 +26,7 @@ import { useLoanStore } from './loanStore'
 import LoanForm from './LoanForm'
 import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import CurrencyAmount from '../../components/CurrencyAmount'
 
 type Props = {
   loan: Loan
@@ -202,10 +202,10 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           )}
           <div className="px-4 pt-6 pb-4 text-center">
             <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Remaining Balance</p>
-            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none">{formatCurrency(remBalance)}</p>
+            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none"><CurrencyAmount value={remBalance} /></p>
             {hasInterest && (
               <p className="text-[12px] text-muted mt-2">
-                Principal: {formatCurrency(remPrincipal)}
+                Principal: <CurrencyAmount value={remPrincipal} />
               </p>
             )}
           </div>
@@ -264,22 +264,22 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
               </span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
-              <Stat label="Total Interest" value={formatCurrency(totalInterestOverLife(loan))} color="text-red-500 dark:text-red-400" />
-              <Stat label="Total Repayment" value={formatCurrency(totalCostOfLoan(loan))} color="text-primary" />
-              <Stat label="Interest Paid" value={formatCurrency(interestPaidSoFar(loan))} customColor={color} />
-              <Stat label="Interest Left" value={formatCurrency(interestRemaining(loan))} color="text-muted" />
+              <Stat label="Total Interest" value={<CurrencyAmount value={totalInterestOverLife(loan)} />} color="text-red-500 dark:text-red-400" />
+              <Stat label="Total Repayment" value={<CurrencyAmount value={totalCostOfLoan(loan)} />} color="text-primary" />
+              <Stat label="Interest Paid" value={<CurrencyAmount value={interestPaidSoFar(loan)} />} customColor={color} />
+              <Stat label="Interest Left" value={<CurrencyAmount value={interestRemaining(loan)} />} color="text-muted" />
             </div>
           </div>
         )}
 
         {/* Info grid */}
         <div className="grid grid-cols-3 gap-2.5">
-          <InfoCard icon={<DollarSign className="w-3.5 h-3.5" />} label="Amount" value={formatCurrency(loan.totalAmount)} />
-          <InfoCard icon={<DollarSign className="w-3.5 h-3.5" />} label="Monthly" value={formatCurrency(loan.monthlyPayment)} highlightColor={color} />
+          <InfoCard icon={<DollarSign className="w-3.5 h-3.5" />} label="Amount" value={<CurrencyAmount value={loan.totalAmount} />} />
+          <InfoCard icon={<DollarSign className="w-3.5 h-3.5" />} label="Monthly" value={<CurrencyAmount value={loan.monthlyPayment} />} highlightColor={color} />
           <InfoCard icon={<CheckCircle className="w-3.5 h-3.5" />} label="Paid" value={`${loan.monthsPaid}/${loan.durationMonths}`} />
           <InfoCard icon={<Calendar className="w-3.5 h-3.5" />} label="Start" value={new Date(loan.startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} />
           <InfoCard icon={<Calendar className="w-3.5 h-3.5" />} label="End" value={new Date(end).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} />
-          <InfoCard icon={<PiggyBank className="w-3.5 h-3.5" />} label="Total Paid" value={formatCurrency(loan.totalPaid)} highlightColor={color} />
+          <InfoCard icon={<PiggyBank className="w-3.5 h-3.5" />} label="Total Paid" value={<CurrencyAmount value={loan.totalPaid} />} highlightColor={color} />
         </div>
 
         {/* Repayment schedule */}
@@ -314,7 +314,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                       <span className="text-[13px] font-bold text-primary">
                         {p.month}/{loan.durationMonths}
                       </span>
-                      <span className="text-[14px] font-bold text-primary">{formatCurrency(p.payment)}</span>
+                      <span className="text-[14px] font-bold text-primary"><CurrencyAmount value={p.payment} /></span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-[11px] text-muted">
@@ -327,9 +327,9 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                       </span>
                       {hasInterest && (
                         <span className="text-[11px] text-muted">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(p.principal)}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium"><CurrencyAmount value={p.principal} /></span>
                           {' + '}
-                          <span className="text-red-500 dark:text-red-400 font-medium">{formatCurrency(p.interest)}</span>
+                          <span className="text-red-500 dark:text-red-400 font-medium"><CurrencyAmount value={p.interest} /></span>
                         </span>
                       )}
                     </div>
@@ -400,10 +400,10 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             </h3>
             {showConfirm === 'pay' ? (
               <div className="text-[13px] text-secondary mb-6 space-y-1">
-                <p>Mark payment {loan.monthsPaid + 1}/{loan.durationMonths} of {formatCurrency(schedule[loan.monthsPaid]?.payment ?? loan.monthlyPayment)} as paid?</p>
+                <p>Mark payment {loan.monthsPaid + 1}/{loan.durationMonths} of <CurrencyAmount value={schedule[loan.monthsPaid]?.payment ?? loan.monthlyPayment} /> as paid?</p>
                 {hasInterest && schedule[loan.monthsPaid] && (
                   <p className="text-[12px] text-muted">
-                    {formatCurrency(schedule[loan.monthsPaid].principal)} principal + {formatCurrency(schedule[loan.monthsPaid].interest)} interest
+                    <CurrencyAmount value={schedule[loan.monthsPaid].principal} /> principal + <CurrencyAmount value={schedule[loan.monthsPaid].interest} /> interest
                   </p>
                 )}
               </div>
@@ -460,7 +460,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   )
 }
 
-function Stat({ label, value, color, customColor }: { label: string; value: string; color?: string; customColor?: string }) {
+function Stat({ label, value, color, customColor }: { label: string; value: React.ReactNode; color?: string; customColor?: string }) {
   return (
     <div>
       <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">{label}</p>
@@ -482,7 +482,7 @@ function InfoCard({
 }: {
   icon: React.ReactNode
   label: string
-  value: string
+  value: React.ReactNode
   highlightColor?: string
 }) {
   return (

@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
 import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
-import { debtToIncomeRatio, formatCurrency } from '../features/loans/loanUtils'
+import { debtToIncomeRatio } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
 import PinSetup from '../features/lock/PinSetup'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
+import CurrencyAmount from '../components/CurrencyAmount'
 
 type PendingImport = { json: string; incomingCount: number }
 
@@ -115,7 +116,7 @@ export default function SettingsPage() {
           {monthlyIncome > 0 && totalMonthly > 0 && showIncome && (
             <p className="text-[11px] text-muted mt-1">
               {Math.round(debtToIncomeRatio(loans, monthlyIncome) * 100)}% of income goes to loans
-              {' '}({formatCurrency(monthlyIncome - totalMonthly)} remaining)
+              {' '}(<CurrencyAmount value={monthlyIncome - totalMonthly} /> remaining)
             </p>
           )}
         </div>

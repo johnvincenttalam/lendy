@@ -1,7 +1,7 @@
 import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle, CalendarClock } from 'lucide-react'
-import { formatCurrency } from '../features/loans/loanUtils'
 import type { UpcomingPayments } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
+import CurrencyAmount from './CurrencyAmount'
 
 type Props = {
   totalDebt: number
@@ -70,7 +70,7 @@ export default function SummaryHeader({
                 {overdueCount} overdue {overdueCount === 1 ? 'payment' : 'payments'}
               </p>
               <p className="text-[11px] text-white/70">
-                {formatCurrency(overdueAmount)} total due
+                <CurrencyAmount value={overdueAmount} /> total due
               </p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export default function SummaryHeader({
                 Next due {formatDateRange(upcoming.from, upcoming.to)}
               </p>
               <p className="text-[11px] text-white/70">
-                {formatCurrency(upcoming.amount)} for {upcoming.count} {upcoming.count === 1 ? 'payment' : 'payments'}
+                <CurrencyAmount value={upcoming.amount} /> for {upcoming.count} {upcoming.count === 1 ? 'payment' : 'payments'}
               </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function SummaryHeader({
               </div>
               <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Debt</span>
             </div>
-            <p className="text-[22px] font-bold font-mono text-white tracking-tight">{formatCurrency(totalDebt)}</p>
+            <p className="text-[22px] font-bold font-mono text-white tracking-tight"><CurrencyAmount value={totalDebt} /></p>
           </div>
           <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
             <div className="flex items-center gap-1.5 mb-2.5">
@@ -109,7 +109,7 @@ export default function SummaryHeader({
               </div>
               <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Monthly</span>
             </div>
-            <p className="text-[22px] font-bold font-mono text-white tracking-tight">{formatCurrency(totalMonthly)}</p>
+            <p className="text-[22px] font-bold font-mono text-white tracking-tight"><CurrencyAmount value={totalMonthly} /></p>
           </div>
         </div>
 
@@ -121,7 +121,7 @@ export default function SummaryHeader({
                 <TrendingUp className="w-3 h-3 text-white/60" />
                 <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Interest</span>
               </div>
-              <p className="text-[14px] font-bold text-white tracking-tight">{formatCurrency(totalInterest)}</p>
+              <p className="text-[14px] font-bold text-white tracking-tight"><CurrencyAmount value={totalInterest} /></p>
             </div>
             <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
               <div className="flex items-center gap-1 mb-1">

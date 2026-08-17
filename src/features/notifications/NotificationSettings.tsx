@@ -3,9 +3,9 @@ import { Bell, BellOff, BellRing, AlertTriangle, Calendar, Clock } from 'lucide-
 import { useNotificationStore } from './notificationStore'
 import { useLoanStore } from '../loans/loanStore'
 import { getUpcomingPaymentsPreview } from './useNotificationCheck'
-import { formatCurrency } from '../loans/loanUtils'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
 import { showToast } from '../../components/Toast'
+import CurrencyAmount from '../../components/CurrencyAmount'
 
 export default function NotificationSettings() {
   const {
@@ -157,7 +157,7 @@ export default function NotificationSettings() {
                     <span className="text-secondary truncate">{loan.name}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-muted">{formatCurrency(loan.monthlyPayment)}</span>
+                    <span className="text-muted"><CurrencyAmount value={loan.monthlyPayment} /></span>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                       isOverdue
                         ? 'bg-red-500/20 text-red-500'

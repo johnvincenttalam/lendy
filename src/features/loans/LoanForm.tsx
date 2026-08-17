@@ -2,8 +2,9 @@ import { useState, useRef, useCallback } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import type { Loan, LoanFormData } from './loanTypes'
 import { LOAN_TAGS, DEFAULT_COLOR } from './loanTypes'
-import { formatCurrency, suggestedMonthlyPayment } from './loanUtils'
+import { suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
+import CurrencyAmount from '../../components/CurrencyAmount'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 type Props = {
@@ -306,7 +307,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                   </div>
                   {canAutoCalc && suggested > 0 && !monthlyPayment && !errors.monthlyPayment && (
                     <p className="text-[11px] text-muted mt-1">
-                      ~{formatCurrency(suggested)}
+                      ~<CurrencyAmount value={suggested} />
                     </p>
                   )}
                 </Field>
@@ -346,7 +347,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
               {isInstallment && (
                 <>
                   <Row label="Total amount">
-                    <span className="font-semibold text-primary text-[13px]">{formatCurrency(monthly * months)}</span>
+                    <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={monthly * months} /></span>
                   </Row>
                   <div className="h-px border-t border-divider" />
                 </>
@@ -364,11 +365,11 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                 <>
                   <div className="h-px border-t border-divider" />
                   <Row label="Total interest">
-                    <span className="font-semibold text-red-500 dark:text-red-400 text-[13px]">{formatCurrency(totalInterest)}</span>
+                    <span className="font-semibold text-red-500 dark:text-red-400 text-[13px]"><CurrencyAmount value={totalInterest} /></span>
                   </Row>
                   <div className="h-px border-t border-divider" />
                   <Row label="Total repayment">
-                    <span className="font-semibold text-primary text-[13px]">{formatCurrency(totalCost)}</span>
+                    <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={totalCost} /></span>
                   </Row>
                 </>
               )}
