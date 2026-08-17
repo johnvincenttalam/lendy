@@ -1,6 +1,13 @@
 import type { Bill } from './billTypes'
 import { getDaysInMonth, today, daysBetween, startOfDay } from '../../utils/dateUtils'
 
+/**
+ * Clamps a day-of-month to the month's actual length, returning a UTC-midnight Date.
+ * Uses Date.UTC() (not local-time constructor) to ensure .toISOString() serialization
+ * is correct across timezones, especially positive offsets like Philippines (UTC+8).
+ * Note: Returns UTC-midnight Date, unlike dateUtils.today()/startOfDay() which return
+ * local-midnight. Do not mix with local-midnight comparisons without conversion.
+ */
 function clampToMonth(year: number, month: number, day: number): Date {
   const lastDay = getDaysInMonth(year, month)
   return new Date(Date.UTC(year, month, Math.min(day, lastDay)))
@@ -9,6 +16,8 @@ function clampToMonth(year: number, month: number, day: number): Date {
 /**
  * Nearest occurrence of `dueDay` on/after `from`, clamped to the month's
  * actual last day (e.g. day 31 in February -> Feb 28/29).
+ * Returns a UTC-midnight Date (for correct .toISOString() serialization),
+ * not a local-midnight Date like dateUtils.today()/startOfDay().
  */
 export function nextOccurrenceOfDay(dueDay: number, from: Date): Date {
   const candidate = clampToMonth(from.getFullYear(), from.getMonth(), dueDay)
