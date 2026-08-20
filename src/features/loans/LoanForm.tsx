@@ -133,7 +133,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     >
       <div
         ref={sheetRef}
-        className="bg-card w-full h-full sm:h-auto sm:max-w-lg sm:rounded-2xl rounded-none sm:max-h-[92vh] overflow-y-auto border-0 sm:border border-themed animate-slide-up custom-scroll"
+        className="bg-card w-full h-full sm:h-auto sm:max-w-lg sm:rounded-2xl rounded-none sm:max-h-[92vh] flex flex-col overflow-hidden border-0 sm:border border-themed animate-slide-up"
         style={{
           transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -141,7 +141,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
       >
         {/* Handle bar - draggable */}
         <div
-          className="flex justify-center pt-3 pb-1 sm:hidden cursor-grab active:cursor-grabbing"
+          className="shrink-0 flex justify-center pt-3 pb-1 sm:hidden cursor-grab active:cursor-grabbing"
           onTouchStart={handleDragStart}
           onTouchMove={handleDragMove}
           onTouchEnd={handleDragEnd}
@@ -153,141 +153,101 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
           <div className="w-9 h-1 rounded-full bg-muted opacity-40" />
         </div>
 
-        <div className="sticky top-0 z-10 bg-card flex items-center justify-between px-5 pt-3 pb-4 sm:static sm:pt-5 sm:border-b-0 border-b border-divider">
+        <div className="shrink-0 flex items-center justify-between px-5 pt-3 pb-4 sm:pt-5 border-b border-divider sm:border-b-0">
           <h2 className="text-[20px] font-bold text-primary tracking-tight">{isEdit ? 'Edit Loan' : 'New Loan'}</h2>
           <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center hover:opacity-60 transition-opacity">
             <X className="w-[18px] h-[18px] text-secondary" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4">
-          {/* Mode toggle */}
-          <div className="flex rounded-xl bg-subtle p-1 gap-1">
-            <button
-              type="button"
-              onClick={() => { setMode('standard'); setMonthlyOverridden(false); setErrors({}) }}
-              aria-pressed={!isInstallment}
-              className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
-                !isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
-              }`}
-            >
-              Standard
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('installment'); setMonthlyPayment((v) => v || derivedStr); setErrors({}) }}
-              aria-pressed={isInstallment}
-              className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
-                isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
-              }`}
-            >
-              Installment
-            </button>
-          </div>
-
-          {isInstallment && (
-            <p className="text-[11px] text-muted">
-              For gadget loans or installments where the monthly payment already includes interest.
-            </p>
-          )}
-
-          <Field label="Loan Name" id="loan-name" error={errors.name}>
-            <input
-              id="loan-name"
-              type="text"
-              value={name}
-              onChange={(e) => { setName(e.target.value); clearError('name') }}
-              placeholder={isInstallment ? 'e.g. iPhone 16' : 'e.g. Cash Loan'}
-              aria-invalid={!!errors.name}
-              aria-describedby={errors.name ? 'loan-name-error' : undefined}
-              className="input-field"
-            />
-          </Field>
-
-          <Field label="Tag">
-            <div className="flex flex-wrap gap-1.5">
-              {LOAN_TAGS.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTag(tag === t ? '' : t)}
-                  aria-pressed={tag === t}
-                  className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
-                    tag === t
-                      ? 'text-white'
-                      : 'bg-subtle text-secondary hover:opacity-80'
-                  }`}
-                  style={tag === t ? { backgroundColor: color } : undefined}
-                >
-                  {t}
-                </button>
-              ))}
+        {/* min-h-0 at both nesting levels: without it a flex child refuses to
+            shrink below its content and the body pushes the footer off-screen
+            instead of scrolling. */}
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scroll px-5 pt-1 pb-5 space-y-4">
+            {/* Mode toggle */}
+            <div className="flex rounded-xl bg-subtle p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => { setMode('standard'); setMonthlyOverridden(false); setErrors({}) }}
+                aria-pressed={!isInstallment}
+                className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
+                  !isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('installment'); setMonthlyPayment((v) => v || derivedStr); setErrors({}) }}
+                aria-pressed={isInstallment}
+                className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
+                  isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
+                }`}
+              >
+                Installment
+              </button>
             </div>
-          </Field>
 
-          <Field label="Color">
-            <ColorPicker value={color} onChange={setColor} />
-          </Field>
+            {isInstallment && (
+              <p className="text-[11px] text-muted">
+                For gadget loans or installments where the monthly payment already includes interest.
+              </p>
+            )}
 
-          {isInstallment ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
-                <input
-                  id="loan-monthly"
-                  type="number"
-                  step="0.01"
-                  value={monthlyPayment}
-                  onChange={(e) => { setMonthlyPayment(e.target.value); clearError('monthlyPayment') }}
-                  inputMode="decimal" placeholder="2,200"
-                  aria-invalid={!!errors.monthlyPayment}
-                  aria-describedby={errors.monthlyPayment ? 'loan-monthly-error' : undefined}
-                  className="input-field"
-                />
-              </Field>
-              <Field label="Tenure (months)" id="loan-duration" error={errors.durationMonths}>
-                <input
-                  id="loan-duration"
-                  type="number"
-                  value={durationMonths}
-                  onChange={(e) => { setDurationMonths(e.target.value); clearError('durationMonths') }}
-                  inputMode="numeric" placeholder="6"
-                  aria-invalid={!!errors.durationMonths}
-                  aria-describedby={errors.durationMonths ? 'loan-duration-error' : undefined}
-                  className="input-field"
-                />
-              </Field>
-            </div>
-          ) : (
-            <>
+            <Field label="Loan Name" id="loan-name" error={errors.name}>
+              <input
+                id="loan-name"
+                type="text"
+                value={name}
+                onChange={(e) => { setName(e.target.value); clearError('name') }}
+                placeholder={isInstallment ? 'e.g. iPhone 16' : 'e.g. Cash Loan'}
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? 'loan-name-error' : undefined}
+                className="input-field"
+              />
+            </Field>
+
+            <Field label="Tag">
+              <div className="flex flex-wrap gap-1.5">
+                {LOAN_TAGS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTag(tag === t ? '' : t)}
+                    aria-pressed={tag === t}
+                    className={`text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all ${
+                      tag === t
+                        ? 'text-white'
+                        : 'bg-subtle text-secondary hover:opacity-80'
+                    }`}
+                    style={tag === t ? { backgroundColor: color } : undefined}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            <Field label="Color">
+              <ColorPicker value={color} onChange={setColor} />
+            </Field>
+
+            {isInstallment ? (
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Amount (₱)" id="loan-amount" error={errors.totalAmount}>
+                <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
                   <input
-                    id="loan-amount"
-                    type="number"
-                    value={totalAmount}
-                    onChange={(e) => { setTotalAmount(e.target.value); clearError('totalAmount') }}
-                    inputMode="decimal" placeholder="2,500"
-                    aria-invalid={!!errors.totalAmount}
-                    aria-describedby={errors.totalAmount ? 'loan-amount-error' : undefined}
-                    className="input-field"
-                  />
-                </Field>
-                <Field label="Interest (%/mo)" id="loan-interest" error={errors.interestRate}>
-                  <input
-                    id="loan-interest"
+                    id="loan-monthly"
                     type="number"
                     step="0.01"
-                    value={interestRate}
-                    onChange={(e) => { setInterestRate(e.target.value); clearError('interestRate') }}
-                    inputMode="decimal" placeholder="4.95"
-                    aria-invalid={!!errors.interestRate}
-                    aria-describedby={errors.interestRate ? 'loan-interest-error' : undefined}
+                    value={monthlyPayment}
+                    onChange={(e) => { setMonthlyPayment(e.target.value); clearError('monthlyPayment') }}
+                    inputMode="decimal" placeholder="2,200"
+                    aria-invalid={!!errors.monthlyPayment}
+                    aria-describedby={errors.monthlyPayment ? 'loan-monthly-error' : undefined}
                     className="input-field"
                   />
                 </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <Field label="Tenure (months)" id="loan-duration" error={errors.durationMonths}>
                   <input
                     id="loan-duration"
@@ -300,129 +260,177 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                     className="input-field"
                   />
                 </Field>
-                <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
-                  <div className="flex gap-1.5">
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Amount (₱)" id="loan-amount" error={errors.totalAmount}>
                     <input
-                      id="loan-monthly"
+                      id="loan-amount"
                       type="number"
-                      step="0.01"
-                      value={monthlyValue}
-                      onChange={(e) => {
-                        setMonthlyOverridden(true)
-                        setMonthlyPayment(e.target.value)
-                        clearError('monthlyPayment')
-                      }}
-                      inputMode="decimal" placeholder="540.41"
-                      aria-invalid={!!errors.monthlyPayment}
-                      aria-describedby={
-                        errors.monthlyPayment
-                          ? 'loan-monthly-error'
-                          : offSchedule
-                            ? 'loan-monthly-hint'
-                            : undefined
-                      }
+                      value={totalAmount}
+                      onChange={(e) => { setTotalAmount(e.target.value); clearError('totalAmount') }}
+                      inputMode="decimal" placeholder="2,500"
+                      aria-invalid={!!errors.totalAmount}
+                      aria-describedby={errors.totalAmount ? 'loan-amount-error' : undefined}
                       className="input-field"
                     />
-                    {monthlyOverridden && derivedStr && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMonthlyOverridden(false)
-                          setMonthlyPayment('')
+                  </Field>
+                  <Field label="Interest (%/mo)" id="loan-interest" error={errors.interestRate}>
+                    <input
+                      id="loan-interest"
+                      type="number"
+                      step="0.01"
+                      value={interestRate}
+                      onChange={(e) => { setInterestRate(e.target.value); clearError('interestRate') }}
+                      inputMode="decimal" placeholder="4.95"
+                      aria-invalid={!!errors.interestRate}
+                      aria-describedby={errors.interestRate ? 'loan-interest-error' : undefined}
+                      className="input-field"
+                    />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Tenure (months)" id="loan-duration" error={errors.durationMonths}>
+                    <input
+                      id="loan-duration"
+                      type="number"
+                      value={durationMonths}
+                      onChange={(e) => { setDurationMonths(e.target.value); clearError('durationMonths') }}
+                      inputMode="numeric" placeholder="6"
+                      aria-invalid={!!errors.durationMonths}
+                      aria-describedby={errors.durationMonths ? 'loan-duration-error' : undefined}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Monthly (₱)" id="loan-monthly" error={errors.monthlyPayment}>
+                    <div className="flex gap-1.5">
+                      <input
+                        id="loan-monthly"
+                        type="number"
+                        step="0.01"
+                        value={monthlyValue}
+                        onChange={(e) => {
+                          setMonthlyOverridden(true)
+                          setMonthlyPayment(e.target.value)
                           clearError('monthlyPayment')
                         }}
-                        className="shrink-0 w-10 flex items-center justify-center hover:opacity-60 transition-opacity"
-                        title="Reset to the computed payment"
-                        aria-label="Reset to the computed monthly payment"
-                      >
-                        <RotateCcw className="w-4 h-4" style={{ color }} />
-                      </button>
+                        inputMode="decimal" placeholder="540.41"
+                        aria-invalid={!!errors.monthlyPayment}
+                        aria-describedby={
+                          errors.monthlyPayment
+                            ? 'loan-monthly-error'
+                            : offSchedule
+                              ? 'loan-monthly-hint'
+                              : undefined
+                        }
+                        className="input-field"
+                      />
+                      {monthlyOverridden && derivedStr && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMonthlyOverridden(false)
+                            setMonthlyPayment('')
+                            clearError('monthlyPayment')
+                          }}
+                          className="shrink-0 w-10 flex items-center justify-center hover:opacity-60 transition-opacity"
+                          title="Reset to the computed payment"
+                          aria-label="Reset to the computed monthly payment"
+                        >
+                          <RotateCcw className="w-4 h-4" style={{ color }} />
+                        </button>
+                      )}
+                    </div>
+                    {!errors.monthlyPayment && offSchedule && (
+                      <p id="loan-monthly-hint" className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
+                        <AlertTriangle className="w-3 h-3 mt-[2px] shrink-0" />
+                        <span>
+                          Off schedule — computed is <CurrencyAmount value={derived} />
+                        </span>
+                      </p>
                     )}
-                  </div>
-                  {!errors.monthlyPayment && offSchedule && (
-                    <p id="loan-monthly-hint" className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
-                      <AlertTriangle className="w-3 h-3 mt-[2px] shrink-0" />
-                      <span>
-                        Off schedule — computed is <CurrencyAmount value={derived} />
-                      </span>
-                    </p>
-                  )}
-                  {!errors.monthlyPayment && !offSchedule && canAutoCalc && (
-                    <p className="text-[11px] text-muted mt-1">Computed from amount, rate &amp; tenure</p>
-                  )}
-                </Field>
+                    {!errors.monthlyPayment && !offSchedule && canAutoCalc && (
+                      <p className="text-[11px] text-muted mt-1">Computed from amount, rate &amp; tenure</p>
+                    )}
+                  </Field>
+                </div>
+              </>
+            )}
+
+            <Field label="Start Date" id="loan-start-date" error={errors.startDate}>
+              <input
+                id="loan-start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); clearError('startDate') }}
+                aria-invalid={!!errors.startDate}
+                aria-describedby={errors.startDate ? 'loan-start-date-error' : undefined}
+                className="input-field"
+              />
+            </Field>
+
+            <Field label="Notes" id="loan-notes">
+              <textarea
+                id="loan-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="What's this loan for? (optional)"
+                maxLength={300}
+                rows={3}
+                className="input-field resize-none"
+              />
+            </Field>
+
+            {canAutoCalc && (
+              <div
+                className="rounded-2xl p-3.5 space-y-2 border"
+                style={{ borderColor: `${color}20`, backgroundColor: `${color}08` }}
+              >
+                {isInstallment && (
+                  <>
+                    <Row label="Total amount">
+                      <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={monthly * months} /></span>
+                    </Row>
+                    <div className="h-px border-t border-divider" />
+                  </>
+                )}
+                <Row label="End date">
+                  <span className="font-semibold text-[13px]" style={{ color }}>
+                    {(() => {
+                      const d = new Date(startDate)
+                      d.setMonth(d.getMonth() + months)
+                      return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+                    })()}
+                  </span>
+                </Row>
+                {rate > 0 && (
+                  <>
+                    <div className="h-px border-t border-divider" />
+                    <Row label="Total interest">
+                      <span className="font-semibold text-red-500 dark:text-red-400 text-[13px]"><CurrencyAmount value={totalInterest} /></span>
+                    </Row>
+                    <div className="h-px border-t border-divider" />
+                    <Row label="Total repayment">
+                      <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={totalCost} /></span>
+                    </Row>
+                  </>
+                )}
               </div>
-            </>
-          )}
+            )}
 
-          <Field label="Start Date" id="loan-start-date" error={errors.startDate}>
-            <input
-              id="loan-start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); clearError('startDate') }}
-              aria-invalid={!!errors.startDate}
-              aria-describedby={errors.startDate ? 'loan-start-date-error' : undefined}
-              className="input-field"
-            />
-          </Field>
+          </div>
 
-          <Field label="Notes" id="loan-notes">
-            <textarea
-              id="loan-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="What's this loan for? (optional)"
-              maxLength={300}
-              rows={3}
-              className="input-field resize-none"
-            />
-          </Field>
-
-          {canAutoCalc && (
-            <div
-              className="rounded-2xl p-3.5 space-y-2 border"
-              style={{ borderColor: `${color}20`, backgroundColor: `${color}08` }}
+          <div className="shrink-0 border-t border-divider px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <button
+              type="submit"
+              className="w-full text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 text-[15px] tracking-tight hover:opacity-90"
+              style={{ backgroundColor: color }}
             >
-              {isInstallment && (
-                <>
-                  <Row label="Total amount">
-                    <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={monthly * months} /></span>
-                  </Row>
-                  <div className="h-px border-t border-divider" />
-                </>
-              )}
-              <Row label="End date">
-                <span className="font-semibold text-[13px]" style={{ color }}>
-                  {(() => {
-                    const d = new Date(startDate)
-                    d.setMonth(d.getMonth() + months)
-                    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-                  })()}
-                </span>
-              </Row>
-              {rate > 0 && (
-                <>
-                  <div className="h-px border-t border-divider" />
-                  <Row label="Total interest">
-                    <span className="font-semibold text-red-500 dark:text-red-400 text-[13px]"><CurrencyAmount value={totalInterest} /></span>
-                  </Row>
-                  <div className="h-px border-t border-divider" />
-                  <Row label="Total repayment">
-                    <span className="font-semibold text-primary text-[13px]"><CurrencyAmount value={totalCost} /></span>
-                  </Row>
-                </>
-              )}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all duration-200 text-[15px] tracking-tight hover:opacity-90"
-            style={{ backgroundColor: color }}
-          >
-            {isEdit ? 'Save Changes' : 'Add Loan'}
-          </button>
+              {isEdit ? 'Save Changes' : 'Add Loan'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
