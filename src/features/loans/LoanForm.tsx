@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Sparkles } from 'lucide-react'
+import { X, RotateCcw, AlertTriangle } from 'lucide-react'
 import type { Loan, LoanFormData } from './loanTypes'
 import { LOAN_TAGS, DEFAULT_COLOR } from './loanTypes'
-import { suggestedMonthlyPayment } from './loanUtils'
+import { offScheduleAmount, suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
@@ -54,6 +54,12 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
   const [totalAmount, setTotalAmount] = useState(initial ? String(initial.totalAmount) : '')
   const [interestRate, setInterestRate] = useState(initial ? String(initial.interestRate) : '')
   const [monthlyPayment, setMonthlyPayment] = useState(initial ? String(initial.monthlyPayment) : '')
+  // In standard mode the monthly is derived from amount/rate/tenure. It only stops
+  // tracking them once the user types their own figure — or arrives already off
+  // schedule, in which case we preserve what they recorded rather than rewriting it.
+  const [monthlyOverridden, setMonthlyOverridden] = useState(
+    () => !!initial && initial.interestRate !== 0 && offScheduleAmount(initial) !== null
+  )
   const [durationMonths, setDurationMonths] = useState(initial ? String(initial.durationMonths) : '')
   const [startDate, setStartDate] = useState(initial?.startDate ?? new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -68,22 +74,36 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
     })
   }
 
-  const monthly = Number(monthlyPayment) || 0
   const months = Number(durationMonths) || 0
-  const amt = isInstallment ? monthly * months : Number(totalAmount) || 0
+  const typedMonthly = Number(monthlyPayment) || 0
+  const amt = isInstallment ? typedMonthly * months : Number(totalAmount) || 0
   const rate = isInstallment ? 0 : Number(interestRate) || 0
   const canAutoCalc = amt > 0 && months > 0
 
+  const suggested = suggestedMonthlyPayment(amt, rate, months)
+  const derived = Math.round(suggested * 100) / 100
+  const derivedStr = canAutoCalc && derived > 0 ? derived.toFixed(2) : ''
+
+  // Standard mode shows the derived figure until the user overrides it; installment
+  // mode keeps the monthly as a real input, since there it drives the total instead.
+  const monthlyValue = isInstallment || monthlyOverridden ? monthlyPayment : derivedStr
+  const monthly = isInstallment ? typedMonthly : Number(monthlyValue) || 0
+  const offSchedule =
+    !isInstallment && monthlyOverridden && canAutoCalc && derived > 0 && Math.abs(monthly - derived) > 0.005
+
   const totalInterest = amt * (rate / 100) * months
   const totalCost = amt + totalInterest
-  const suggested = suggestedMonthlyPayment(amt, rate, months)
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
     if (!name.trim()) newErrors.name = 'Name is required'
     if (!isInstallment && (!totalAmount || amt <= 0)) newErrors.totalAmount = 'Enter a valid amount'
     if (!isInstallment && interestRate !== '' && Number(interestRate) < 0) newErrors.interestRate = 'Cannot be negative'
-    if (!monthlyPayment || monthly <= 0) newErrors.monthlyPayment = 'Enter a valid payment'
+    if (isInstallment) {
+      if (!monthlyPayment || monthly <= 0) newErrors.monthlyPayment = 'Enter a valid payment'
+    } else if (monthlyOverridden && monthly <= 0) {
+      newErrors.monthlyPayment = 'Enter a valid payment'
+    }
     if (!durationMonths || months <= 0) newErrors.durationMonths = 'Enter valid duration'
     else if (isEdit && initial && months < initial.monthsPaid) newErrors.durationMonths = `Min ${initial.monthsPaid} (already paid)`
     if (!startDate) newErrors.startDate = 'Required'
@@ -145,7 +165,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
           <div className="flex rounded-xl bg-subtle p-1 gap-1">
             <button
               type="button"
-              onClick={() => { setMode('standard'); setErrors({}) }}
+              onClick={() => { setMode('standard'); setMonthlyOverridden(false); setErrors({}) }}
               aria-pressed={!isInstallment}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
                 !isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
@@ -155,7 +175,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => { setMode('installment'); setErrors({}) }}
+              onClick={() => { setMode('installment'); setMonthlyPayment((v) => v || derivedStr); setErrors({}) }}
               aria-pressed={isInstallment}
               className={`flex-1 py-2 rounded-lg text-[12px] font-semibold tracking-tight transition-all ${
                 isInstallment ? 'bg-card text-primary' : 'text-muted hover:text-secondary'
@@ -286,29 +306,49 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                       id="loan-monthly"
                       type="number"
                       step="0.01"
-                      value={monthlyPayment}
-                      onChange={(e) => { setMonthlyPayment(e.target.value); clearError('monthlyPayment') }}
+                      value={monthlyValue}
+                      onChange={(e) => {
+                        setMonthlyOverridden(true)
+                        setMonthlyPayment(e.target.value)
+                        clearError('monthlyPayment')
+                      }}
                       inputMode="decimal" placeholder="540.41"
                       aria-invalid={!!errors.monthlyPayment}
-                      aria-describedby={errors.monthlyPayment ? 'loan-monthly-error' : undefined}
+                      aria-describedby={
+                        errors.monthlyPayment
+                          ? 'loan-monthly-error'
+                          : offSchedule
+                            ? 'loan-monthly-hint'
+                            : undefined
+                      }
                       className="input-field"
                     />
-                    {canAutoCalc && suggested > 0 && (
+                    {monthlyOverridden && derivedStr && (
                       <button
                         type="button"
-                        onClick={() => { setMonthlyPayment(suggested.toFixed(2)); clearError('monthlyPayment') }}
+                        onClick={() => {
+                          setMonthlyOverridden(false)
+                          setMonthlyPayment('')
+                          clearError('monthlyPayment')
+                        }}
                         className="shrink-0 w-10 flex items-center justify-center hover:opacity-60 transition-opacity"
-                        title="Auto-calculate"
-                        aria-label="Auto-calculate monthly payment"
+                        title="Reset to the computed payment"
+                        aria-label="Reset to the computed monthly payment"
                       >
-                        <Sparkles className="w-4 h-4" style={{ color }} />
+                        <RotateCcw className="w-4 h-4" style={{ color }} />
                       </button>
                     )}
                   </div>
-                  {canAutoCalc && suggested > 0 && !monthlyPayment && !errors.monthlyPayment && (
-                    <p className="text-[11px] text-muted mt-1">
-                      ~<CurrencyAmount value={suggested} />
+                  {!errors.monthlyPayment && offSchedule && (
+                    <p id="loan-monthly-hint" className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
+                      <AlertTriangle className="w-3 h-3 mt-[2px] shrink-0" />
+                      <span>
+                        Off schedule — computed is <CurrencyAmount value={derived} />
+                      </span>
                     </p>
+                  )}
+                  {!errors.monthlyPayment && !offSchedule && canAutoCalc && (
+                    <p className="text-[11px] text-muted mt-1">Computed from amount, rate &amp; tenure</p>
                   )}
                 </Field>
               </div>

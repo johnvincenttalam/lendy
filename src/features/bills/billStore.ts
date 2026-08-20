@@ -1,10 +1,14 @@
 import { create } from 'zustand'
 import type { Bill, BillFormData, BillPaymentRecord } from './billTypes'
-import { advanceDueDate } from './billUtils'
+import { advanceDueDate, paidForCycle, remainingForCycle } from './billUtils'
 import { showToast } from '../../components/Toast'
 
 const BILLS_KEY = 'loan-tracker-bills'
 const BILL_PAYMENTS_KEY = 'loan-tracker-bill-payments'
+
+function formatDue(amount: number): string {
+  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
 
 function loadBills(): Bill[] {
   try {
@@ -37,7 +41,7 @@ type BillStore = {
   billPayments: BillPaymentRecord[]
   addBill: (data: BillFormData) => void
   updateBill: (id: string, data: Partial<Bill>) => void
-  markBillPaid: (id: string) => void
+  recordBillPayment: (id: string, amount: number) => void
   undoBillPayment: (id: string) => void
   deleteBill: (id: string) => void
   archiveBill: (id: string) => void
@@ -70,30 +74,36 @@ export const useBillStore = create<BillStore>((set, get) => ({
       return { bills }
     }),
 
-  markBillPaid: (id) =>
+  // Records `amount` against the cycle the bill is currently on. The cycle only
+  // advances once its payments cover bill.amount, so a partial leaves the bill
+  // due (and free to go overdue) until it's topped up.
+  recordBillPayment: (id, amount) =>
     set((state) => {
-      let newRecord: BillPaymentRecord | null = null
-      const bills = state.bills.map((bill) => {
-        if (bill.id !== id) return bill
+      const target = state.bills.find((b) => b.id === id)
+      if (!target || amount <= 0) return state
 
-        newRecord = {
-          id: crypto.randomUUID(),
-          billId: bill.id,
-          amount: bill.amount,
-          paidAt: new Date().toISOString(),
-          dueDate: bill.nextDueDate,
-        }
+      const newRecord: BillPaymentRecord = {
+        id: crypto.randomUUID(),
+        billId: target.id,
+        amount: Math.round(amount * 100) / 100,
+        paidAt: new Date().toISOString(),
+        dueDate: target.nextDueDate,
+      }
+      const billPayments = [...state.billPayments, newRecord]
 
-        setTimeout(() => {
-          showToast(`"${bill.name}" marked paid`, {
-            label: 'UNDO',
-            onClick: () => get().undoBillPayment(id),
-          })
-        }, 0)
+      const covered = paidForCycle(target, billPayments) >= target.amount
+      const bills = state.bills.map((bill) =>
+        bill.id === id ? { ...bill, nextDueDate: covered ? advanceDueDate(bill.nextDueDate) : bill.nextDueDate } : bill
+      )
 
-        return { ...bill, nextDueDate: advanceDueDate(bill.nextDueDate) }
-      })
-      const billPayments = newRecord ? [...state.billPayments, newRecord] : state.billPayments
+      const stillDue = covered ? 0 : remainingForCycle(target, billPayments)
+      setTimeout(() => {
+        showToast(
+          covered ? `"${target.name}" fully paid` : `Partial recorded — ${formatDue(stillDue)} still due`,
+          { label: 'UNDO', onClick: () => get().undoBillPayment(id) },
+        )
+      }, 0)
+
       saveBills(bills)
       saveBillPayments(billPayments)
       return { bills, billPayments }

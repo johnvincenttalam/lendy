@@ -7,7 +7,7 @@ import EmptyState from '../components/EmptyState'
 export default function BillDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { bills, markBillPaid, deleteBill } = useBillStore()
+  const { bills, recordBillPayment, deleteBill } = useBillStore()
   const bill = bills.find((b) => b.id === id)
 
   if (!bill) {
@@ -28,7 +28,7 @@ export default function BillDetailsPage() {
   return (
     <BillDetails
       bill={bill}
-      onMarkPaid={() => markBillPaid(bill.id)}
+      onRecordPayment={(amount) => recordBillPayment(bill.id, amount)}
       onDelete={() => {
         deleteBill(bill.id)
         navigate('/bills')

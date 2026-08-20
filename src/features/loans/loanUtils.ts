@@ -144,6 +144,28 @@ export function suggestedMonthlyPayment(totalAmount: number, monthlyRate: number
   return (totalAmount + totalInterest) / months
 }
 
+/**
+ * The monthly payment implied by the loan's own amount, rate and tenure — i.e. the
+ * figure whose principal + interest breakdown actually adds up. Rounded to centavos
+ * so it can be compared against a stored `monthlyPayment` directly.
+ */
+export function scheduledMonthlyPayment(loan: Loan): number {
+  return Math.round(suggestedMonthlyPayment(loan.totalAmount, loan.interestRate, loan.durationMonths) * 100) / 100
+}
+
+/**
+ * `monthlyPayment` is entered by hand, so it can drift from the amount/rate/tenure it
+ * sits beside — leaving a card that shows a payment its own breakdown contradicts.
+ * Returns the scheduled figure when the stored one is off by more than a centavo,
+ * or null when they agree.
+ */
+export function offScheduleAmount(loan: Loan): number | null {
+  if (loan.durationMonths <= 0) return null
+  const scheduled = scheduledMonthlyPayment(loan)
+  if (scheduled <= 0) return null
+  return Math.abs(scheduled - loan.monthlyPayment) > 0.005 ? scheduled : null
+}
+
 // --- Aggregate calculations across all loans ---
 
 export function debtFreeDate(loans: Loan[]): Date | null {
