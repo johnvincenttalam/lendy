@@ -332,6 +332,20 @@ describe('isBackfilledPayment', () => {
     const real = makePayment({ loanId: loan.id, month: 1, paidAt: '2026-01-01T09:30:12.345Z' })
     expect(isBackfilledPayment(real, loan)).toBe(false)
   })
+
+  it('still identifies a backfilled record after the loan\'s start date is edited', () => {
+    // Editing startDate on a migrated loan reshuffles paymentSchedule(), so the
+    // schedule-based comparison alone would no longer match this record — the
+    // exact failure mode this finding is about. The record-local check (dueDate
+    // and paidAt both written from the same instant at migration time) doesn't
+    // depend on the loan at all, so it still catches it.
+    const loan = makeLoan({ monthsPaid: 3, startDate: '2026-01-01' })
+    const backfilled = makeBackfilledPayment(loan, 1)
+    const editedLoan = { ...loan, startDate: '2026-06-01' }
+
+    expect(paymentSchedule(editedLoan)[0].date.toISOString()).not.toBe(backfilled.paidAt)
+    expect(isBackfilledPayment(backfilled, editedLoan)).toBe(true)
+  })
 })
 
 describe('scoreReliability', () => {

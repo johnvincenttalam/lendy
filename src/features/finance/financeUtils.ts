@@ -168,12 +168,31 @@ const MIN_EVIDENCE = 3
  * Counted as evidence they would report a flawless on-time history for every
  * migrated loan. A real record comes from new Date() at tap time and will not
  * match the schedule to the millisecond.
+ *
+ * Two independent checks, both kept:
+ *
+ * 1. Schedule-based: recompute paymentSchedule(loan) and compare. This is
+ *    what shipped first, but updateLoan never touches PaymentRecords, and the
+ *    schedule depends only on startDate — so editing a migrated loan's start
+ *    date makes every one of its backfilled records stop matching and look
+ *    like real, on-time evidence.
+ * 2. Record-local: the migration writes dueDate as paidAt's calendar day, so
+ *    a migrated record can be identified from its own two fields, with no
+ *    dependency on the loan at all — immune to the start-date edit above.
+ *    This holds because startDate is a bare YYYY-MM-DD parsed as UTC
+ *    midnight and the target timezone (UTC+8) has no DST, so the schedule
+ *    date's ISO string always lands on T00:00:00.000Z. In a DST timezone the
+ *    two forms of a migrated date can disagree by an hour, which is why the
+ *    schedule-based check above is retained rather than replaced.
  */
 export function isBackfilledPayment(payment: PaymentRecord, loan: Loan): boolean {
   const scheduled = paymentSchedule(loan)[payment.month - 1]
-  if (scheduled) return scheduled.date.toISOString() === payment.paidAt
-  // The migration falls back to the loan start date when the schedule is short.
-  return new Date(loan.startDate).toISOString() === payment.paidAt
+  const matchesSchedule = scheduled
+    ? scheduled.date.toISOString() === payment.paidAt
+    // The migration falls back to the loan start date when the schedule is short.
+    : new Date(loan.startDate).toISOString() === payment.paidAt
+
+  return matchesSchedule || payment.paidAt === new Date(payment.dueDate).toISOString()
 }
 
 function isOnTime(dueDate: string, paidAt: string): boolean {
