@@ -4,10 +4,10 @@ import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
 import { monthlyInterestPortion, monthlyPrincipalPortion, offScheduleAmount, paymentSchedule } from './loanUtils'
 import { showToast } from '../../components/Toast'
 import { triggerConfetti } from '../../components/Confetti'
+import { useIncomeStore, setMonthlyIncomeFromBackup } from '../finance/incomeStore'
 
 const STORAGE_KEY = 'loan-tracker-loans'
 const PAYMENTS_KEY = 'loan-tracker-payments'
-const INCOME_KEY = 'loan-tracker-income'
 const SORT_KEY = 'loan-tracker-sort'
 const VIEW_KEY = 'loan-tracker-view'
 
@@ -80,7 +80,6 @@ function migrateExistingPayments(loans: Loan[], existingPayments: PaymentRecord[
 type LoanStore = {
   loans: Loan[]
   payments: PaymentRecord[]
-  monthlyIncome: number
   sortBy: SortOption
   viewMode: ViewMode
   addLoan: (data: LoanFormData) => void
@@ -92,7 +91,6 @@ type LoanStore = {
   archiveLoan: (id: string) => void
   unarchiveLoan: (id: string) => void
   getPaymentsForLoan: (loanId: string) => PaymentRecord[]
-  setMonthlyIncome: (income: number) => void
   setSortBy: (sort: SortOption) => void
   setViewMode: (mode: ViewMode) => void
   exportCSV: () => string
@@ -108,7 +106,6 @@ if (initialPayments.length > existingPayments.length) savePayments(initialPaymen
 export const useLoanStore = create<LoanStore>((set, get) => ({
   loans: initialLoans,
   payments: initialPayments,
-  monthlyIncome: Number(localStorage.getItem(INCOME_KEY)) || 0,
   sortBy: (localStorage.getItem(SORT_KEY) as SortOption) || 'newest',
   viewMode: (localStorage.getItem(VIEW_KEY) as ViewMode) || 'list',
 
@@ -305,11 +302,6 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       .sort((a, b) => a.month - b.month)
   },
 
-  setMonthlyIncome: (income) => {
-    localStorage.setItem(INCOME_KEY, String(income))
-    set({ monthlyIncome: income })
-  },
-
   setSortBy: (sort) => {
     localStorage.setItem(SORT_KEY, sort)
     set({ sortBy: sort })
@@ -339,7 +331,8 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   },
 
   exportBackup: () => {
-    const { loans, payments, monthlyIncome } = get()
+    const { loans, payments } = get()
+    const { monthlyIncome } = useIncomeStore.getState()
     return JSON.stringify({ loans, payments, monthlyIncome, exportedAt: new Date().toISOString() }, null, 2)
   },
 
@@ -360,11 +353,9 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       saveLoans(loans)
       savePayments(payments)
       if (data.monthlyIncome) {
-        localStorage.setItem(INCOME_KEY, String(data.monthlyIncome))
-        set({ loans, payments, monthlyIncome: data.monthlyIncome })
-      } else {
-        set({ loans, payments })
+        setMonthlyIncomeFromBackup(data.monthlyIncome)
       }
+      set({ loans, payments })
       showToast(`${loans.length} loans restored`)
       return true
     } catch {

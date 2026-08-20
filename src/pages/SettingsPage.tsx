@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
+import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { debtToIncomeRatio } from '../features/loans/loanUtils'
@@ -16,7 +17,8 @@ import type { BackupCounts } from '../utils/backup'
 type PendingImport = { json: string; counts: BackupCounts }
 
 export default function SettingsPage() {
-  const { loans, monthlyIncome, setMonthlyIncome, exportCSV } = useLoanStore()
+  const { loans, exportCSV } = useLoanStore()
+  const { monthlyIncome, setMonthlyIncome } = useIncomeStore()
   const { bills } = useBillStore()
   const { goals } = useSavingsStore()
   const fileInputRef = useRef<HTMLInputElement>(null)

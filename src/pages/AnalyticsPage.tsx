@@ -5,6 +5,7 @@ import {
   CheckCircle2, Wallet, Layers, Zap,
 } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
+import { useIncomeStore } from '../features/finance/incomeStore'
 import EmptyState from '../components/EmptyState'
 import {
   isFullyPaid, totalInterestOverLife, totalCostOfLoan,
@@ -131,7 +132,8 @@ function computeCategoryBreakdown(activeLoans: Loan[]): Array<{ tag: string; rem
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
-  const { loans, payments, monthlyIncome } = useLoanStore()
+  const { loans, payments } = useLoanStore()
+  const { monthlyIncome } = useIncomeStore()
 
   const activeLoans = useMemo(() => loans.filter((l) => !l.archived && !isFullyPaid(l)), [loans])
 

@@ -1,10 +1,12 @@
 import { useLoanStore } from '../features/loans/loanStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
+import { useIncomeStore } from '../features/finance/incomeStore'
 import { showToast } from '../components/Toast'
 
 export function exportAllData(): string {
-  const { loans, payments, monthlyIncome } = useLoanStore.getState()
+  const { loans, payments } = useLoanStore.getState()
+  const { monthlyIncome } = useIncomeStore.getState()
   const { bills, billPayments } = useBillStore.getState()
   const { goals, transactions } = useSavingsStore.getState()
   return JSON.stringify({
