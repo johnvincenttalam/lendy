@@ -1,8 +1,9 @@
-import type { Loan } from '../loans/loanTypes'
-import type { Bill } from '../bills/billTypes'
+import type { Loan, PaymentRecord } from '../loans/loanTypes'
+import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import type { FinancialOverview, MetricScore } from './financeTypes'
-import { scheduledMonthlyPayment, remainingBalance, isFullyPaid } from '../loans/loanUtils'
+import { scheduledMonthlyPayment, remainingBalance, isFullyPaid, paymentSchedule } from '../loans/loanUtils'
+import { daysBetween } from '../../utils/dateUtils'
 
 export type OverviewInput = {
   loans: Loan[]
@@ -152,6 +153,70 @@ export function scoreSavingsBuffer(overview: FinancialOverview): MetricScore {
     ...base,
     score: Math.round(interpolateScore(overview.runwayMonths, SAVINGS_BUFFER_POINTS)),
     detail: `${overview.runwayMonths.toFixed(1)} months of commitments covered`,
+    included: true,
+  }
+}
+
+/** paidAt records when the user tapped the button, not when money moved, so the lag is systematic and always late. */
+const GRACE_DAYS = 3
+
+const MIN_EVIDENCE = 3
+
+/**
+ * migrateExistingPayments (loanStore.ts) backfills records for loans that
+ * predate the payments feature, writing paidAt as exactly the scheduled date.
+ * Counted as evidence they would report a flawless on-time history for every
+ * migrated loan. A real record comes from new Date() at tap time and will not
+ * match the schedule to the millisecond.
+ */
+export function isBackfilledPayment(payment: PaymentRecord, loan: Loan): boolean {
+  const scheduled = paymentSchedule(loan)[payment.month - 1]
+  if (scheduled) return scheduled.date.toISOString() === payment.paidAt
+  // The migration falls back to the loan start date when the schedule is short.
+  return new Date(loan.startDate).toISOString() === payment.paidAt
+}
+
+function isOnTime(dueDate: string, paidAt: string): boolean {
+  // daysBetween normalises both sides to local midnight, matching how
+  // isBillOverdue already compares an ISO date against a timestamp.
+  return daysBetween(dueDate, paidAt) <= GRACE_DAYS
+}
+
+export function scoreReliability(
+  loans: Loan[],
+  payments: PaymentRecord[],
+  billPayments: BillPaymentRecord[],
+): MetricScore {
+  const base = { key: 'paymentReliability', label: 'Payment Reliability', weight: 15 } as const
+
+  const loansById = new Map(loans.map((l) => [l.id, l]))
+  const realLoanPayments = payments.filter((p) => {
+    const loan = loansById.get(p.loanId)
+    return loan ? !isBackfilledPayment(p, loan) : true
+  })
+
+  // Bills shipped with recordBillPayment and were never backfilled, so all count.
+  const evidence: Array<{ dueDate: string; paidAt: string }> = [
+    ...realLoanPayments.map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt })),
+    ...billPayments.map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt })),
+  ]
+
+  if (evidence.length < MIN_EVIDENCE) {
+    return {
+      ...base,
+      score: 0,
+      detail: 'Not enough payment history yet',
+      included: false,
+      omissionReason: `Needs at least ${MIN_EVIDENCE} recorded payments`,
+    }
+  }
+
+  const onTime = evidence.filter((e) => isOnTime(e.dueDate, e.paidAt)).length
+
+  return {
+    ...base,
+    score: Math.round((onTime / evidence.length) * 100),
+    detail: `${onTime} of ${evidence.length} payments on time`,
     included: true,
   }
 }

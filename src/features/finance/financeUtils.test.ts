@@ -1,9 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { buildOverview, interpolateScore, scoreDebtLoad, scoreCashFlow, scoreSavingsBuffer } from './financeUtils'
+import {
+  buildOverview,
+  interpolateScore,
+  scoreDebtLoad,
+  scoreCashFlow,
+  scoreSavingsBuffer,
+  isBackfilledPayment,
+  scoreReliability,
+} from './financeUtils'
 import type { Loan } from '../loans/loanTypes'
 import type { Bill } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import type { FinancialOverview } from './financeTypes'
+import type { PaymentRecord } from '../loans/loanTypes'
+import type { BillPaymentRecord } from '../bills/billTypes'
+import { paymentSchedule } from '../loans/loanUtils'
 
 function makeLoan(overrides: Partial<Loan> = {}): Loan {
   return {
@@ -267,5 +278,119 @@ describe('scoreSavingsBuffer', () => {
 
   it('is included with no commitments as long as there is income', () => {
     expect(scoreSavingsBuffer({ ...zeroOverview, monthlyIncome: 20000, totalCommitments: 0, runwayMonths: 0.5 }).included).toBe(true)
+  })
+})
+
+function makePayment(overrides: Partial<PaymentRecord> = {}): PaymentRecord {
+  return {
+    id: 'pay-1',
+    loanId: 'loan-1',
+    amount: 1105,
+    principal: 1000,
+    interest: 105,
+    paidAt: '2026-01-01T09:30:00.000Z',
+    dueDate: '2026-01-01',
+    month: 1,
+    ...overrides,
+  }
+}
+
+function makeBillPayment(overrides: Partial<BillPaymentRecord> = {}): BillPaymentRecord {
+  return {
+    id: 'bp-1',
+    billId: 'bill-1',
+    amount: 1500,
+    paidAt: '2026-01-01T09:30:00.000Z',
+    dueDate: '2026-01-01',
+    ...overrides,
+  }
+}
+
+/** Reproduces exactly what migrateExistingPayments writes, for one month. */
+function makeBackfilledPayment(loan: Loan, month: number): PaymentRecord {
+  const scheduledDate = paymentSchedule(loan)[month - 1].date
+  return makePayment({
+    id: `backfill-${month}`,
+    loanId: loan.id,
+    paidAt: scheduledDate.toISOString(),
+    dueDate: scheduledDate.toISOString().split('T')[0],
+    month,
+  })
+}
+
+describe('isBackfilledPayment', () => {
+  it('identifies a record written by the payment migration', () => {
+    const loan = makeLoan({ monthsPaid: 3 })
+    expect(isBackfilledPayment(makeBackfilledPayment(loan, 1), loan)).toBe(true)
+    expect(isBackfilledPayment(makeBackfilledPayment(loan, 3), loan)).toBe(true)
+  })
+
+  it('does not flag a real tap-time record', () => {
+    const loan = makeLoan({ monthsPaid: 1 })
+    const real = makePayment({ loanId: loan.id, month: 1, paidAt: '2026-01-01T09:30:12.345Z' })
+    expect(isBackfilledPayment(real, loan)).toBe(false)
+  })
+})
+
+describe('scoreReliability', () => {
+  const loan = makeLoan({ id: 'loan-1', durationMonths: 9, monthsPaid: 5 })
+
+  it('is omitted when the evidence set is empty', () => {
+    const metric = scoreReliability([loan], [], [])
+    expect(metric.included).toBe(false)
+    expect(metric.omissionReason).toBeTruthy()
+  })
+
+  it('ignores backfilled records entirely', () => {
+    const backfilled = [1, 2, 3, 4, 5].map((m) => makeBackfilledPayment(loan, m))
+    expect(scoreReliability([loan], backfilled, []).included).toBe(false)
+  })
+
+  it('is omitted at two records and included at three', () => {
+    const two = [
+      makePayment({ id: 'a', month: 1, dueDate: '2026-01-01', paidAt: '2026-01-01T10:00:00.000Z' }),
+      makePayment({ id: 'b', month: 2, dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
+    ]
+    expect(scoreReliability([loan], two, []).included).toBe(false)
+
+    const three = [...two, makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' })]
+    const metric = scoreReliability([loan], three, [])
+    expect(metric.included).toBe(true)
+    expect(metric.score).toBe(100)
+  })
+
+  it('allows a three-day grace period and fails on the fourth', () => {
+    const onTime = [
+      makePayment({ id: 'a', month: 1, dueDate: '2026-01-01', paidAt: '2026-01-04T10:00:00.000Z' }),
+      makePayment({ id: 'b', month: 2, dueDate: '2026-02-01', paidAt: '2026-02-04T10:00:00.000Z' }),
+      makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-04T10:00:00.000Z' }),
+    ]
+    expect(scoreReliability([loan], onTime, []).score).toBe(100)
+
+    const oneLate = [
+      ...onTime.slice(0, 2),
+      makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-05T10:00:00.000Z' }),
+    ]
+    expect(scoreReliability([loan], oneLate, []).score).toBe(67)
+  })
+
+  it('treats an early payment as on time', () => {
+    const early = [
+      makePayment({ id: 'a', month: 1, dueDate: '2026-01-10', paidAt: '2026-01-02T10:00:00.000Z' }),
+      makePayment({ id: 'b', month: 2, dueDate: '2026-02-10', paidAt: '2026-02-02T10:00:00.000Z' }),
+      makePayment({ id: 'c', month: 3, dueDate: '2026-03-10', paidAt: '2026-03-02T10:00:00.000Z' }),
+    ]
+    expect(scoreReliability([loan], early, []).score).toBe(100)
+  })
+
+  it('counts bill payments as evidence alongside loan payments', () => {
+    const bills = [
+      makeBillPayment({ id: 'bp1', dueDate: '2026-01-01', paidAt: '2026-01-01T10:00:00.000Z' }),
+      makeBillPayment({ id: 'bp2', dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
+      makeBillPayment({ id: 'bp3', dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' }),
+    ]
+    const metric = scoreReliability([], [], bills)
+    expect(metric.included).toBe(true)
+    expect(metric.score).toBe(100)
   })
 })
