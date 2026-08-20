@@ -168,10 +168,26 @@ export default function CalendarPage() {
     const firstHalf = all.filter((p) => p.day <= 15)
     const secondHalf = all.filter((p) => p.day > 15)
 
-    const groups: { key: string; label: string; total: number; items: typeof all }[] = []
-    if (firstHalf.length) groups.push({ key: 'h1', label: '1 – 15', total: sum(firstHalf), items: firstHalf })
-    if (secondHalf.length) groups.push({ key: 'h2', label: `16 – ${daysInMonth}`, total: sum(secondHalf), items: secondHalf })
-    return { groups, count: all.length }
+    const groups: {
+      key: string
+      label: string
+      total: number
+      remaining: number
+      items: typeof all
+    }[] = []
+    const push = (key: string, label: string, items: typeof all) => {
+      if (!items.length) return
+      groups.push({
+        key,
+        label,
+        total: sum(items),
+        remaining: sum(items.filter((p) => !p.isPaid)),
+        items,
+      })
+    }
+    push('h1', '1 – 15', firstHalf)
+    push('h2', `16 – ${daysInMonth}`, secondHalf)
+    return { groups, count: all.length, remainingCount: all.filter((p) => !p.isPaid).length }
   }, [payments, daysInMonth])
 
   // Scroll the schedule to the first card of the tapped day
@@ -348,7 +364,11 @@ export default function CalendarPage() {
                 </button>
               ) : (
                 <span className="text-[11px] text-muted">
-                  {scheduleGroups.count} {scheduleGroups.count === 1 ? 'payment' : 'payments'}
+                  {scheduleGroups.remainingCount === 0
+                    ? 'All paid'
+                    : `${scheduleGroups.remainingCount} ${
+                        scheduleGroups.remainingCount === 1 ? 'payment' : 'payments'
+                      } left`}
                 </span>
               )}
             </div>
@@ -371,7 +391,25 @@ export default function CalendarPage() {
                           </span>
                         </div>
                         <span className="text-[12px] font-semibold text-muted tracking-tight">
-                          <CurrencyAmount value={group.total} />
+                          {group.remaining === 0 ? (
+                            <>
+                              <span className="text-emerald-600 dark:text-emerald-400">All paid</span>
+                              <span className="ml-1.5">
+                                <CurrencyAmount value={group.total} />
+                              </span>
+                            </>
+                          ) : group.remaining === group.total ? (
+                            <CurrencyAmount value={group.total} />
+                          ) : (
+                            <>
+                              <span className="text-secondary">
+                                <CurrencyAmount value={group.remaining} /> left
+                              </span>
+                              <span className="ml-1.5">
+                                &middot; <CurrencyAmount value={group.total} />
+                              </span>
+                            </>
+                          )}
                         </span>
                       </div>
 
