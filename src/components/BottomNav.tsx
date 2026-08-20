@@ -9,8 +9,12 @@ const NAV_ITEMS = [
   { path: '/settings', icon: Settings, label: 'Settings' },
 ] as const
 
-// Paths that fall under the "More" tab even though they're not /more itself
-const MORE_PREFIXES = ['/more', '/analytics', '/bills', '/savings']
+// Sub-pages that should keep their parent tab lit even though the path
+// isn't the tab's own. Home is absent on purpose: '/' prefixes everything.
+const TAB_PREFIXES: Record<string, string[]> = {
+  '/more': ['/more', '/analytics', '/bills', '/savings'],
+  '/settings': ['/settings', '/whats-new'],
+}
 
 export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   const location = useLocation()
@@ -40,8 +44,9 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
             )
           }
 
-          const isActive = item.path === '/more'
-            ? MORE_PREFIXES.some((p) => location.pathname.startsWith(p))
+          const prefixes = TAB_PREFIXES[item.path]
+          const isActive = prefixes
+            ? prefixes.some((p) => location.pathname.startsWith(p))
             : location.pathname === item.path
           const Icon = item.icon
 

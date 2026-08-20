@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, HardDrive, Eye, EyeOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Download, Upload, HardDrive, Eye, EyeOff, Sparkles, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
@@ -11,6 +12,7 @@ import NotificationSettings from '../features/notifications/NotificationSettings
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
+import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
 import { exportAllData, importAllData, parseBackupCounts } from '../utils/backup'
 import type { BackupCounts } from '../utils/backup'
 
@@ -21,6 +23,8 @@ export default function SettingsPage() {
   const { monthlyIncome, setMonthlyIncome } = useIncomeStore()
   const { bills } = useBillStore()
   const { goals } = useSavingsStore()
+  const navigate = useNavigate()
+  const unseenReleases = useUnseenReleaseCount()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
@@ -134,6 +138,29 @@ export default function SettingsPage() {
 
         {/* Storage */}
         <StorageUsage />
+
+        {/* What's New */}
+        <button
+          onClick={() => navigate('/whats-new')}
+          className="w-full flex items-center gap-3 bg-card rounded-2xl border border-themed p-4 text-left transition-all duration-200 active:scale-[0.98] hover:bg-card-hover"
+        >
+          <div className="w-9 h-9 rounded-[11px] bg-brand/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-brand" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-primary text-[14px] tracking-tight">What&rsquo;s New</p>
+            <p className="text-[12px] text-muted">Recent updates to Lendy</p>
+          </div>
+          {unseenReleases > 0 && (
+            <span
+              aria-label={`${unseenReleases} unread ${unseenReleases === 1 ? 'update' : 'updates'}`}
+              className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-brand text-on-brand text-[10px] font-bold flex items-center justify-center shrink-0"
+            >
+              {unseenReleases}
+            </span>
+          )}
+          <ChevronRight className="w-4 h-4 text-muted shrink-0" />
+        </button>
 
         {/* Data */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
