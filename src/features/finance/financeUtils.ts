@@ -251,7 +251,29 @@ export function buildHealthScore(
   // Without income, Debt Load and Cash Flow both drop out — 55 of 100 points.
   // A number built from the remainder would mislead, so publish no number.
   if (overview.monthlyIncome <= 0) {
-    return { score: 0, band: 'at-risk', label: BAND_LABELS['at-risk'], metrics, suppressed: true }
+    return {
+      score: 0,
+      band: 'at-risk',
+      label: BAND_LABELS['at-risk'],
+      metrics,
+      suppressed: true,
+      suppressedReason: 'no-income',
+    }
+  }
+
+  // Income is set but there's nothing to score against: no commitments and no
+  // savings. Debt Load defaults to a perfect 100 for the *absence* of loans,
+  // which is a fresh install's default state — publishing that number would
+  // outrank a user who is actually servicing debt on schedule.
+  if (overview.totalCommitments === 0 && overview.totalSavings === 0) {
+    return {
+      score: 0,
+      band: 'at-risk',
+      label: BAND_LABELS['at-risk'],
+      metrics,
+      suppressed: true,
+      suppressedReason: 'no-data',
+    }
   }
 
   const included = metrics.filter((m) => m.included)
@@ -264,5 +286,5 @@ export function buildHealthScore(
   const score = totalWeight > 0 ? Math.max(0, Math.min(100, Math.round(weighted / totalWeight))) : 0
   const band = bandFor(score)
 
-  return { score, band, label: BAND_LABELS[band], metrics, suppressed: false }
+  return { score, band, label: BAND_LABELS[band], metrics, suppressed: false, suppressedReason: null }
 }

@@ -38,6 +38,15 @@ export type FinancialOverview = {
 
 export type ScoreBandName = 'at-risk' | 'needs-attention' | 'stable' | 'healthy'
 
+/**
+ * Why a score is suppressed, so the card can render the matching prompt
+ * instead of inferring the reason from the overview:
+ * - 'no-income': monthlyIncome is 0 — Debt Load and Cash Flow can't be scored.
+ * - 'no-data': income is set but there is nothing to score against — no
+ *   commitments and no savings, which is a fresh install's default state.
+ */
+export type SuppressedReason = 'no-income' | 'no-data'
+
 export type HealthScore = {
   /** 0-100, already rounded */
   score: number
@@ -46,6 +55,8 @@ export type HealthScore = {
   label: string
   /** All four metrics, included or not, in display order */
   metrics: MetricScore[]
-  /** True when monthlyIncome is 0 — render the prompt, not a number */
+  /** True when there is nothing meaningful to score — render the prompt, not a number */
   suppressed: boolean
+  /** Present when suppressed is true; null otherwise */
+  suppressedReason: SuppressedReason | null
 }

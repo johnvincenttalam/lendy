@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { Activity, ChevronDown } from 'lucide-react'
-import type { FinancialOverview, HealthScore, ScoreBandName } from './financeTypes'
+import type { FinancialOverview, HealthScore, ScoreBandName, SuppressedReason } from './financeTypes'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
 type Props = {
   overview: FinancialOverview
   health: HealthScore
+}
+
+const SUPPRESSED_PROMPTS: Record<SuppressedReason, string> = {
+  'no-income': 'Add your monthly income in Settings to see your health score.',
+  'no-data': 'Add a loan, a bill or a savings goal to see your score.',
 }
 
 // Reuses the existing status triad from loanUtils.statusClasses. No new status
@@ -28,7 +33,7 @@ export default function HealthScoreCard({ overview, health }: Props) {
           <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Financial Health</span>
         </div>
         <p className="text-[13px] text-white/70">
-          Add your monthly income in Settings to see your health score.
+          {SUPPRESSED_PROMPTS[health.suppressedReason ?? 'no-income']}
         </p>
       </div>
     )

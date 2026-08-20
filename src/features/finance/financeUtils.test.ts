@@ -423,24 +423,45 @@ describe('buildHealthScore', () => {
 
   it('renormalises over the remaining weight when a metric is omitted', () => {
     // Reliability is omitted (no payment history); the other three carry
-    // 30 + 25 + 30 = 85 points of weight between them:
-    //   Debt Load: no loans -> ratio 0 -> 100
-    //   Cash Flow: no commitments -> uncommittedRatio 1.0 -> capped at 90
-    //   Savings Buffer: no goals, denominator falls back to income -> runway 0 -> 0
+    // 30 + 25 + 30 = 85 points of weight between them. There's a loan so the
+    // score isn't suppressed as "nothing to score" (see the suppression test below).
+    //   Debt Load: 2,000 loan commitment / 20,000 income = 10% -> 100
+    //   Cash Flow: uncommittedRatio = 18,000/20,000 = 90% -> capped at 90
+    //   Savings Buffer: no goals, totalCommitments = 2,000 -> runway 0 -> 0
     // (100*30 + 90*25 + 0*30) / 85 = 5250 / 85 = 61.76 -> 62
-    const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 20000 })
+    const overview = buildOverview({ loans: [makeLoanPaying(2000)], bills: [], goals: [], monthlyIncome: 20000 })
     const health = buildHealthScore(overview, [], [], [])
     const included = health.metrics.filter((m) => m.included)
     expect(included).toHaveLength(3)
     expect(included.reduce((sum, m) => sum + m.weight, 0)).toBe(85)
     expect(health.score).toBe(62)
+    expect(health.suppressed).toBe(false)
   })
 
   it('suppresses the score entirely when there is no income', () => {
     const overview = buildOverview({ loans: [makeLoan()], bills: [], goals: [], monthlyIncome: 0 })
     const health = buildHealthScore(overview, [], [], [])
     expect(health.suppressed).toBe(true)
+    expect(health.suppressedReason).toBe('no-income')
     expect(health.score).toBe(0)
+  })
+
+  it('suppresses the score when income is set but there are no commitments and no savings', () => {
+    // A near-empty install: income set, no loans, no bills, no goals. Debt Load
+    // would otherwise award 100 for the absence of loans, and Cash Flow 90 for
+    // an uncommittedRatio of 1.0, producing a misleadingly high score for a
+    // user who has recorded nothing at all.
+    const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 20000 })
+    const health = buildHealthScore(overview, [], [], [])
+    expect(health.suppressed).toBe(true)
+    expect(health.suppressedReason).toBe('no-data')
+    expect(health.score).toBe(0)
+  })
+
+  it('is not suppressed when there are no commitments but there are savings', () => {
+    const overview = buildOverview({ loans: [], bills: [], goals: [makeGoal({ currentAmount: 500 })], monthlyIncome: 20000 })
+    const health = buildHealthScore(overview, [], [], [])
+    expect(health.suppressed).toBe(false)
   })
 
   it('always returns all four metrics, included or not', () => {
