@@ -7,6 +7,8 @@ import {
   scoreSavingsBuffer,
   isBackfilledPayment,
   scoreReliability,
+  buildHealthScore,
+  bandFor,
 } from './financeUtils'
 import type { Loan } from '../loans/loanTypes'
 import type { Bill } from '../bills/billTypes'
@@ -392,5 +394,76 @@ describe('scoreReliability', () => {
     const metric = scoreReliability([], [], bills)
     expect(metric.included).toBe(true)
     expect(metric.score).toBe(100)
+  })
+})
+
+describe('buildHealthScore', () => {
+  it('matches the worked example from the spec', () => {
+    const overview = buildOverview({
+      loans: [makeLoanPaying(4662)],
+      bills: [makeBill({ amount: 2800 })],
+      goals: [makeGoal({ currentAmount: 500 })],
+      monthlyIncome: 20000,
+    })
+
+    const health = buildHealthScore(overview, [], [], [])
+
+    const byKey = Object.fromEntries(health.metrics.map((m) => [m.key, m]))
+    expect(byKey.debtLoad.score).toBe(69)
+    expect(byKey.cashFlow.score).toBe(90)
+    expect(byKey.savingsBuffer.score).toBe(2)
+    expect(byKey.paymentReliability.included).toBe(false)
+
+    // (69*30 + 90*25 + 2*30) / 85 = 51.53 -> 52
+    expect(health.score).toBe(52)
+    expect(health.band).toBe('needs-attention')
+    expect(health.label).toBe('Needs Attention')
+    expect(health.suppressed).toBe(false)
+  })
+
+  it('renormalises over the remaining weight when a metric is omitted', () => {
+    // Reliability omitted; the other three carry 85 points of weight between them.
+    const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 20000 })
+    const health = buildHealthScore(overview, [], [], [])
+    const included = health.metrics.filter((m) => m.included)
+    const expected = Math.round(
+      included.reduce((sum, m) => sum + m.score * m.weight, 0) / included.reduce((sum, m) => sum + m.weight, 0),
+    )
+    expect(health.score).toBe(expected)
+  })
+
+  it('suppresses the score entirely when there is no income', () => {
+    const overview = buildOverview({ loans: [makeLoan()], bills: [], goals: [], monthlyIncome: 0 })
+    const health = buildHealthScore(overview, [], [], [])
+    expect(health.suppressed).toBe(true)
+    expect(health.score).toBe(0)
+  })
+
+  it('always returns all four metrics, included or not', () => {
+    const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 0 })
+    expect(buildHealthScore(overview, [], [], []).metrics).toHaveLength(4)
+  })
+
+  it('never returns a negative score when over-committed', () => {
+    const overview = buildOverview({
+      loans: [makeLoanPaying(9000)],
+      bills: [makeBill({ amount: 6000 })],
+      goals: [],
+      monthlyIncome: 10000,
+    })
+    const health = buildHealthScore(overview, [], [], [])
+    expect(health.score).toBeGreaterThanOrEqual(0)
+    expect(health.band).toBe('at-risk')
+  })
+
+  it('maps scores to bands at their edges', () => {
+    expect(bandFor(0)).toBe('at-risk')
+    expect(bandFor(39)).toBe('at-risk')
+    expect(bandFor(40)).toBe('needs-attention')
+    expect(bandFor(59)).toBe('needs-attention')
+    expect(bandFor(60)).toBe('stable')
+    expect(bandFor(79)).toBe('stable')
+    expect(bandFor(80)).toBe('healthy')
+    expect(bandFor(100)).toBe('healthy')
   })
 })

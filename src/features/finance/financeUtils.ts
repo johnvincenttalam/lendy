@@ -1,7 +1,7 @@
 import type { Loan, PaymentRecord } from '../loans/loanTypes'
 import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
-import type { FinancialOverview, MetricScore } from './financeTypes'
+import type { FinancialOverview, MetricScore, HealthScore, ScoreBandName } from './financeTypes'
 import { scheduledMonthlyPayment, remainingBalance, isFullyPaid, paymentSchedule } from '../loans/loanUtils'
 import { daysBetween } from '../../utils/dateUtils'
 
@@ -219,4 +219,50 @@ export function scoreReliability(
     detail: `${onTime} of ${evidence.length} payments on time`,
     included: true,
   }
+}
+
+const BAND_LABELS: Record<ScoreBandName, string> = {
+  'at-risk': 'At Risk',
+  'needs-attention': 'Needs Attention',
+  stable: 'Stable',
+  healthy: 'Healthy',
+}
+
+export function bandFor(score: number): ScoreBandName {
+  if (score < 40) return 'at-risk'
+  if (score < 60) return 'needs-attention'
+  if (score < 80) return 'stable'
+  return 'healthy'
+}
+
+export function buildHealthScore(
+  overview: FinancialOverview,
+  loans: Loan[],
+  payments: PaymentRecord[],
+  billPayments: BillPaymentRecord[],
+): HealthScore {
+  const metrics: MetricScore[] = [
+    scoreDebtLoad(overview),
+    scoreCashFlow(overview),
+    scoreSavingsBuffer(overview),
+    scoreReliability(loans, payments, billPayments),
+  ]
+
+  // Without income, Debt Load and Cash Flow both drop out — 55 of 100 points.
+  // A number built from the remainder would mislead, so publish no number.
+  if (overview.monthlyIncome <= 0) {
+    return { score: 0, band: 'at-risk', label: BAND_LABELS['at-risk'], metrics, suppressed: true }
+  }
+
+  const included = metrics.filter((m) => m.included)
+  const totalWeight = included.reduce((sum, m) => sum + m.weight, 0)
+
+  // Metric scores are already rounded. Aggregating from the rounded values —
+  // rather than from full precision — costs at most a point but lets the user
+  // add up the breakdown on screen and arrive at the number on screen.
+  const weighted = included.reduce((sum, m) => sum + m.score * m.weight, 0)
+  const score = totalWeight > 0 ? Math.max(0, Math.min(100, Math.round(weighted / totalWeight))) : 0
+  const band = bandFor(score)
+
+  return { score, band, label: BAND_LABELS[band], metrics, suppressed: false }
 }
