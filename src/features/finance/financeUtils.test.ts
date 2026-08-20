@@ -409,6 +409,36 @@ describe('scoreReliability', () => {
     expect(metric.included).toBe(true)
     expect(metric.score).toBe(100)
   })
+
+  it('collapses partial payments on one bill cycle into a single piece of evidence', () => {
+    // Three ₱500 tranches of the same bill cycle (same billId, same dueDate)
+    // must not, on their own, satisfy the 3-record evidence minimum — they
+    // settle one obligation, not three.
+    const tranches = [
+      makeBillPayment({ id: 'bp1', billId: 'bill-1', dueDate: '2026-01-25', amount: 500, paidAt: '2026-01-20T10:00:00.000Z' }),
+      makeBillPayment({ id: 'bp2', billId: 'bill-1', dueDate: '2026-01-25', amount: 500, paidAt: '2026-01-23T10:00:00.000Z' }),
+      makeBillPayment({ id: 'bp3', billId: 'bill-1', dueDate: '2026-01-25', amount: 500, paidAt: '2026-01-25T10:00:00.000Z' }),
+    ]
+    expect(scoreReliability([], [], tranches).included).toBe(false)
+  })
+
+  it('scores a part-paid bill cycle on the tranche that settled it, not the earlier ones', () => {
+    const tranches = [
+      makeBillPayment({ id: 'bp1', billId: 'bill-1', dueDate: '2026-01-01', amount: 500, paidAt: '2025-12-20T10:00:00.000Z' }),
+      // Settles 5 days after the due date — beyond the 3-day grace period.
+      makeBillPayment({ id: 'bp2', billId: 'bill-1', dueDate: '2026-01-01', amount: 1000, paidAt: '2026-01-06T10:00:00.000Z' }),
+    ]
+    const otherBills = [
+      makeBillPayment({ id: 'bp3', billId: 'bill-2', dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
+      makeBillPayment({ id: 'bp4', billId: 'bill-3', dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' }),
+    ]
+    const metric = scoreReliability([], [], [...tranches, ...otherBills])
+    expect(metric.included).toBe(true)
+    // 3 evidence entries after collapsing (bill-1 once, bill-2, bill-3); bill-1's
+    // cycle settled late, so 2 of 3 are on time.
+    expect(metric.detail).toBe('2 of 3 payments on time')
+    expect(metric.score).toBe(67)
+  })
 })
 
 describe('buildHealthScore', () => {

@@ -201,6 +201,25 @@ function isOnTime(dueDate: string, paidAt: string): boolean {
   return daysBetween(dueDate, paidAt) <= GRACE_DAYS
 }
 
+/**
+ * recordBillPayment (billStore.ts) appends one BillPaymentRecord per
+ * instalment and holds the bill's cycle open until payments cover its
+ * amount, so a bill paid in several tranches produces several records
+ * sharing one dueDate. Scored individually, each tranche is a separate piece
+ * of evidence and a separate late/on-time verdict for what is really one
+ * obligation. Collapse to one entry per (billId, dueDate) cycle, keeping the
+ * payment with the latest paidAt — the one that actually settled the cycle.
+ */
+function collapseBillEvidence(billPayments: BillPaymentRecord[]): Array<{ dueDate: string; paidAt: string }> {
+  const latestByCycle = new Map<string, BillPaymentRecord>()
+  for (const payment of billPayments) {
+    const key = `${payment.billId}|${payment.dueDate}`
+    const current = latestByCycle.get(key)
+    if (!current || payment.paidAt > current.paidAt) latestByCycle.set(key, payment)
+  }
+  return [...latestByCycle.values()].map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt }))
+}
+
 export function scoreReliability(
   loans: Loan[],
   payments: PaymentRecord[],
@@ -214,10 +233,12 @@ export function scoreReliability(
     return loan ? !isBackfilledPayment(p, loan) : true
   })
 
-  // Bills shipped with recordBillPayment and were never backfilled, so all count.
+  // Bills shipped with recordBillPayment and were never backfilled, so all
+  // count — but a partially-paid bill's instalments are collapsed to one
+  // piece of evidence first (see collapseBillEvidence).
   const evidence: Array<{ dueDate: string; paidAt: string }> = [
     ...realLoanPayments.map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt })),
-    ...billPayments.map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt })),
+    ...collapseBillEvidence(billPayments),
   ]
 
   if (evidence.length < MIN_EVIDENCE) {
