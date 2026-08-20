@@ -1,7 +1,9 @@
 import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle, CalendarClock } from 'lucide-react'
 import type { UpcomingPayments } from '../features/loans/loanUtils'
+import type { FinancialOverview, HealthScore } from '../features/finance/financeTypes'
 import { BRAND_GRADIENT } from '../constants/styles'
 import CurrencyAmount from './CurrencyAmount'
+import HealthScoreCard from '../features/finance/HealthScoreCard'
 
 type Props = {
   totalDebt: number
@@ -11,6 +13,8 @@ type Props = {
   debtFreeDate: Date | null
   debtToIncome: number
   hasIncome: boolean
+  overview: FinancialOverview
+  health: HealthScore
   overdueCount?: number
   overdueAmount?: number
   upcoming?: UpcomingPayments | null
@@ -33,6 +37,8 @@ export default function SummaryHeader({
   debtFreeDate,
   debtToIncome,
   hasIncome,
+  overview,
+  health,
   overdueCount = 0,
   overdueAmount = 0,
   upcoming = null,
@@ -59,6 +65,8 @@ export default function SummaryHeader({
             </p>
           </div>
         </div>
+
+        <HealthScoreCard overview={overview} health={health} />
 
         {overdueCount > 0 && (
           <div className="mb-4 rounded-xl bg-red-500/90 backdrop-blur-sm border border-red-400/30 p-3 flex items-center gap-3">

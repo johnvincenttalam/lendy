@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
+import { useFinancialOverview } from '../features/finance/useFinancialOverview'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
   totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount, upcomingPayments,
@@ -27,6 +28,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 export default function Dashboard() {
   const { loans, sortBy, setSortBy, viewMode, setViewMode } = useLoanStore()
   const { monthlyIncome } = useIncomeStore()
+  const { overview, health } = useFinancialOverview()
   const [showSort, setShowSort] = useState(false)
 
   // Filter/tag are mirrored into the URL (replacing, not pushing) so
@@ -134,6 +136,8 @@ export default function Dashboard() {
         debtFreeDate={debtFreeDate(activeLoans)}
         debtToIncome={debtToIncomeRatio(activeLoans, monthlyIncome)}
         hasIncome={monthlyIncome > 0}
+        overview={overview}
+        health={health}
         overdueCount={overdueLoans.length}
         overdueAmount={overdueAmount}
         upcoming={upcoming}
