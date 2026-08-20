@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Receipt, AlertTriangle, Archive } from 'lucide-react'
 import { useBillStore } from '../features/bills/billStore'
-import { isBillOverdue } from '../features/bills/billUtils'
+import { isBillOverdue, remainingForCycle } from '../features/bills/billUtils'
 import BillCard from '../features/bills/BillCard'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { BRAND_GRADIENT } from '../constants/styles'
 
 export default function BillsPage() {
-  const { bills } = useBillStore()
+  const { bills, billPayments } = useBillStore()
   const [showArchived, setShowArchived] = useState(false)
 
   const { activeBills, archivedBills } = useMemo(() => ({
@@ -18,7 +18,7 @@ export default function BillsPage() {
 
   const totalMonthly = activeBills.reduce((sum, b) => sum + b.amount, 0)
   const overdueBills = useMemo(() => activeBills.filter(isBillOverdue), [activeBills])
-  const overdueAmount = overdueBills.reduce((sum, b) => sum + b.amount, 0)
+  const overdueAmount = overdueBills.reduce((sum, b) => sum + remainingForCycle(b, billPayments), 0)
 
   const visible = showArchived ? archivedBills : activeBills
   const sorted = useMemo(

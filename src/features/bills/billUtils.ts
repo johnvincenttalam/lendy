@@ -1,4 +1,4 @@
-import type { Bill } from './billTypes'
+import type { Bill, BillPaymentRecord } from './billTypes'
 import { getDaysInMonth, today, daysBetween, startOfDay } from '../../utils/dateUtils'
 
 /**
@@ -44,4 +44,38 @@ export function isBillOverdue(bill: Bill): boolean {
 export function billDaysOverdue(bill: Bill): number {
   if (!isBillOverdue(bill)) return 0
   return daysBetween(bill.nextDueDate, today())
+}
+
+// --- Per-cycle payment tracking ---
+//
+// A cycle's settled amount is derived from the payment records themselves rather
+// than stored on the Bill: every BillPaymentRecord already carries the `dueDate`
+// of the cycle it covered, so the records for `bill.nextDueDate` are exactly the
+// payments made against the cycle currently due. Nothing to migrate — records
+// from before partial payments existed all point at cycles already advanced past,
+// so they contribute 0 to the open cycle.
+
+/** Total already paid toward the cycle the bill is currently sitting on. */
+export function paidForCycle(bill: Bill, payments: BillPaymentRecord[]): number {
+  const total = payments
+    .filter((p) => p.billId === bill.id && p.dueDate === bill.nextDueDate)
+    .reduce((sum, p) => sum + p.amount, 0)
+  return Math.round(total * 100) / 100
+}
+
+/** What's still owed on the current cycle. Never negative, even if overpaid. */
+export function remainingForCycle(bill: Bill, payments: BillPaymentRecord[]): number {
+  return Math.max(0, Math.round((bill.amount - paidForCycle(bill, payments)) * 100) / 100)
+}
+
+/** True when the cycle has been paid into but not yet covered. */
+export function isPartiallyPaid(bill: Bill, payments: BillPaymentRecord[]): boolean {
+  const paid = paidForCycle(bill, payments)
+  return paid > 0 && paid < bill.amount
+}
+
+/** Fraction of the current cycle settled, 0–1. */
+export function cycleProgress(bill: Bill, payments: BillPaymentRecord[]): number {
+  if (bill.amount <= 0) return 0
+  return Math.min(1, paidForCycle(bill, payments) / bill.amount)
 }

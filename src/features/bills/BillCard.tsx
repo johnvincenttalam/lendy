@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import type { Bill } from './billTypes'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
-import { isBillOverdue, billDaysOverdue } from './billUtils'
+import { isBillOverdue, billDaysOverdue, paidForCycle, remainingForCycle, cycleProgress } from './billUtils'
+import { useBillStore } from './billStore'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
 type Props = { bill: Bill }
@@ -13,6 +14,11 @@ export default function BillCard({ bill }: Props) {
   const overdue = isBillOverdue(bill)
   const overdueDays = billDaysOverdue(bill)
   const dueDate = new Date(bill.nextDueDate)
+  const billPayments = useBillStore((s) => s.billPayments)
+  const paidThisCycle = paidForCycle(bill, billPayments)
+  const remaining = remainingForCycle(bill, billPayments)
+  const partiallyPaid = paidThisCycle > 0 && remaining > 0
+  const progress = cycleProgress(bill, billPayments)
 
   return (
     <button
@@ -42,12 +48,26 @@ export default function BillCard({ bill }: Props) {
 
       <div className="flex justify-between items-end">
         <p className="text-[20px] font-bold font-mono tracking-tight leading-none" style={{ color }}>
-          <CurrencyAmount value={bill.amount} />
+          <CurrencyAmount value={partiallyPaid ? remaining : bill.amount} />
         </p>
         <span className={`text-[12px] font-medium ${overdue ? 'text-red-500' : 'text-muted'}`}>
           {overdue ? 'Overdue' : `Due ${dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
         </span>
       </div>
+
+      {partiallyPaid && (
+        <div className="mt-2.5">
+          <div className="h-1 rounded-full bg-subtle overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${progress * 100}%`, backgroundColor: color }}
+            />
+          </div>
+          <p className="text-[11px] text-muted mt-1.5">
+            <CurrencyAmount value={paidThisCycle} /> paid of <CurrencyAmount value={bill.amount} />
+          </p>
+        </div>
+      )}
     </button>
   )
 }
