@@ -5,9 +5,10 @@ import {
 } from 'lucide-react'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
 import type { Bill } from './billTypes'
-import { isBillOverdue, billDaysOverdue } from './billUtils'
+import { isBillOverdue, billDaysOverdue, paidForCycle, remainingForCycle, cycleProgress } from './billUtils'
 import { useBillStore } from './billStore'
 import BillForm from './BillForm'
+import BillPaymentForm from './BillPaymentForm'
 import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
@@ -15,16 +16,17 @@ import { formatDate } from '../../utils/dateUtils'
 
 type Props = {
   bill: Bill
-  onMarkPaid: () => void
+  onRecordPayment: (amount: number) => void
   onDelete: () => void
   onBack: () => void
 }
 
-export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Props) {
-  const [showConfirm, setShowConfirm] = useState<'pay' | 'undo' | 'archive' | 'delete' | null>(null)
+export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }: Props) {
+  const [showConfirm, setShowConfirm] = useState<'undo' | 'archive' | 'delete' | null>(null)
+  const [showPayment, setShowPayment] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  useBodyScrollLock(showConfirm !== null || showEdit)
+  useBodyScrollLock(showConfirm !== null || showEdit || showPayment)
   const updateBill = useBillStore((s) => s.updateBill)
   const undoBillPayment = useBillStore((s) => s.undoBillPayment)
   const archiveBill = useBillStore((s) => s.archiveBill)
@@ -38,6 +40,10 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
   const overdue = isBillOverdue(bill)
   const overdueDays = billDaysOverdue(bill)
   const dueDate = new Date(bill.nextDueDate)
+  const paidThisCycle = paidForCycle(bill, billPayments)
+  const remaining = remainingForCycle(bill, billPayments)
+  const progress = cycleProgress(bill, billPayments)
+  const partiallyPaid = paidThisCycle > 0 && remaining > 0
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
@@ -148,8 +154,25 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
             </div>
           )}
           <div className="px-4 pt-6 pb-6 text-center">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Amount</p>
-            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none"><CurrencyAmount value={bill.amount} /></p>
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">
+              {partiallyPaid ? 'Still Due' : 'Amount'}
+            </p>
+            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none">
+              <CurrencyAmount value={partiallyPaid ? remaining : bill.amount} />
+            </p>
+            {partiallyPaid && (
+              <div className="mt-4 max-w-[280px] mx-auto">
+                <div className="h-1.5 rounded-full bg-subtle overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${progress * 100}%`, backgroundColor: color }}
+                  />
+                </div>
+                <p className="text-[12px] text-secondary mt-2">
+                  <CurrencyAmount value={paidThisCycle} /> paid of <CurrencyAmount value={bill.amount} />
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -182,6 +205,11 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
                     <span className="text-[13px] font-bold text-primary">
                       {formatDate(p.paidAt)}
                     </span>
+                    {p.amount < bill.amount && (
+                      <span className="ml-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-[1px] rounded-md">
+                        PARTIAL
+                      </span>
+                    )}
                     <p className="text-[11px] text-muted">
                       For cycle due {formatDate(p.dueDate)}
                     </p>
@@ -201,14 +229,28 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-page via-page to-transparent pt-6 pb-6 px-4">
           <div className="max-w-2xl mx-auto">
             <button
-              onClick={() => setShowConfirm('pay')}
+              onClick={() => setShowPayment(true)}
               className="w-full text-white font-bold py-4 rounded-2xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-[15px] tracking-tight hover:opacity-90"
               style={{ backgroundColor: color }}
             >
-              Mark as Paid
+              {partiallyPaid ? <>Pay Remaining <CurrencyAmount value={remaining} /></> : 'Record Payment'}
             </button>
           </div>
         </div>
+      )}
+
+      {/* Payment sheet */}
+      {showPayment && (
+        <BillPaymentForm
+          bill={bill}
+          remaining={remaining}
+          paid={paidThisCycle}
+          onSubmit={(amount) => {
+            onRecordPayment(amount)
+            setShowPayment(false)
+          }}
+          onClose={() => setShowPayment(false)}
+        />
       )}
 
       {/* Edit modal */}
@@ -229,13 +271,9 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
         <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">
-              {showConfirm === 'pay' ? 'Confirm Payment' : showConfirm === 'undo' ? 'Undo Payment' : showConfirm === 'archive' ? (bill.archived ? 'Restore Bill' : 'Archive Bill') : 'Delete Bill'}
+              {showConfirm === 'undo' ? 'Undo Payment' : showConfirm === 'archive' ? (bill.archived ? 'Restore Bill' : 'Archive Bill') : 'Delete Bill'}
             </h3>
-            {showConfirm === 'pay' ? (
-              <p className="text-[13px] text-secondary mb-6">
-                Mark <CurrencyAmount value={bill.amount} /> as paid for this cycle?
-              </p>
-            ) : showConfirm === 'undo' ? (
+            {showConfirm === 'undo' ? (
               <p className="text-[13px] text-secondary mb-6">Undo the last recorded payment for this bill?</p>
             ) : showConfirm === 'archive' ? (
               <p className="text-[13px] text-secondary mb-6">
@@ -255,8 +293,7 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
               </button>
               <button
                 onClick={() => {
-                  if (showConfirm === 'pay') onMarkPaid()
-                  else if (showConfirm === 'undo') {
+                  if (showConfirm === 'undo') {
                     undoBillPayment(bill.id)
                     showToast('Payment reverted')
                   } else if (showConfirm === 'archive') {
@@ -270,10 +307,10 @@ export default function BillDetails({ bill, onMarkPaid, onDelete, onBack }: Prop
                 }}
                 className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
                 style={{
-                  backgroundColor: showConfirm === 'pay' ? color : showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#6366F1' : '#EF4444',
+                  backgroundColor: showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#6366F1' : '#EF4444',
                 }}
               >
-                {showConfirm === 'pay' ? 'Confirm' : showConfirm === 'undo' ? 'Undo' : showConfirm === 'archive' ? (bill.archived ? 'Restore' : 'Archive') : 'Delete'}
+                {showConfirm === 'undo' ? 'Undo' : showConfirm === 'archive' ? (bill.archived ? 'Restore' : 'Archive') : 'Delete'}
               </button>
             </div>
           </div>
