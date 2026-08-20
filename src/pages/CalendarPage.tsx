@@ -315,7 +315,7 @@ export default function CalendarPage() {
                                 ? 'bg-emerald-500'
                                 : p.isOverdue
                                   ? 'bg-red-500'
-                                  : 'bg-brand'
+                                  : 'bg-muted'
                           }`}
                         />
                       ))}
@@ -336,7 +336,7 @@ export default function CalendarPage() {
         {activeLoans.length > 0 && (
           <div className="flex items-center justify-center gap-3.5 mt-2.5">
             {([
-              ['bg-brand', 'Pending'],
+              ['bg-muted', 'Pending'],
               ['bg-red-500', 'Overdue'],
               ['bg-emerald-500', 'Paid'],
             ] as const).map(([dot, label]) => (
@@ -463,7 +463,7 @@ export default function CalendarPage() {
                                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                         : p.isOverdue
                                           ? 'bg-red-500/10 text-red-500'
-                                          : 'bg-brand/10 text-brand'
+                                          : 'bg-subtle text-muted'
                                     }`}
                                   >
                                     {p.isPaid ? 'Paid' : p.isOverdue ? 'Overdue' : 'Pending'}

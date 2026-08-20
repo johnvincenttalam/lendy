@@ -136,6 +136,7 @@ textarea:focus-visible,
 .text-primary { color: var(--color-text-primary); }
 .text-secondary { color: var(--color-text-secondary); }
 .text-muted { color: var(--color-text-muted); }
+.bg-muted { background-color: var(--color-text-muted); }
 .border-themed { border-color: var(--color-border); }
 .border-divider { border-color: var(--color-divider); }
 .bg-divider { background-color: var(--color-divider); }
