@@ -66,7 +66,13 @@ export default function HealthScoreCard({ overview, health }: Props) {
         <p className="text-[12px] text-white/60 mt-2.5">
           Committed <CurrencyAmount value={overview.totalCommitments} />
           {' · '}
-          Uncommitted <CurrencyAmount value={overview.uncommitted} />
+          {overview.uncommitted < 0 ? (
+            <span className="text-red-300 font-semibold">
+              Over-committed <CurrencyAmount value={Math.abs(overview.uncommitted)} />
+            </span>
+          ) : (
+            <>Uncommitted <CurrencyAmount value={overview.uncommitted} /></>
+          )}
         </p>
       </button>
 
