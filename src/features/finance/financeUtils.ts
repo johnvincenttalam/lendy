@@ -203,6 +203,11 @@ export function isBackfilledPayment(payment: PaymentRecord, loan: Loan): boolean
 function isOnTime(dueDate: string, paidAt: string): boolean {
   // daysBetween normalises both sides to local midnight, matching how
   // isBillOverdue already compares an ISO date against a timestamp.
+  // Assumes a non-negative UTC offset (true for the target user, UTC+8):
+  // startOfDay parses the bare dueDate as UTC midnight then snaps to local
+  // midnight, so in a negative-offset timezone the due date lands a day early
+  // and the effective grace period shrinks to 2 days. Inherited from
+  // dateUtils, shared with isBillOverdue.
   return daysBetween(dueDate, paidAt) <= GRACE_DAYS
 }
 
