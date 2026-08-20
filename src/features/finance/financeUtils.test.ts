@@ -422,14 +422,18 @@ describe('buildHealthScore', () => {
   })
 
   it('renormalises over the remaining weight when a metric is omitted', () => {
-    // Reliability omitted; the other three carry 85 points of weight between them.
+    // Reliability is omitted (no payment history); the other three carry
+    // 30 + 25 + 30 = 85 points of weight between them:
+    //   Debt Load: no loans -> ratio 0 -> 100
+    //   Cash Flow: no commitments -> uncommittedRatio 1.0 -> capped at 90
+    //   Savings Buffer: no goals, denominator falls back to income -> runway 0 -> 0
+    // (100*30 + 90*25 + 0*30) / 85 = 5250 / 85 = 61.76 -> 62
     const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 20000 })
     const health = buildHealthScore(overview, [], [], [])
     const included = health.metrics.filter((m) => m.included)
-    const expected = Math.round(
-      included.reduce((sum, m) => sum + m.score * m.weight, 0) / included.reduce((sum, m) => sum + m.weight, 0),
-    )
-    expect(health.score).toBe(expected)
+    expect(included).toHaveLength(3)
+    expect(included.reduce((sum, m) => sum + m.weight, 0)).toBe(85)
+    expect(health.score).toBe(62)
   })
 
   it('suppresses the score entirely when there is no income', () => {
