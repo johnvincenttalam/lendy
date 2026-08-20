@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
-import { monthlyInterestPortion, monthlyPrincipalPortion, paymentSchedule } from './loanUtils'
+import { monthlyInterestPortion, monthlyPrincipalPortion, offScheduleAmount, paymentSchedule } from './loanUtils'
 import { showToast } from '../../components/Toast'
 import { triggerConfetti } from '../../components/Confetti'
 
@@ -86,6 +86,7 @@ type LoanStore = {
   addLoan: (data: LoanFormData) => void
   updateLoan: (id: string, data: Partial<Loan>) => void
   markAsPaid: (id: string) => void
+  recalcMonthlyPayment: (id: string) => void
   undoMarkAsPaid: (id: string) => void
   deleteLoan: (id: string) => void
   archiveLoan: (id: string) => void
@@ -163,6 +164,17 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       saveLoans(loans)
       return { loans }
     }),
+
+  // Snap a hand-entered monthly back onto the loan's own amount/rate/tenure. Reuses
+  // updateLoan so totalPaid and totalInterestPaid are rebuilt from the new schedule.
+  recalcMonthlyPayment: (id) => {
+    const loan = get().loans.find((l) => l.id === id)
+    if (!loan) return
+    const scheduled = offScheduleAmount(loan)
+    if (scheduled === null) return
+    get().updateLoan(id, { monthlyPayment: scheduled })
+    showToast(`"${loan.name}" monthly recalculated`)
+  },
 
   markAsPaid: (id) =>
     set((state) => {

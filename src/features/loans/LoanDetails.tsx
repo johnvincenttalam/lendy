@@ -21,6 +21,7 @@ import {
   isOverdue,
   daysOverdue,
   nextDueDate,
+  offScheduleAmount,
 } from './loanUtils'
 import { useLoanStore } from './loanStore'
 import LoanForm from './LoanForm'
@@ -58,6 +59,8 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const archiveLoan = useLoanStore((s) => s.archiveLoan)
   const unarchiveLoan = useLoanStore((s) => s.unarchiveLoan)
   const payments = useLoanStore((s) => s.payments)
+  const recalcMonthlyPayment = useLoanStore((s) => s.recalcMonthlyPayment)
+  const offSchedule = offScheduleAmount(loan)
   const loanPayments = useMemo(
     () => payments.filter((p) => p.loanId === loan.id).sort((a, b) => a.month - b.month),
     [payments, loan.id],
@@ -268,6 +271,29 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
               <Stat label="Total Repayment" value={<CurrencyAmount value={totalCostOfLoan(loan)} />} color="text-primary" />
               <Stat label="Interest Paid" value={<CurrencyAmount value={interestPaidSoFar(loan)} />} customColor={color} />
               <Stat label="Interest Left" value={<CurrencyAmount value={interestRemaining(loan)} />} color="text-muted" />
+            </div>
+          </div>
+        )}
+
+        {/* Monthly no longer matches the amount/rate/tenure it was entered against */}
+        {offSchedule !== null && (
+          <div className="bg-card rounded-2xl border border-amber-500/30 p-4 transition-colors">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-[2px]" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-primary tracking-tight">Monthly is off schedule</p>
+                <p className="text-[12px] text-secondary mt-0.5 leading-relaxed">
+                  This loan bills <CurrencyAmount value={loan.monthlyPayment} />, but its amount, rate and
+                  tenure work out to <CurrencyAmount value={offSchedule} />. Totals across the app use the
+                  billed figure, so they won't match the principal + interest split shown here.
+                </p>
+                <button
+                  onClick={() => recalcMonthlyPayment(loan.id)}
+                  className="mt-2.5 text-[12px] font-semibold text-amber-600 dark:text-amber-400 hover:opacity-70 transition-opacity"
+                >
+                  Recalculate to <CurrencyAmount value={offSchedule} />
+                </button>
+              </div>
             </div>
           </div>
         )}
