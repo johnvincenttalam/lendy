@@ -13,12 +13,17 @@ const SUPPRESSED_PROMPTS: Record<SuppressedReason, string> = {
   'no-data': 'Add a loan, a bill or a savings goal to see your score.',
 }
 
-// Reuses the existing status triad from loanUtils.statusClasses. No new status
-// color, and the brand green in BRAND_GRADIENT stays an accent, not a status.
+// Matches the red-300 / amber-300 / emerald-300 "how bad is it" triad the DTI
+// tile already uses just below on this same header (SummaryHeader.tsx). No
+// new color is introduced. text-brand is deliberately avoided here: commit
+// 55c863f retired that green from calendar status chips because it reads a
+// shade away from the emerald used for "Paid" — green now means settled and
+// nothing else, so it can't also mean "needs attention". stable and healthy
+// use distinct emerald shades so the band label isn't the only signal.
 const BAND_TEXT: Record<ScoreBandName, string> = {
   'at-risk': 'text-red-300',
-  'needs-attention': 'text-brand',
-  stable: 'text-emerald-300',
+  'needs-attention': 'text-amber-300',
+  stable: 'text-emerald-400',
   healthy: 'text-emerald-300',
 }
 
