@@ -281,6 +281,18 @@ describe('scoreSavingsBuffer', () => {
   it('is included with no commitments as long as there is income', () => {
     expect(scoreSavingsBuffer({ ...zeroOverview, monthlyIncome: 20000, totalCommitments: 0, runwayMonths: 0.5 }).included).toBe(true)
   })
+
+  it('describes the buffer against income, not commitments, when there are none', () => {
+    // buildOverview swaps the runway denominator to income when there are no
+    // commitments; the detail string must say so, not claim "commitments".
+    const metric = scoreSavingsBuffer({ ...zeroOverview, monthlyIncome: 20000, totalCommitments: 0, runwayMonths: 0.5 })
+    expect(metric.detail).toBe('0.5 months of income covered')
+  })
+
+  it('describes the buffer against commitments when they exist', () => {
+    const metric = atRunway(2)
+    expect(metric.detail).toBe('2.0 months of commitments covered')
+  })
 })
 
 function makePayment(overrides: Partial<PaymentRecord> = {}): PaymentRecord {

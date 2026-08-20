@@ -149,10 +149,15 @@ export function scoreSavingsBuffer(overview: FinancialOverview): MetricScore {
     }
   }
 
+  // buildOverview swaps runwayMonths' denominator to income when there are no
+  // commitments, so the detail string must follow — otherwise a user with no
+  // debt and no bills reads "months of commitments covered" while having none.
+  const denominatorLabel = overview.totalCommitments > 0 ? 'commitments' : 'income'
+
   return {
     ...base,
     score: Math.round(interpolateScore(overview.runwayMonths, SAVINGS_BUFFER_POINTS)),
-    detail: `${overview.runwayMonths.toFixed(1)} months of commitments covered`,
+    detail: `${overview.runwayMonths.toFixed(1)} months of ${denominatorLabel} covered`,
     included: true,
   }
 }
