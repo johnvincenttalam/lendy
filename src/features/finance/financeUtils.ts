@@ -233,22 +233,31 @@ function collapseBillEvidence(billPayments: BillPaymentRecord[]): Array<{ dueDat
 export function scoreReliability(
   loans: Loan[],
   payments: PaymentRecord[],
+  bills: Bill[],
   billPayments: BillPaymentRecord[],
 ): MetricScore {
   const base = { key: 'paymentReliability', label: 'Payment Reliability', weight: 15 } as const
 
+  // Archiving withdraws a loan or bill from every other metric (buildOverview),
+  // so it withdraws that obligation's payment history here too — putting
+  // something away leaves no trace in the score. A record whose loan is missing
+  // entirely still counts: deleteLoan prunes its payments, so an orphan is a
+  // data-shape edge case, not something the user chose to archive.
   const loansById = new Map(loans.map((l) => [l.id, l]))
   const realLoanPayments = payments.filter((p) => {
     const loan = loansById.get(p.loanId)
-    return loan ? !isBackfilledPayment(p, loan) : true
+    if (!loan) return true
+    return !loan.archived && !isBackfilledPayment(p, loan)
   })
+
+  const archivedBillIds = new Set(bills.filter((b) => b.archived).map((b) => b.id))
 
   // Bills shipped with recordBillPayment and were never backfilled, so all
   // count — but a partially-paid bill's instalments are collapsed to one
   // piece of evidence first (see collapseBillEvidence).
   const evidence: Array<{ dueDate: string; paidAt: string }> = [
     ...realLoanPayments.map((p) => ({ dueDate: p.dueDate, paidAt: p.paidAt })),
-    ...collapseBillEvidence(billPayments),
+    ...collapseBillEvidence(billPayments.filter((p) => !archivedBillIds.has(p.billId))),
   ]
 
   if (evidence.length < MIN_EVIDENCE) {
@@ -289,13 +298,14 @@ export function buildHealthScore(
   overview: FinancialOverview,
   loans: Loan[],
   payments: PaymentRecord[],
+  bills: Bill[],
   billPayments: BillPaymentRecord[],
 ): HealthScore {
   const metrics: MetricScore[] = [
     scoreDebtLoad(overview),
     scoreCashFlow(overview),
     scoreSavingsBuffer(overview),
-    scoreReliability(loans, payments, billPayments),
+    scoreReliability(loans, payments, bills, billPayments),
   ]
 
   // Without income, Debt Load and Cash Flow both drop out — 55 of 100 points.

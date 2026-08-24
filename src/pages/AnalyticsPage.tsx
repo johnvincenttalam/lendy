@@ -18,12 +18,13 @@ import { BRAND_GRADIENT } from '../constants/styles'
 import CurrencyAmount from '../components/CurrencyAmount'
 
 function computePaymentStreak(loans: Loan[]): number {
-  // Total payments made across all loans (lifetime, including archived/paid-off)
+  // Total payments made across every loan still on the books, paid-off ones
+  // included. Archived loans are filtered out before this is called.
   return loans.reduce((sum, l) => sum + l.monthsPaid, 0)
 }
 
 function computeDebtBurdenTimeline(loans: Loan[]): Array<{ label: string; amount: number }> {
-  const active = loans.filter((l) => !l.archived && !isFullyPaid(l))
+  const active = loans.filter((l) => !isFullyPaid(l))
   if (active.length === 0) return []
 
   const now = new Date()
@@ -72,7 +73,7 @@ function computeDebtBurdenTimeline(loans: Loan[]): Array<{ label: string; amount
 
 function computeLoanCostRanking(loans: Loan[]): Array<{ loan: Loan; totalInterest: number; costRatio: number }> {
   return loans
-    .filter((l) => !l.archived && l.interestRate > 0)
+    .filter((l) => l.interestRate > 0)
     .map((loan) => ({
       loan,
       totalInterest: totalInterestOverLife(loan),
@@ -135,28 +136,38 @@ export default function AnalyticsPage() {
   const { loans, payments } = useLoanStore()
   const { monthlyIncome } = useIncomeStore()
 
-  const activeLoans = useMemo(() => loans.filter((l) => !l.archived && !isFullyPaid(l)), [loans])
+  // Archived loans are withdrawn from the app's numbers entirely: every stat on
+  // this page — lifetime totals and payment history included — is computed from
+  // visibleLoans, never from the raw store list.
+  const visibleLoans = useMemo(() => loans.filter((l) => !l.archived), [loans])
+  const visibleLoanIds = useMemo(() => new Set(visibleLoans.map((l) => l.id)), [visibleLoans])
+  const visiblePayments = useMemo(
+    () => payments.filter((p) => visibleLoanIds.has(p.loanId)),
+    [payments, visibleLoanIds],
+  )
+
+  const activeLoans = useMemo(() => visibleLoans.filter((l) => !isFullyPaid(l)), [visibleLoans])
 
   // 1. Interest vs Principal
   const totalPrincipalPaid = useMemo(
-    () => loans.reduce((sum, l) => sum + l.totalPaid - interestPaidSoFar(l), 0),
-    [loans],
+    () => visibleLoans.reduce((sum, l) => sum + l.totalPaid - interestPaidSoFar(l), 0),
+    [visibleLoans],
   )
   const totalInterestPaid = useMemo(
-    () => loans.reduce((sum, l) => sum + interestPaidSoFar(l), 0),
-    [loans],
+    () => visibleLoans.reduce((sum, l) => sum + interestPaidSoFar(l), 0),
+    [visibleLoans],
   )
   const totalPaid = totalPrincipalPaid + totalInterestPaid
   const interestPercent = totalPaid > 0 ? Math.round((totalInterestPaid / totalPaid) * 100) : 0
   const principalPercent = 100 - interestPercent
 
   // Lifetime totals
-  const lifetimePrincipal = useMemo(() => loans.reduce((sum, l) => sum + l.totalAmount, 0), [loans])
-  const lifetimeInterest = useMemo(() => loans.reduce((sum, l) => sum + totalInterestOverLife(l), 0), [loans])
-  const lifetimeTotal = useMemo(() => loans.reduce((sum, l) => sum + totalCostOfLoan(l), 0), [loans])
+  const lifetimePrincipal = useMemo(() => visibleLoans.reduce((sum, l) => sum + l.totalAmount, 0), [visibleLoans])
+  const lifetimeInterest = useMemo(() => visibleLoans.reduce((sum, l) => sum + totalInterestOverLife(l), 0), [visibleLoans])
+  const lifetimeTotal = useMemo(() => visibleLoans.reduce((sum, l) => sum + totalCostOfLoan(l), 0), [visibleLoans])
 
   // 2. Debt-free countdown
-  const debtFree = useMemo(() => debtFreeDate(loans), [loans])
+  const debtFree = useMemo(() => debtFreeDate(visibleLoans), [visibleLoans])
   const totalMonthsLeft = useMemo(
     () => activeLoans.reduce((max, l) => Math.max(max, monthsLeft(l)), 0),
     [activeLoans],
@@ -167,18 +178,18 @@ export default function AnalyticsPage() {
   )
 
   // 3. Payment streak
-  const streak = useMemo(() => computePaymentStreak(loans), [loans])
+  const streak = useMemo(() => computePaymentStreak(visibleLoans), [visibleLoans])
 
   // 4. Debt burden trend
-  const burdenTimeline = useMemo(() => computeDebtBurdenTimeline(loans), [loans])
+  const burdenTimeline = useMemo(() => computeDebtBurdenTimeline(visibleLoans), [visibleLoans])
   const currentBurden = burdenTimeline.length > 0 ? burdenTimeline[0].amount : 0
   const maxBurden = burdenTimeline.reduce((max, p) => Math.max(max, p.amount), 0)
 
   // 5. Loan cost ranking
-  const costRanking = useMemo(() => computeLoanCostRanking(loans), [loans])
+  const costRanking = useMemo(() => computeLoanCostRanking(visibleLoans), [visibleLoans])
 
   // 6. On-time payment rate
-  const onTimeStats = useMemo(() => computeOnTimeStats(payments), [payments])
+  const onTimeStats = useMemo(() => computeOnTimeStats(visiblePayments), [visiblePayments])
 
   // 7. Debt-to-income health
   const dtiRatio = useMemo(() => debtToIncomeRatio(activeLoans, monthlyIncome), [activeLoans, monthlyIncome])
@@ -193,7 +204,7 @@ export default function AnalyticsPage() {
   const categoryBreakdown = useMemo(() => computeCategoryBreakdown(activeLoans), [activeLoans])
   const categoryTotal = categoryBreakdown.reduce((sum, c) => sum + c.remaining, 0)
 
-  if (loans.length === 0) {
+  if (visibleLoans.length === 0) {
     return (
       <div className="min-h-screen bg-page transition-colors duration-300">
         <div style={{ background: BRAND_GRADIENT }}>
@@ -417,7 +428,7 @@ export default function AnalyticsPage() {
 
           {/* Lifetime totals */}
           <div className="pt-3 border-t border-divider">
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-2">Lifetime Totals (All Loans)</p>
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-2">Lifetime Totals</p>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Borrowed</span>

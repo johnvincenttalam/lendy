@@ -364,14 +364,14 @@ describe('scoreReliability', () => {
   const loan = makeLoan({ id: 'loan-1', durationMonths: 9, monthsPaid: 5 })
 
   it('is omitted when the evidence set is empty', () => {
-    const metric = scoreReliability([loan], [], [])
+    const metric = scoreReliability([loan], [], [], [])
     expect(metric.included).toBe(false)
     expect(metric.omissionReason).toBeTruthy()
   })
 
   it('ignores backfilled records entirely', () => {
     const backfilled = [1, 2, 3, 4, 5].map((m) => makeBackfilledPayment(loan, m))
-    expect(scoreReliability([loan], backfilled, []).included).toBe(false)
+    expect(scoreReliability([loan], backfilled, [], []).included).toBe(false)
   })
 
   it('is omitted at two records and included at three', () => {
@@ -379,10 +379,10 @@ describe('scoreReliability', () => {
       makePayment({ id: 'a', month: 1, dueDate: '2026-01-01', paidAt: '2026-01-01T10:00:00.000Z' }),
       makePayment({ id: 'b', month: 2, dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
     ]
-    expect(scoreReliability([loan], two, []).included).toBe(false)
+    expect(scoreReliability([loan], two, [], []).included).toBe(false)
 
     const three = [...two, makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' })]
-    const metric = scoreReliability([loan], three, [])
+    const metric = scoreReliability([loan], three, [], [])
     expect(metric.included).toBe(true)
     expect(metric.score).toBe(100)
   })
@@ -393,13 +393,13 @@ describe('scoreReliability', () => {
       makePayment({ id: 'b', month: 2, dueDate: '2026-02-01', paidAt: '2026-02-04T10:00:00.000Z' }),
       makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-04T10:00:00.000Z' }),
     ]
-    expect(scoreReliability([loan], onTime, []).score).toBe(100)
+    expect(scoreReliability([loan], onTime, [], []).score).toBe(100)
 
     const oneLate = [
       ...onTime.slice(0, 2),
       makePayment({ id: 'c', month: 3, dueDate: '2026-03-01', paidAt: '2026-03-05T10:00:00.000Z' }),
     ]
-    expect(scoreReliability([loan], oneLate, []).score).toBe(67)
+    expect(scoreReliability([loan], oneLate, [], []).score).toBe(67)
   })
 
   it('treats an early payment as on time', () => {
@@ -408,7 +408,7 @@ describe('scoreReliability', () => {
       makePayment({ id: 'b', month: 2, dueDate: '2026-02-10', paidAt: '2026-02-02T10:00:00.000Z' }),
       makePayment({ id: 'c', month: 3, dueDate: '2026-03-10', paidAt: '2026-03-02T10:00:00.000Z' }),
     ]
-    expect(scoreReliability([loan], early, []).score).toBe(100)
+    expect(scoreReliability([loan], early, [], []).score).toBe(100)
   })
 
   it('counts bill payments as evidence alongside loan payments', () => {
@@ -417,7 +417,7 @@ describe('scoreReliability', () => {
       makeBillPayment({ id: 'bp2', dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
       makeBillPayment({ id: 'bp3', dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' }),
     ]
-    const metric = scoreReliability([], [], bills)
+    const metric = scoreReliability([], [], [], bills)
     expect(metric.included).toBe(true)
     expect(metric.score).toBe(100)
   })
@@ -431,7 +431,7 @@ describe('scoreReliability', () => {
       makeBillPayment({ id: 'bp2', billId: 'bill-1', dueDate: '2026-01-25', amount: 500, paidAt: '2026-01-23T10:00:00.000Z' }),
       makeBillPayment({ id: 'bp3', billId: 'bill-1', dueDate: '2026-01-25', amount: 500, paidAt: '2026-01-25T10:00:00.000Z' }),
     ]
-    expect(scoreReliability([], [], tranches).included).toBe(false)
+    expect(scoreReliability([], [], [], tranches).included).toBe(false)
   })
 
   it('scores a part-paid bill cycle on the tranche that settled it, not the earlier ones', () => {
@@ -444,12 +444,70 @@ describe('scoreReliability', () => {
       makeBillPayment({ id: 'bp3', billId: 'bill-2', dueDate: '2026-02-01', paidAt: '2026-02-01T10:00:00.000Z' }),
       makeBillPayment({ id: 'bp4', billId: 'bill-3', dueDate: '2026-03-01', paidAt: '2026-03-01T10:00:00.000Z' }),
     ]
-    const metric = scoreReliability([], [], [...tranches, ...otherBills])
+    const metric = scoreReliability([], [], [], [...tranches, ...otherBills])
     expect(metric.included).toBe(true)
     // 3 evidence entries after collapsing (bill-1 once, bill-2, bill-3); bill-1's
     // cycle settled late, so 2 of 3 are on time.
     expect(metric.detail).toBe('2 of 3 payments on time')
     expect(metric.score).toBe(67)
+  })
+
+  it('ignores payments belonging to an archived loan', () => {
+    const archived = makeLoan({ id: 'loan-archived', archived: true })
+    const late = [1, 2, 3].map((m) =>
+      makePayment({
+        id: `late-${m}`,
+        loanId: 'loan-archived',
+        month: m,
+        dueDate: `2026-0${m}-01`,
+        paidAt: `2026-0${m}-20T10:00:00.000Z`,
+      }),
+    )
+
+    // On their own, three late records would score 0 and be included.
+    expect(scoreReliability([archived], late, [], []).included).toBe(false)
+  })
+
+  it('ignores payments belonging to an archived bill', () => {
+    const billPayments = [1, 2, 3].map((m) =>
+      makeBillPayment({
+        id: `bp${m}`,
+        billId: 'bill-archived',
+        dueDate: `2026-0${m}-01`,
+        paidAt: `2026-0${m}-20T10:00:00.000Z`,
+      }),
+    )
+    const bills = [makeBill({ id: 'bill-archived', archived: true })]
+
+    expect(scoreReliability([], [], bills, billPayments).included).toBe(false)
+  })
+
+  it('keeps an archived loan from diluting the score of an active one', () => {
+    const active = makeLoan({ id: 'loan-active' })
+    const archived = makeLoan({ id: 'loan-archived', archived: true })
+    const onTime = [1, 2, 3].map((m) =>
+      makePayment({
+        id: `ok${m}`,
+        loanId: 'loan-active',
+        month: m,
+        dueDate: `2026-0${m}-01`,
+        paidAt: `2026-0${m}-01T10:00:00.000Z`,
+      }),
+    )
+    const archivedLate = [1, 2, 3].map((m) =>
+      makePayment({
+        id: `bad${m}`,
+        loanId: 'loan-archived',
+        month: m,
+        dueDate: `2026-0${m}-01`,
+        paidAt: `2026-0${m}-20T10:00:00.000Z`,
+      }),
+    )
+
+    const metric = scoreReliability([active, archived], [...onTime, ...archivedLate], [], [])
+    expect(metric.included).toBe(true)
+    expect(metric.detail).toBe('3 of 3 payments on time')
+    expect(metric.score).toBe(100)
   })
 })
 
@@ -462,7 +520,7 @@ describe('buildHealthScore', () => {
       monthlyIncome: 20000,
     })
 
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
 
     const byKey = Object.fromEntries(health.metrics.map((m) => [m.key, m]))
     expect(byKey.debtLoad.score).toBe(69)
@@ -486,7 +544,7 @@ describe('buildHealthScore', () => {
     //   Savings Buffer: no goals, totalCommitments = 2,000 -> runway 0 -> 0
     // (100*30 + 90*25 + 0*30) / 85 = 5250 / 85 = 61.76 -> 62
     const overview = buildOverview({ loans: [makeLoanPaying(2000)], bills: [], goals: [], monthlyIncome: 20000 })
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
     const included = health.metrics.filter((m) => m.included)
     expect(included).toHaveLength(3)
     expect(included.reduce((sum, m) => sum + m.weight, 0)).toBe(85)
@@ -496,7 +554,7 @@ describe('buildHealthScore', () => {
 
   it('suppresses the score entirely when there is no income', () => {
     const overview = buildOverview({ loans: [makeLoan()], bills: [], goals: [], monthlyIncome: 0 })
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
     expect(health.suppressed).toBe(true)
     expect(health.suppressedReason).toBe('no-income')
     expect(health.score).toBe(0)
@@ -508,7 +566,7 @@ describe('buildHealthScore', () => {
     // an uncommittedRatio of 1.0, producing a misleadingly high score for a
     // user who has recorded nothing at all.
     const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 20000 })
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
     expect(health.suppressed).toBe(true)
     expect(health.suppressedReason).toBe('no-data')
     expect(health.score).toBe(0)
@@ -516,13 +574,13 @@ describe('buildHealthScore', () => {
 
   it('is not suppressed when there are no commitments but there are savings', () => {
     const overview = buildOverview({ loans: [], bills: [], goals: [makeGoal({ currentAmount: 500 })], monthlyIncome: 20000 })
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
     expect(health.suppressed).toBe(false)
   })
 
   it('always returns all four metrics, included or not', () => {
     const overview = buildOverview({ loans: [], bills: [], goals: [], monthlyIncome: 0 })
-    expect(buildHealthScore(overview, [], [], []).metrics).toHaveLength(4)
+    expect(buildHealthScore(overview, [], [], [], []).metrics).toHaveLength(4)
   })
 
   it('never returns a negative score when over-committed', () => {
@@ -532,7 +590,7 @@ describe('buildHealthScore', () => {
       goals: [],
       monthlyIncome: 10000,
     })
-    const health = buildHealthScore(overview, [], [], [])
+    const health = buildHealthScore(overview, [], [], [], [])
     expect(health.score).toBeGreaterThanOrEqual(0)
     expect(health.band).toBe('at-risk')
   })
