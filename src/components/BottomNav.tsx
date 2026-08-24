@@ -1,19 +1,19 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, CalendarDays, MoreHorizontal, Settings, Plus } from 'lucide-react'
+import { Home, CalendarDays, MoreHorizontal, BarChart3, Plus } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { path: '__add__', icon: Plus, label: 'Add' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/more', icon: MoreHorizontal, label: 'More' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
 ] as const
 
 // Sub-pages that should keep their parent tab lit even though the path
 // isn't the tab's own. Home is absent on purpose: '/' prefixes everything.
+// Analytics has its own tab now, so it is no longer one of More's children.
 const TAB_PREFIXES: Record<string, string[]> = {
-  '/more': ['/more', '/analytics', '/bills', '/savings'],
-  '/settings': ['/settings', '/whats-new'],
+  '/more': ['/more', '/bills', '/savings', '/settings', '/whats-new'],
 }
 
 export default function BottomNav({ onAdd }: { onAdd: () => void }) {

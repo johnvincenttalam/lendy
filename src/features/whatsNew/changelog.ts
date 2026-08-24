@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.4.0',
+    date: '2026-08-24',
+    title: 'Analytics & Archiving',
+    highlights: [
+      'Analytics has its own tab in the bottom bar, so your insights are one tap away.',
+      'Settings moved into the More tab, alongside Bills and Savings.',
+      'Archiving a loan or bill now takes it out of your health score and every analytics figure, lifetime totals and payment history included.',
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-08-20',
     title: 'Financial Health',

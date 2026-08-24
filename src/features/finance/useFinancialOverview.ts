@@ -14,7 +14,7 @@ export function useFinancialOverview(): { overview: FinancialOverview; health: H
 
   return useMemo(() => {
     const overview = buildOverview({ loans, bills, goals, monthlyIncome })
-    const health = buildHealthScore(overview, loans, payments, billPayments)
+    const health = buildHealthScore(overview, loans, payments, bills, billPayments)
     return { overview, health }
   }, [loans, payments, bills, billPayments, goals, monthlyIncome])
 }
