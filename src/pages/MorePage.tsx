@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { BarChart3, Receipt, PiggyBank, ChevronRight } from 'lucide-react'
+import { Receipt, PiggyBank, Settings, ChevronRight } from 'lucide-react'
 import { BRAND_GRADIENT } from '../constants/styles'
 
 const MORE_ITEMS = [
-  { path: '/analytics', icon: BarChart3, label: 'Analytics', description: 'Insights on your loans' },
   { path: '/bills', icon: Receipt, label: 'Bills', description: 'Track your monthly bills' },
   { path: '/savings', icon: PiggyBank, label: 'Savings', description: 'Track your savings goals' },
+  { path: '/settings', icon: Settings, label: 'Settings', description: 'Income, security, and your data' },
 ] as const
 
 export default function MorePage() {
