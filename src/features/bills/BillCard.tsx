@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react'
 import type { Bill } from './billTypes'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
 import { isBillOverdue, billDaysOverdue, paidForCycle, remainingForCycle, cycleProgress } from './billUtils'
+import { BILL_CATEGORY_ICONS, DEFAULT_BILL_ICON } from './billIcons'
 import { useBillStore } from './billStore'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
@@ -19,6 +20,7 @@ export default function BillCard({ bill }: Props) {
   const remaining = remainingForCycle(bill, billPayments)
   const partiallyPaid = paidThisCycle > 0 && remaining > 0
   const progress = cycleProgress(bill, billPayments)
+  const CategoryIcon = BILL_CATEGORY_ICONS[bill.category] ?? DEFAULT_BILL_ICON
 
   return (
     <button
@@ -28,10 +30,10 @@ export default function BillCard({ bill }: Props) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <div
-            className="w-10 h-10 rounded-[13px] flex items-center justify-center text-[14px] font-bold text-white shrink-0"
+            className="w-10 h-10 rounded-[13px] flex items-center justify-center shrink-0"
             style={{ backgroundColor: color }}
           >
-            {bill.name.charAt(0).toUpperCase()}
+            <CategoryIcon className="w-[18px] h-[18px] text-white" strokeWidth={2} aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-semibold text-primary text-[15px] leading-tight tracking-tight">{bill.name}</h3>
