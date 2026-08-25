@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.5.0',
+    date: '2026-08-25',
+    title: 'Bill Insights',
+    highlights: [
+      'Bills open with a chart of what you actually paid each month, so you can see which months ran expensive and which were light.',
+      'The month you are in is still adding up, so it is shown separately and left out of the highest and lowest figures until it is finished.',
+      'Bill cards show an icon for their category instead of the first letter of the name.',
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-08-24',
     title: 'Analytics & Archiving',
