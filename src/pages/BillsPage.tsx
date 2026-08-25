@@ -3,6 +3,7 @@ import { Receipt, AlertTriangle, Archive } from 'lucide-react'
 import { useBillStore } from '../features/bills/billStore'
 import { isBillOverdue, remainingForCycle } from '../features/bills/billUtils'
 import BillCard from '../features/bills/BillCard'
+import MonthlyBillsChart from '../features/bills/MonthlyBillsChart'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { BRAND_GRADIENT } from '../constants/styles'
@@ -61,6 +62,10 @@ export default function BillsPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
+        {/* Spending history is about the bills you still keep, so it stays out
+            of the archived view rather than contradicting the list below it. */}
+        {!showArchived && <MonthlyBillsChart bills={bills} billPayments={billPayments} />}
+
         {archivedBills.length > 0 && (
           <div className="flex mb-3">
             <button
