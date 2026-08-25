@@ -7,6 +7,7 @@ import { DEFAULT_COLOR } from '../loans/loanTypes'
 import type { Bill } from './billTypes'
 import { isBillOverdue, billDaysOverdue, paidForCycle, remainingForCycle, cycleProgress } from './billUtils'
 import { useBillStore } from './billStore'
+import { BILL_CATEGORY_ICONS, DEFAULT_BILL_ICON } from './billIcons'
 import BillForm from './BillForm'
 import BillPaymentForm from './BillPaymentForm'
 import { showToast } from '../../components/Toast'
@@ -37,6 +38,7 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
     [billPayments, bill.id],
   )
   const color = bill.color || DEFAULT_COLOR
+  const CategoryIcon = BILL_CATEGORY_ICONS[bill.category] ?? DEFAULT_BILL_ICON
   const overdue = isBillOverdue(bill)
   const overdueDays = billDaysOverdue(bill)
   const dueDate = new Date(bill.nextDueDate)
@@ -55,10 +57,10 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
               <ArrowLeft className="w-[18px] h-[18px] text-secondary" />
             </button>
             <div
-              className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-[12px] font-bold text-white"
+              className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: color }}
             >
-              {bill.name.charAt(0).toUpperCase()}
+              <CategoryIcon className="w-[14px] h-[14px] text-white" strokeWidth={2} aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <h1 className="font-semibold text-primary text-[16px] tracking-tight truncate">{bill.name}</h1>
