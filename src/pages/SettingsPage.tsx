@@ -244,6 +244,7 @@ function describeBackupImport(
   if (incoming.loans > 0) parts.push(describeCount(incoming.loans, 'loan'))
   if (incoming.bills > 0) parts.push(describeCount(incoming.bills, 'bill'))
   if (incoming.savingsGoals > 0) parts.push(describeCount(incoming.savingsGoals, 'savings goal'))
+  if (incoming.moneyEntries > 0) parts.push(describeCount(incoming.moneyEntries, 'money entry').replace('money entrys', 'money entries'))
   const incomingText = parts.length > 0 ? parts.join(', ') : 'no data'
 
   return hasExistingData(existing.loans, existing.bills, existing.goals)

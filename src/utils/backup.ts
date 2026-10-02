@@ -2,6 +2,7 @@ import { useLoanStore } from '../features/loans/loanStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
+import { useMoneyStore } from '../features/money/moneyStore'
 import { showToast } from '../components/Toast'
 
 export function exportAllData(): string {
@@ -9,6 +10,7 @@ export function exportAllData(): string {
   const { monthlyIncome } = useIncomeStore.getState()
   const { bills, billPayments } = useBillStore.getState()
   const { goals, transactions } = useSavingsStore.getState()
+  const { entries: moneyEntries, customCategories: moneyCategories } = useMoneyStore.getState()
   return JSON.stringify({
     loans,
     payments,
@@ -17,11 +19,13 @@ export function exportAllData(): string {
     billPayments,
     savingsGoals: goals,
     savingsTransactions: transactions,
+    moneyEntries,
+    moneyCategories,
     exportedAt: new Date().toISOString(),
   }, null, 2)
 }
 
-export type BackupCounts = { loans: number; bills: number; savingsGoals: number }
+export type BackupCounts = { loans: number; bills: number; savingsGoals: number; moneyEntries: number }
 
 export function parseBackupCounts(json: string): BackupCounts | null {
   try {
@@ -31,6 +35,7 @@ export function parseBackupCounts(json: string): BackupCounts | null {
       loans: data.loans.length,
       bills: Array.isArray(data.bills) ? data.bills.length : 0,
       savingsGoals: Array.isArray(data.savingsGoals) ? data.savingsGoals.length : 0,
+      moneyEntries: Array.isArray(data.moneyEntries) ? data.moneyEntries.length : 0,
     }
   } catch {
     return null
@@ -49,6 +54,7 @@ export function importAllData(json: string): boolean {
   const loanOk = useLoanStore.getState().importBackup(json)
   useBillStore.getState().importBackup(json)
   useSavingsStore.getState().importBackup(json)
+  useMoneyStore.getState().importBackup(json)
 
   if (loanOk) {
     const counts = parseBackupCounts(json)
@@ -67,6 +73,7 @@ function describeRestoredCounts(counts: BackupCounts): string {
   if (counts.loans > 0) parts.push(describeCount(counts.loans, 'loan'))
   if (counts.bills > 0) parts.push(describeCount(counts.bills, 'bill'))
   if (counts.savingsGoals > 0) parts.push(describeCount(counts.savingsGoals, 'savings goal'))
+  if (counts.moneyEntries > 0) parts.push(describeCount(counts.moneyEntries, 'money entry').replace('money entrys', 'money entries'))
   const text = parts.length > 0 ? parts.join(', ') : 'No data'
   return `${text} restored`
 }
