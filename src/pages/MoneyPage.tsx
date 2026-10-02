@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Tags, Wallet } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Tags, Wallet } from 'lucide-react'
 import { useMoneyStore } from '../features/money/moneyStore'
 import MoneyEntryForm from '../features/money/MoneyEntryForm'
 import CategoryManager from '../features/money/CategoryManager'
@@ -196,14 +196,6 @@ export default function MoneyPage() {
           </>
         )}
       </div>
-
-      <button
-        onClick={() => setShowForm(true)}
-        aria-label="Add entry"
-        className="fixed right-4 bottom-24 w-14 h-14 rounded-full bg-brand text-on-brand shadow-lg flex items-center justify-center active:scale-95 transition-all z-20"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
 
       {showForm && (
         <MoneyEntryForm
