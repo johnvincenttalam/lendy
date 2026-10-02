@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { Receipt, PiggyBank, Settings, ChevronRight } from 'lucide-react'
+import { Receipt, PiggyBank, Wallet, Settings, ChevronRight } from 'lucide-react'
 import { BRAND_GRADIENT } from '../constants/styles'
 
 const MORE_ITEMS = [
   { path: '/bills', icon: Receipt, label: 'Bills', description: 'Track your monthly bills' },
   { path: '/savings', icon: PiggyBank, label: 'Savings', description: 'Track your savings goals' },
+  { path: '/money', icon: Wallet, label: 'Money', description: 'Track income and expenses' },
   { path: '/settings', icon: Settings, label: 'Settings', description: 'Income, security, and your data' },
 ] as const
 

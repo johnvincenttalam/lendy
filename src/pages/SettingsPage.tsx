@@ -5,6 +5,8 @@ import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
+import { useMoneyStore } from '../features/money/moneyStore'
+import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
 import { debtToIncomeRatio } from '../features/loans/loanUtils'
 import { BRAND_GRADIENT } from '../constants/styles'
 import PinSetup from '../features/lock/PinSetup'
@@ -23,6 +25,8 @@ export default function SettingsPage() {
   const { monthlyIncome, setMonthlyIncome } = useIncomeStore()
   const { bills } = useBillStore()
   const { goals } = useSavingsStore()
+  const moneyEntryCount = useMoneyStore((s) => s.entries.length)
+  const existing = { loans: loans.length, bills: bills.length, goals: goals.length, moneyEntries: moneyEntryCount }
   const navigate = useNavigate()
   const unseenReleases = useUnseenReleaseCount()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -204,7 +208,7 @@ export default function SettingsPage() {
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
             <p className="text-[13px] text-secondary mb-6">
-              {describeBackupImport(pendingImport.counts, { loans: loans.length, bills: bills.length, goals: goals.length })}
+              {describeBackupImport(pendingImport.counts, existing)}
             </p>
             <div className="flex gap-2.5">
               <button
@@ -216,9 +220,9 @@ export default function SettingsPage() {
               <button
                 onClick={confirmImport}
                 className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: hasExistingData(loans.length, bills.length, goals.length) ? '#EF4444' : '#6366F1' }}
+                style={{ backgroundColor: hasExistingData(existing) ? '#EF4444' : '#6366F1' }}
               >
-                {hasExistingData(loans.length, bills.length, goals.length) ? 'Replace' : 'Restore'}
+                {hasExistingData(existing) ? 'Replace' : 'Restore'}
               </button>
             </div>
           </div>
@@ -226,29 +230,6 @@ export default function SettingsPage() {
       )}
     </div>
   )
-}
-
-function hasExistingData(loanCount: number, billCount: number, goalCount: number): boolean {
-  return loanCount > 0 || billCount > 0 || goalCount > 0
-}
-
-function describeCount(n: number, singular: string): string {
-  return `${n} ${n === 1 ? singular : `${singular}s`}`
-}
-
-function describeBackupImport(
-  incoming: BackupCounts,
-  existing: { loans: number; bills: number; goals: number },
-): string {
-  const parts: string[] = []
-  if (incoming.loans > 0) parts.push(describeCount(incoming.loans, 'loan'))
-  if (incoming.bills > 0) parts.push(describeCount(incoming.bills, 'bill'))
-  if (incoming.savingsGoals > 0) parts.push(describeCount(incoming.savingsGoals, 'savings goal'))
-  const incomingText = parts.length > 0 ? parts.join(', ') : 'no data'
-
-  return hasExistingData(existing.loans, existing.bills, existing.goals)
-    ? `This will replace your existing data with ${incomingText} from the backup. This cannot be undone.`
-    : `Import ${incomingText} from the backup?`
 }
 
 function downloadFile(content: string, filename: string, type: string) {

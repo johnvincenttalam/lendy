@@ -13,7 +13,7 @@ const NAV_ITEMS = [
 // isn't the tab's own. Home is absent on purpose: '/' prefixes everything.
 // Analytics has its own tab now, so it is no longer one of More's children.
 const TAB_PREFIXES: Record<string, string[]> = {
-  '/more': ['/more', '/bills', '/savings', '/settings', '/whats-new'],
+  '/more': ['/more', '/bills', '/savings', '/money', '/settings', '/whats-new'],
 }
 
 export default function BottomNav({ onAdd }: { onAdd: () => void }) {
