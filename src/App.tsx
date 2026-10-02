@@ -7,6 +7,7 @@ import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/CalendarPage'
 import BillsPage from './pages/BillsPage'
 import BillDetailsPage from './pages/BillDetailsPage'
+import MoneyPage from './pages/MoneyPage'
 import SavingsPage from './pages/SavingsPage'
 import SavingsGoalDetailsPage from './pages/SavingsGoalDetailsPage'
 import MorePage from './pages/MorePage'
@@ -71,6 +72,7 @@ function AppContent() {
         <Route path="/bills/:id" element={<BillDetailsPage />} />
         <Route path="/savings" element={<SavingsPage />} />
         <Route path="/savings/:id" element={<SavingsGoalDetailsPage />} />
+        <Route path="/money" element={<MoneyPage />} />
         <Route path="/more" element={<MorePage />} />
         <Route path="/whats-new" element={<WhatsNewPage />} />
       </Routes>

@@ -14,6 +14,17 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.6.0',
+    date: '2026-10-02',
+    title: 'Money Tracker',
+    highlights: [
+      'A new Money page under More lets you log income and expenses so you can see where your money goes.',
+      'Each month shows your net, what you earned and spent, and a breakdown of spending by category.',
+      'Add your own categories on top of the built-in ones. Deleting one moves its entries to Other.',
+      'Money entries are included in backups. They are separate from your loans, bills and health score.',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-08-25',
     title: 'Bill Insights',
