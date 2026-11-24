@@ -46,6 +46,15 @@ describe('handleAsk', () => {
     expect(body.messages.at(-1)).toEqual({ role: 'user', content: 'Biggest loan?' })
   })
 
+  it('tells Ollie to lay out the figures for "should I…?" questions instead of refusing', async () => {
+    const calls: Call[] = []
+    await handleAsk(req(valid), { apiKey: 'k', fetchImpl: groq(answer('Phone.'), calls) })
+    const prompt = JSON.parse(calls[0].init.body as string).messages[0].content as string
+    expect(prompt).toContain('share of monthly income')
+    expect(prompt).toContain('Overdue regular loans')
+    expect(prompt).toMatch(/decision is the owner's/)
+  })
+
   it('rejects other sites and missing origin', async () => {
     const calls: Call[] = []
     const deps = { apiKey: 'k', fetchImpl: groq(answer('x'), calls) }

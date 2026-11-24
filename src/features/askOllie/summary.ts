@@ -4,7 +4,7 @@ import type { SavingsGoal } from '../savings/savingsTypes'
 import type { MoneyCategory, MoneyEntry } from '../money/moneyTypes'
 import {
   formatCurrency, remainingBalance, totalCostOfLoan, monthsLeft, nextDueDate, daysOverdue,
-  endDate, isFullyPaid, isTracked, debtFreeDate,
+  endDate, isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio,
 } from '../loans/loanUtils'
 import { isBillOverdue, billDaysOverdue, paidForCycle } from '../bills/billUtils'
 import { progressPercent } from '../savings/savingsUtils'
@@ -78,6 +78,13 @@ function loanSections(input: SummaryInput): string[] {
     `Total monthly loan payments (regular loans): ${money(monthly)}`,
     `Debt-free date (regular loans): ${freeOn ? monthYear(freeOn) : 'no active loans'}`,
   )
+  // Ready-made figures for "should I take another loan?" — Ollie mustn't do the maths.
+  if (input.monthlyIncome > 0) {
+    const share = Math.round(debtToIncomeRatio(input.loans, input.monthlyIncome) * 100)
+    lines.push(`Monthly loan payments as a share of monthly income (regular loans): ${share}%`)
+  }
+  const overdue = tracked.filter((l) => !isFullyPaid(l) && daysOverdue(l) > 0)
+  lines.push(`Overdue regular loans: ${overdue.length ? `${overdue.length} (${overdue.map((l) => l.name).join(', ')})` : 'none'}`)
 
   if (secret.length > 0) {
     lines.push('', `PRIVATE FOLDER "${folderLabel(input.folderName)}" (shown only because the folder is open)`)

@@ -14,6 +14,15 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.9.2',
+    date: '2026-11-24',
+    title: 'Ollie helps you weigh a decision',
+    highlights: [
+      'Ask Ollie "should I take another loan?" and get the numbers that matter, like your loan payments against your income and what’s overdue.',
+      'Fixed odd gaps between words in some of Ollie’s answers.',
+    ],
+  },
+  {
     version: '1.9.1',
     date: '2026-11-24',
     title: 'Bring Ollie back',

@@ -43,6 +43,12 @@ describe('parseAnswer', () => {
     ])
   })
 
+  it('turns unusual spaces into normal ones and drops invisible characters', () => {
+    expect(parseAnswer('Check\u202Fthe\u00A0Analytics\u2009screen\u200B.')).toEqual([
+      { type: 'p', lines: [[plain('Check the Analytics screen.')]] },
+    ])
+  })
+
   it('leaves an unmatched ** as text', () => {
     expect(parseAnswer('2 ** 3')).toEqual([{ type: 'p', lines: [[plain('2 ** 3')]] }])
   })
