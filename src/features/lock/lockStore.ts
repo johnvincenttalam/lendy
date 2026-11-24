@@ -3,7 +3,7 @@ import { create } from 'zustand'
 const PIN_HASH_KEY = 'loan-tracker-pin-hash'
 const PIN_ENABLED_KEY = 'loan-tracker-pin-enabled'
 
-async function hashPin(pin: string): Promise<string> {
+export async function hashPin(pin: string): Promise<string> {
   const data = new TextEncoder().encode(pin)
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   return Array.from(new Uint8Array(hashBuffer))
