@@ -125,6 +125,17 @@ describe('buildOverview', () => {
     expect(overview.totalSavings).toBe(500)
   })
 
+  it('excludes private loans from commitments', () => {
+    const overview = buildOverview({
+      loans: [makeLoanPaying(1105), makeLoanPaying(900, { id: 'l2', private: true })],
+      bills: [],
+      goals: [],
+      monthlyIncome: 20000,
+    })
+
+    expect(overview.loanCommitments).toBeCloseTo(1105, 2)
+  })
+
   it('reports runway in months of commitments', () => {
     const overview = buildOverview({
       loans: [makeLoanPaying(4662)],
@@ -466,6 +477,21 @@ describe('scoreReliability', () => {
 
     // On their own, three late records would score 0 and be included.
     expect(scoreReliability([archived], late, [], []).included).toBe(false)
+  })
+
+  it('ignores payments belonging to a private loan', () => {
+    const secret = makeLoan({ id: 'loan-private', private: true })
+    const late = [1, 2, 3].map((m) =>
+      makePayment({
+        id: `late-`,
+        loanId: 'loan-private',
+        month: m,
+        dueDate: `2026-0-01`,
+        paidAt: `2026-0-20T10:00:00.000Z`,
+      }),
+    )
+
+    expect(scoreReliability([secret], late, [], []).included).toBe(false)
   })
 
   it('ignores payments belonging to an archived bill', () => {

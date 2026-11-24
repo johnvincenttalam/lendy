@@ -1,51 +1,10 @@
 import { useEffect } from 'react'
 import { useLoanStore } from '../loans/loanStore'
 import { useNotificationStore } from './notificationStore'
-import { isFullyPaid, formatCurrency, isOverdue, daysOverdue, isTracked } from '../loans/loanUtils'
+import { formatCurrency } from '../loans/loanUtils'
+import { getPaymentStatus } from './notificationUtils'
+import type { PaymentInfo } from './notificationUtils'
 import type { Loan } from '../loans/loanTypes'
-
-function getNextDueDate(loan: Loan): Date {
-  const d = new Date(loan.startDate)
-  d.setMonth(d.getMonth() + loan.monthsPaid)
-  return d
-}
-
-type PaymentInfo = {
-  loan: Loan
-  dueDate: Date
-  daysUntil: number
-  isOverdue: boolean
-  daysOverdue: number
-}
-
-function getPaymentStatus(loans: Loan[], reminderDays: number, includeDueDate: boolean, includeOverdue: boolean): PaymentInfo[] {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-  return loans
-    .filter((l) => !isFullyPaid(l) && isTracked(l))
-    .map((loan) => {
-      const dueDate = getNextDueDate(loan)
-      const due = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
-      const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      return {
-        loan,
-        dueDate: due,
-        daysUntil: diff,
-        isOverdue: isOverdue(loan),
-        daysOverdue: daysOverdue(loan),
-      }
-    })
-    .filter(({ daysUntil, isOverdue: overdue }) => {
-      // Include overdue payments
-      if (includeOverdue && overdue) return true
-      // Include due today
-      if (includeDueDate && daysUntil === 0) return true
-      // Include upcoming within reminder window (but not due today unless includeDueDate)
-      if (daysUntil > 0 && daysUntil <= reminderDays) return true
-      return false
-    })
-}
 
 export function useNotificationCheck() {
   const loans = useLoanStore((s) => s.loans)
