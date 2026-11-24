@@ -3,6 +3,7 @@ import type { SavingsGoal } from './savingsTypes'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
 import { progressPercent } from './savingsUtils'
 import CurrencyAmount from '../../components/CurrencyAmount'
+import ProgressBar from '../../components/ProgressBar'
 
 type Props = { goal: SavingsGoal }
 
@@ -27,7 +28,7 @@ export default function SavingsGoalCard({ goal }: Props) {
       </div>
 
       <div className="flex justify-between items-end mb-3">
-        <p className="text-[20px] font-bold font-mono tracking-tight leading-none" style={{ color }}>
+        <p className="text-[20px] font-bold font-display tabular-nums tracking-tight leading-none" style={{ color }}>
           <CurrencyAmount value={goal.currentAmount} />
         </p>
         <p className="text-[12px] text-muted">
@@ -35,12 +36,7 @@ export default function SavingsGoalCard({ goal }: Props) {
         </p>
       </div>
 
-      <div className="w-full h-[6px] rounded-full overflow-hidden mb-2" style={{ backgroundColor: `${color}15` }}>
-        <div
-          className="h-[6px] rounded-full transition-all duration-700 ease-out"
-          style={{ width: `${Math.max(pct, 2)}%`, background: `linear-gradient(90deg, ${color}, ${color}dd)` }}
-        />
-      </div>
+      <ProgressBar value={pct} label="Saved" color={color} className="mb-2" />
       <span className="text-[11px] font-semibold" style={{ color }}>{pct}% saved</span>
     </button>
   )

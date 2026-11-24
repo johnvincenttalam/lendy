@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-const COLORS = ['#3ECF8E', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4']
+// Ollie's palette (teal scarf, orange beak, caramel) plus a few party colours
+const COLORS = ['#14B8A6', '#037574', '#F2A33A', '#E07A3F', '#FACC15', '#3B82F6', '#EC4899']
 const PARTICLE_COUNT = 60
 
 type Particle = {

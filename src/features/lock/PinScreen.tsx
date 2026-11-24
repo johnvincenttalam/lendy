@@ -44,11 +44,14 @@ export default function PinScreen() {
   return (
     <div className="fixed inset-0 z-[200] bg-page flex flex-col items-center justify-center">
       <div className="flex flex-col items-center mb-10">
-        <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mb-4">
-          <Lock className="w-7 h-7 text-on-brand" />
+        <div className="relative mb-5">
+          <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="Ollie" className="w-20 h-20 rounded-3xl" />
+          <span className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-card border-4 border-[var(--color-page)] flex items-center justify-center">
+            <Lock className="w-3.5 h-3.5 text-brand" strokeWidth={2.5} />
+          </span>
         </div>
-        <h1 className="text-xl font-bold text-primary tracking-tight">Enter PIN</h1>
-        <p className="text-[13px] text-muted mt-1">Enter your 4-digit PIN to unlock</p>
+        <h1 className="text-[22px] font-extrabold text-primary tracking-tight">Welcome back</h1>
+        <p className="text-[13px] text-muted mt-1">Enter your 4-digit PIN to unlock Ollie</p>
       </div>
 
       {/* PIN dots */}

@@ -8,7 +8,8 @@ import { useSavingsStore } from '../features/savings/savingsStore'
 import { useMoneyStore } from '../features/money/moneyStore'
 import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
 import { debtToIncomeRatio } from '../features/loans/loanUtils'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
+import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
@@ -17,6 +18,7 @@ import CurrencyAmount from '../components/CurrencyAmount'
 import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
 import { exportAllData, importAllData, parseBackupCounts } from '../utils/backup'
 import type { BackupCounts } from '../utils/backup'
+import ProgressBar from '../components/ProgressBar'
 
 type PendingImport = { json: string; counts: BackupCounts }
 
@@ -42,18 +44,18 @@ export default function SettingsPage() {
 
   function handleExportCSV() {
     const csv = exportCSV()
-    downloadFile(csv, `lendy-export-${dateSuffix()}.csv`, 'text/csv')
+    downloadFile(csv, `ollie-export-${dateSuffix()}.csv`, 'text/csv')
     showToast('CSV exported')
   }
 
   async function handleExportBackup() {
     const json = exportAllData()
-    const filename = `lendy-backup-${dateSuffix()}.json`
+    const filename = `ollie-backup-${dateSuffix()}.json`
     const file = new File([json], filename, { type: 'application/json' })
 
     if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Lendy backup' })
+        await navigator.share({ files: [file], title: 'Ollie backup' })
         showToast('Backup shared')
         return
       } catch (err) {
@@ -91,18 +93,18 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Settings</h1>
-          <p className="text-[12px] text-white/55 font-medium">Manage your preferences</p>
-        </div>
-      </div>
+      <PageHeader title="Settings" subtitle="Appearance, income, security and your data" />
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4">
+        {/* Appearance */}
+        <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
+          <ThemeSettings />
+        </div>
+
         {/* Income */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
+            <label className="block text-[11px] font-semibold text-muted">
               Monthly Income (₱)
             </label>
             <button
@@ -153,7 +155,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-primary text-[14px] tracking-tight">What&rsquo;s New</p>
-            <p className="text-[12px] text-muted">Recent updates to Lendy</p>
+            <p className="text-[12px] text-muted">Recent updates to Ollie</p>
           </div>
           {unseenReleases > 0 && (
             <span
@@ -168,7 +170,7 @@ export default function SettingsPage() {
 
         {/* Data */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Data</p>
+          <p className="text-[11px] font-semibold text-muted mb-3">Data</p>
           <div className="flex gap-2">
             <button
               onClick={handleExportCSV}
@@ -219,8 +221,10 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={confirmImport}
-                className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: hasExistingData(existing) ? '#EF4444' : '#6366F1' }}
+                className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
+                style={hasExistingData(existing)
+                  ? { backgroundColor: '#EF4444', color: '#FFFFFF' }
+                  : { backgroundColor: 'var(--color-brand)', color: 'var(--color-on-brand)' }}
               >
                 {hasExistingData(existing) ? 'Replace' : 'Restore'}
               </button>
@@ -265,25 +269,16 @@ function StorageUsage() {
   const limitMB = (storage.limit / 1024 / 1024).toFixed(0)
   const percentage = Math.min((storage.used / storage.limit) * 100, 100)
 
-  const getBarColor = () => {
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 70) return 'bg-yellow-500'
-    return 'bg-brand'
-  }
+  const barColor = percentage >= 90 ? '#EF4444' : percentage >= 70 ? '#EAB308' : 'var(--color-brand)'
 
   return (
     <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
       <div className="flex items-center gap-2 mb-3">
         <HardDrive className="w-4 h-4 text-muted" />
-        <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">Storage</p>
+        <p className="text-[11px] font-semibold text-muted">Storage</p>
       </div>
       <div className="space-y-2">
-        <div className="h-2 bg-subtle rounded-full overflow-hidden">
-          <div
-            className={`h-full ${getBarColor()} transition-all duration-300 rounded-full`}
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
+        <ProgressBar value={percentage} label="Storage used" color={barColor} />
         <div className="flex justify-between text-[11px] text-muted">
           <span>{usedKB} KB used</span>
           <span>{limitMB} MB limit</span>

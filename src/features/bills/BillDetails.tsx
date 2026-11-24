@@ -136,12 +136,12 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
         {/* Hero */}
         <div className="bg-card rounded-2xl border border-themed transition-colors overflow-hidden">
           {bill.archived && (
-            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider text-center py-2 border-b border-amber-500/20">
+            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold text-center py-2">
               Archived
             </div>
           )}
           {overdue && (
-            <div className="bg-red-500/10 text-red-500 text-[12px] font-semibold text-center py-2.5 border-b border-red-500/20 flex items-center justify-center gap-2">
+            <div className="bg-red-500/10 text-red-500 text-[12px] font-semibold text-center py-2.5 flex items-center justify-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               <span>
                 Overdue by {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
@@ -156,10 +156,10 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
             </div>
           )}
           <div className="px-4 pt-6 pb-6 text-center">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">
+            <p className="text-[11px] font-semibold text-muted mb-1.5">
               {partiallyPaid ? 'Still Due' : 'Amount'}
             </p>
-            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none">
+            <p className="text-[36px] font-bold font-display tabular-nums text-primary tracking-tighter leading-none">
               <CurrencyAmount value={partiallyPaid ? remaining : bill.amount} />
             </p>
             {partiallyPaid && (
@@ -180,7 +180,7 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
 
         {bill.notes && (
           <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Notes</p>
+            <p className="text-[11px] font-semibold text-muted mb-1.5">Notes</p>
             <p className="text-[13px] text-secondary whitespace-pre-wrap break-words leading-relaxed">{bill.notes}</p>
           </div>
         )}
@@ -307,9 +307,9 @@ export default function BillDetails({ bill, onRecordPayment, onDelete, onBack }:
                   } else onDelete()
                   setShowConfirm(null)
                 }}
-                className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
+                className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
                 style={{
-                  backgroundColor: showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#6366F1' : '#EF4444',
+                  backgroundColor: showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#0B7C77' : '#EF4444',
                 }}
               >
                 {showConfirm === 'undo' ? 'Undo' : showConfirm === 'archive' ? (bill.archived ? 'Restore' : 'Archive') : 'Delete'}
@@ -327,7 +327,7 @@ function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string
     <div className="bg-card rounded-2xl p-3.5 border border-themed transition-colors">
       <div className="flex items-center gap-1 text-muted mb-1.5">
         {icon}
-        <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">{label}</span>
+        <span className="text-[10px] font-semibold whitespace-nowrap">{label}</span>
       </div>
       <p className="font-bold text-[13px] tracking-tight text-primary">{value}</p>
     </div>

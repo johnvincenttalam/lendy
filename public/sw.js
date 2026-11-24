@@ -1,15 +1,15 @@
-const CACHE_NAME = 'lendy-v2'
+const CACHE_NAME = 'ollie-v3'
 
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
-  './favicon.svg',
+  './favicon.ico',
+  './apple-touch-icon.png',
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-192.png',
   './icon-maskable-512.png',
-  './lendy.png',
 ]
 
 self.addEventListener('install', (event) => {

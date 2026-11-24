@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { paymentSchedule } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
 import type { Loan } from '../features/loans/loanTypes'
@@ -200,60 +200,51 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="mb-4">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">
-              Payment Calendar
-            </h1>
-            <p className="text-[12px] text-white/55 font-medium">View all payments at a glance</p>
-          </div>
+      <PageHeader title="Calendar" subtitle="Every payment, month by month">
+        {/* Month navigator */}
+        <div className="flex items-center justify-between rounded-2xl bg-card border border-themed px-2 py-2.5">
+          <button
+            onClick={goToPrevMonth}
+            aria-label="Previous month"
+            className="w-9 h-9 rounded-xl bg-subtle flex items-center justify-center hover:bg-card-hover transition-colors"
+          >
+            <ChevronLeft className="w-4.5 h-4.5 text-primary" />
+          </button>
+          <button onClick={goToToday} className="flex flex-col items-center min-w-0">
+            <span className="text-[15px] font-bold text-primary tracking-tight">{monthName}</span>
+            <span className="text-[11px] text-muted">
+              {isCurrentMonth ? 'Current month' : 'Tap to go to today'}
+            </span>
+          </button>
+          <button
+            onClick={goToNextMonth}
+            aria-label="Next month"
+            className="w-9 h-9 rounded-xl bg-subtle flex items-center justify-center hover:bg-card-hover transition-colors"
+          >
+            <ChevronRight className="w-4.5 h-4.5 text-primary" />
+          </button>
+        </div>
 
-          {/* Month navigator */}
-          <div className="flex items-center justify-between rounded-2xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] px-2 py-2.5">
-            <button
-              onClick={goToPrevMonth}
-              aria-label="Previous month"
-              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-            >
-              <ChevronLeft className="w-4.5 h-4.5 text-white" />
-            </button>
-            <button onClick={goToToday} className="flex flex-col items-center min-w-0">
-              <span className="text-[15px] font-bold text-white tracking-tight">{monthName}</span>
-              <span className="text-[11px] text-white/50">
-                {isCurrentMonth ? 'Current month' : 'Tap to go to today'}
+        {/* Monthly summary */}
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] text-muted">
+              <span className="text-emerald-700 dark:text-emerald-600 dark:text-emerald-400"><CurrencyAmount value={monthlyTotal.paid} /></span> paid
+            </span>
+            {monthlyTotal.overdue > 0 && (
+              <span className="text-[12px] text-muted">
+                <span className="text-red-600 dark:text-red-400"><CurrencyAmount value={monthlyTotal.overdue} /></span> overdue
               </span>
-            </button>
-            <button
-              onClick={goToNextMonth}
-              aria-label="Next month"
-              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-            >
-              <ChevronRight className="w-4.5 h-4.5 text-white" />
-            </button>
-          </div>
-
-          {/* Monthly summary */}
-          <div className="mt-3 flex items-center justify-between px-1">
-            <div className="flex items-center gap-3">
-              <span className="text-[12px] text-white/60">
-                <span className="text-emerald-300"><CurrencyAmount value={monthlyTotal.paid} /></span> paid
-              </span>
-              {monthlyTotal.overdue > 0 && (
-                <span className="text-[12px] text-white/60">
-                  <span className="text-red-300"><CurrencyAmount value={monthlyTotal.overdue} /></span> overdue
-                </span>
-              )}
-              <span className="text-[12px] text-white/60">
-                <span className="text-white"><CurrencyAmount value={monthlyTotal.pending} /></span> pending
-              </span>
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">
-              <CurrencyAmount value={monthlyTotal.total} />
+            )}
+            <span className="text-[12px] text-muted">
+              <span className="text-primary"><CurrencyAmount value={monthlyTotal.pending} /></span> pending
             </span>
           </div>
+          <span className="text-xl font-bold text-primary tracking-tight">
+            <CurrencyAmount value={monthlyTotal.total} />
+          </span>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28">
         {/* Calendar grid */}
@@ -261,7 +252,7 @@ export default function CalendarPage() {
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-[10px] font-semibold text-muted uppercase">
+              <div key={day} className="text-center text-[10px] font-semibold text-muted">
                 {day}
               </div>
             ))}
@@ -432,7 +423,7 @@ export default function CalendarPage() {
                             <div className="flex items-center gap-3">
                               {/* Date pill */}
                               <div className="flex flex-col items-center justify-center w-10 shrink-0">
-                                <span className="text-[10px] font-semibold text-muted uppercase leading-none mb-0.5">
+                                <span className="text-[10px] font-semibold text-muted leading-none mb-0.5">
                                   {weekday}
                                 </span>
                                 <span className="text-[18px] font-bold text-primary leading-none">{p.day}</span>
@@ -458,7 +449,7 @@ export default function CalendarPage() {
                                     Payment {p.month}/{p.loan.durationMonths}
                                   </span>
                                   <span
-                                    className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                                       p.isPaid
                                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                         : p.isOverdue
@@ -493,6 +484,7 @@ export default function CalendarPage() {
         {activeLoans.length === 0 && (
           <EmptyState
             icon={CalendarDays}
+            mood="upcoming"
             title="No loans yet"
             subtitle="Add loans to see them on the calendar"
           />

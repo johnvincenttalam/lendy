@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { Receipt, PiggyBank, Wallet, Settings, ChevronRight } from 'lucide-react'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
 
 const MORE_ITEMS = [
   { path: '/bills', icon: Receipt, label: 'Bills', description: 'Track your monthly bills' },
   { path: '/savings', icon: PiggyBank, label: 'Savings', description: 'Track your savings goals' },
   { path: '/money', icon: Wallet, label: 'Money', description: 'Track income and expenses' },
-  { path: '/settings', icon: Settings, label: 'Settings', description: 'Income, security, and your data' },
+  { path: '/settings', icon: Settings, label: 'Settings', description: 'Appearance, income, security and your data' },
 ] as const
 
 export default function MorePage() {
@@ -14,12 +14,7 @@ export default function MorePage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">More</h1>
-          <p className="text-[12px] text-white/55 font-medium">Explore your finances</p>
-        </div>
-      </div>
+      <PageHeader title="More" subtitle="Bills, savings, money and settings" />
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-2.5">
         {MORE_ITEMS.map((item) => {

@@ -49,7 +49,7 @@ export default function BillCard({ bill }: Props) {
       </div>
 
       <div className="flex justify-between items-end">
-        <p className="text-[20px] font-bold font-mono tracking-tight leading-none" style={{ color }}>
+        <p className="text-[20px] font-bold font-display tabular-nums tracking-tight leading-none" style={{ color }}>
           <CurrencyAmount value={partiallyPaid ? remaining : bill.amount} />
         </p>
         <span className={`text-[12px] font-medium ${overdue ? 'text-red-500' : 'text-muted'}`}>

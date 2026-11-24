@@ -13,7 +13,7 @@ export default function SavingsGoalDetailsPage() {
   if (!goal) {
     return (
       <div className="min-h-screen bg-page flex items-center justify-center transition-colors duration-300">
-        <EmptyState icon={Search} title="Goal not found" subtitle="This goal may have been deleted, or the link is invalid">
+        <EmptyState icon={Search} mood="thinking" title="Goal not found" subtitle="This goal may have been deleted, or the link is invalid">
           <button
             onClick={() => navigate('/savings')}
             className="bg-brand text-on-brand text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"

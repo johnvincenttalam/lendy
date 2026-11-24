@@ -1,12 +1,12 @@
 {
-  "name": "Lendy",
-  "short_name": "Lendy",
+  "name": "Ollie",
+  "short_name": "Ollie",
   "description": "Track your loans, payments, and interest",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#171717",
-  "theme_color": "#171717",
+  "background_color": "#F6F6F4",
+  "theme_color": "#F6F6F4",
   "orientation": "portrait",
   "icons": [
     {

@@ -13,6 +13,7 @@ import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import { formatDate } from '../../utils/dateUtils'
+import ProgressBar from '../../components/ProgressBar'
 
 type Props = {
   goal: SavingsGoal
@@ -115,24 +116,19 @@ export default function SavingsGoalDetails({ goal, onDelete, onBack }: Props) {
         {/* Hero */}
         <div className="bg-card rounded-2xl border border-themed transition-colors overflow-hidden">
           {goal.archived && (
-            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider text-center py-2 border-b border-amber-500/20">
+            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold text-center py-2">
               Archived
             </div>
           )}
           <div className="px-4 pt-6 pb-4 text-center">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Current Balance</p>
-            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none"><CurrencyAmount value={goal.currentAmount} /></p>
+            <p className="text-[11px] font-semibold text-muted mb-1.5">Current Balance</p>
+            <p className="text-[36px] font-bold font-display tabular-nums text-primary tracking-tighter leading-none"><CurrencyAmount value={goal.currentAmount} /></p>
             <p className="text-[12px] text-muted mt-2">
               of <CurrencyAmount value={goal.targetAmount} /> target
             </p>
           </div>
           <div className="px-4 pb-5">
-            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: `${color}15` }}>
-              <div
-                className="h-2.5 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${Math.max(pct, 2)}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }}
-              />
-            </div>
+            <ProgressBar value={pct} label="Saved" color={color} size="md" />
             <div className="flex justify-between items-center mt-2.5">
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${color}10`, color }}>
                 {pct}% complete
@@ -149,7 +145,7 @@ export default function SavingsGoalDetails({ goal, onDelete, onBack }: Props) {
 
         {goal.notes && (
           <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Notes</p>
+            <p className="text-[11px] font-semibold text-muted mb-1.5">Notes</p>
             <p className="text-[13px] text-secondary whitespace-pre-wrap break-words leading-relaxed">{goal.notes}</p>
           </div>
         )}
@@ -269,8 +265,8 @@ export default function SavingsGoalDetails({ goal, onDelete, onBack }: Props) {
                   } else onDelete()
                   setShowConfirm(null)
                 }}
-                className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: showConfirm === 'archive' ? '#6366F1' : '#EF4444' }}
+                className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: showConfirm === 'archive' ? '#0B7C77' : '#EF4444' }}
               >
                 {showConfirm === 'archive' ? (goal.archived ? 'Restore' : 'Archive') : 'Delete'}
               </button>

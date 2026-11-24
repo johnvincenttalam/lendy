@@ -15,6 +15,7 @@ export default function LoanDetailsPage() {
       <div className="min-h-screen bg-page flex items-center justify-center transition-colors duration-300">
         <EmptyState
           icon={Search}
+          mood="thinking"
           title="Loan not found"
           subtitle="This loan may have been deleted, or the link is invalid"
         >

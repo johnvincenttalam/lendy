@@ -5,7 +5,8 @@ import { buildMonthlyBillTotals } from './billChartUtils'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
 const MONTHS_SHOWN = 6
-const BRAND = '#3ECF8E'
+/** Brand teal at a given strength — follows the light/dark theme. */
+const brandMix = (pct: number) => `color-mix(in srgb, var(--color-brand) ${pct}%, transparent)`
 
 type Props = {
   bills: Bill[]
@@ -59,19 +60,19 @@ export default function MonthlyBillsChart({ bills, billPayments }: Props) {
 
       <div className="flex gap-2 mb-4">
         <div className="flex-1 rounded-xl bg-subtle p-2.5 min-w-0">
-          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">Highest</span>
+          <span className="text-[10px] font-semibold text-muted">Highest</span>
           <p className="text-[13px] font-bold text-primary tracking-tight truncate">
             {summary.highest.label}{' '}
-            <span className="font-mono text-secondary">
+            <span className="font-display tabular-nums text-secondary">
               <CurrencyAmount value={summary.highest.total} />
             </span>
           </p>
         </div>
         <div className="flex-1 rounded-xl bg-subtle p-2.5 min-w-0">
-          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">Lowest</span>
+          <span className="text-[10px] font-semibold text-muted">Lowest</span>
           <p className="text-[13px] font-bold text-primary tracking-tight truncate">
             {summary.lowest.label}{' '}
-            <span className="font-mono text-secondary">
+            <span className="font-display tabular-nums text-secondary">
               <CurrencyAmount value={summary.lowest.total} />
             </span>
           </p>
@@ -95,8 +96,8 @@ export default function MonthlyBillsChart({ bills, billPayments }: Props) {
               className="flex-1 rounded-t-md transition-all duration-500"
               style={{
                 height: `${Math.max(height, 2)}%`,
-                backgroundColor: month.inProgress ? `${BRAND}14` : isPeak ? BRAND : `${BRAND}30`,
-                border: month.inProgress ? `1px dashed ${BRAND}66` : undefined,
+                backgroundColor: month.inProgress ? brandMix(8) : isPeak ? 'var(--color-brand)' : brandMix(19),
+                border: month.inProgress ? `1px dashed ${brandMix(40)}` : undefined,
               }}
             />
           )
@@ -113,7 +114,7 @@ export default function MonthlyBillsChart({ bills, billPayments }: Props) {
       </div>
 
       <p className="text-[11px] text-muted mt-3">
-        Avg <span className="font-mono font-semibold text-secondary"><CurrencyAmount value={summary.average} /></span>
+        Avg <span className="font-display tabular-nums font-semibold text-secondary"><CurrencyAmount value={summary.average} /></span>
         {' '}across {summary.count} finished {summary.count === 1 ? 'month' : 'months'}
         {inProgress && ` · ${inProgress.label} still in progress`}
       </p>

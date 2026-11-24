@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  Receipt, Search, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List,
+  Receipt, Search, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List, Settings,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useFinancialOverview } from '../features/finance/useFinancialOverview'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
-  totalInterestAllLoans, debtToIncomeRatio, getOverdueLoans, totalOverdueAmount, upcomingPayments,
+  totalInterestAllLoans, debtToIncomeRatio, upcomingPayments, totalCostOfLoan,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
 import EmptyState from '../components/EmptyState'
 import LoanCard from '../features/loans/LoanCard'
+import OllieCompanion from '../features/ollie/OllieCompanion'
+import { HeaderIconButton } from '../components/PageHeader'
 
 type Filter = 'all' | 'active' | 'paid' | 'archived'
 
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const { monthlyIncome } = useIncomeStore()
   const { overview, health } = useFinancialOverview()
   const [showSort, setShowSort] = useState(false)
+  const navigate = useNavigate()
 
   // Filter/tag are mirrored into the URL (replacing, not pushing) so
   // that navigating to a loan and back restores the view instead of
@@ -72,15 +75,20 @@ export default function Dashboard() {
     archivedLoans: loans.filter((l) => l.archived),
   }), [loans])
 
-  const { totalDebt, totalMonthly, overdueLoans, overdueAmount } = useMemo(() => ({
-    totalDebt: activeLoans.reduce((sum, l) => sum + remainingBalance(l), 0),
-    totalMonthly: activeLoans.reduce((sum, l) => {
-      if (l.monthsPaid >= l.durationMonths) return sum
-      return sum + l.monthlyPayment
-    }, 0),
-    overdueLoans: getOverdueLoans(activeLoans),
-    overdueAmount: totalOverdueAmount(activeLoans),
-  }), [activeLoans])
+  const { totalDebt, totalMonthly, paidRatio } = useMemo(() => {
+    // Weighted by each loan's schedule progress (months paid), the same
+    // measure the loan cards show as "% complete".
+    const totalCost = activeLoans.reduce((sum, l) => sum + totalCostOfLoan(l), 0)
+    const totalPaid = activeLoans.reduce((sum, l) => sum + progress(l) * totalCostOfLoan(l), 0)
+    return {
+      totalDebt: activeLoans.reduce((sum, l) => sum + remainingBalance(l), 0),
+      totalMonthly: activeLoans.reduce((sum, l) => {
+        if (l.monthsPaid >= l.durationMonths) return sum
+        return sum + l.monthlyPayment
+      }, 0),
+      paidRatio: totalCost > 0 ? totalPaid / totalCost : 0,
+    }
+  }, [activeLoans])
 
   const upcoming = useMemo(() => upcomingPayments(activeLoans), [activeLoans])
 
@@ -128,22 +136,41 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <SummaryHeader
-        totalDebt={totalDebt}
-        totalMonthly={totalMonthly}
-        loanCount={activeCount}
-        totalInterest={totalInterestAllLoans(activeLoans)}
-        debtFreeDate={debtFreeDate(activeLoans)}
-        debtToIncome={debtToIncomeRatio(activeLoans, monthlyIncome)}
-        hasIncome={monthlyIncome > 0}
-        overview={overview}
-        health={health}
-        overdueCount={overdueLoans.length}
-        overdueAmount={overdueAmount}
-        upcoming={upcoming}
-      />
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-28">
+        {/* App bar */}
+        <div className="flex items-center gap-3 mb-5">
+          <img
+            src={`${import.meta.env.BASE_URL}icon-192.png`}
+            alt=""
+            className="w-11 h-11 rounded-2xl"
+          />
+          <p className="flex-1 text-[26px] font-extrabold text-primary tracking-tight leading-none">Ollie</p>
+          <HeaderIconButton label="Settings" onClick={() => navigate('/settings')}>
+            <Settings className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
+          </HeaderIconButton>
+        </div>
 
-      <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
+        {/* Ollie is the page header */}
+        <OllieCompanion className="mb-4" hero />
+
+        <SummaryHeader
+          totalDebt={totalDebt}
+          totalMonthly={totalMonthly}
+          loanCount={activeCount}
+          totalInterest={totalInterestAllLoans(activeLoans)}
+          debtFreeDate={debtFreeDate(activeLoans)}
+          debtToIncome={debtToIncomeRatio(activeLoans, monthlyIncome)}
+          hasIncome={monthlyIncome > 0}
+          overview={overview}
+          health={health}
+          paidRatio={paidRatio}
+          upcoming={upcoming}
+        />
+
+        {loans.length > 0 && (
+          <h2 className="text-[22px] font-extrabold tracking-tight mt-8 mb-3">Your loans</h2>
+        )}
+
         {loans.length > 0 && (
           <div className="space-y-3 mb-3">
             {/* Filters + Sort */}
