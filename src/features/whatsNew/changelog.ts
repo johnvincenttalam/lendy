@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.9.0',
+    date: '2026-11-24',
+    title: 'Ask Ollie',
+    highlights: [
+      'Ask Ollie about your loans, bills, savings and spending in your own words.',
+      'Uses your own free Groq key, added in Settings.',
+      'Ollie only answers — it never changes your data.',
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-11-24',
     title: 'A private folder',

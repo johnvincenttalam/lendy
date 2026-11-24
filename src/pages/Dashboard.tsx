@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  Receipt, Search, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List, Settings,
+  Receipt, Search, ArrowUpDown, ChevronDown, Archive, LayoutGrid, List, Settings, MessageCircle,
 } from 'lucide-react'
 import { useLoanStore, type SortOption } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
@@ -15,6 +15,7 @@ import EmptyState from '../components/EmptyState'
 import LoanCard from '../features/loans/LoanCard'
 import OllieCompanion from '../features/ollie/OllieCompanion'
 import { HeaderIconButton } from '../components/PageHeader'
+import AskOllieSheet from '../features/askOllie/AskOllieSheet'
 
 type Filter = 'all' | 'active' | 'paid' | 'archived'
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const { monthlyIncome } = useIncomeStore()
   const { overview, health } = useFinancialOverview()
   const [showSort, setShowSort] = useState(false)
+  const [asking, setAsking] = useState(false)
   const navigate = useNavigate()
 
   // Filter/tag are mirrored into the URL (replacing, not pushing) so
@@ -147,13 +149,17 @@ export default function Dashboard() {
             className="w-11 h-11 rounded-2xl"
           />
           <p className="flex-1 text-[26px] font-extrabold text-primary tracking-tight leading-none">Ollie</p>
+          <HeaderIconButton label="Ask Ollie" onClick={() => setAsking(true)}>
+            <MessageCircle className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
+          </HeaderIconButton>
           <HeaderIconButton label="Settings" onClick={() => navigate('/settings')}>
             <Settings className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
           </HeaderIconButton>
         </div>
 
         {/* Ollie is the page header */}
-        <OllieCompanion className="mb-4" hero />
+        <OllieCompanion className="mb-4" hero onAsk={() => setAsking(true)} />
+        {asking && <AskOllieSheet includePrivate={false} onClose={() => setAsking(false)} />}
 
         <SummaryHeader
           totalDebt={totalDebt}
