@@ -56,6 +56,17 @@ export function isCritical(situation: OllieSituation): boolean {
   return situation.kind === 'overdue' || situation.kind === 'due-today'
 }
 
+/**
+ * How Ollie's box appears. Closing a message never makes Ollie vanish:
+ * reminders shrink to a summary bar, anything else to a "Show Ollie" bar.
+ */
+export type OllieView = 'full' | 'reminder-bar' | 'show-bar'
+
+export function ollieView(isDismissed: boolean, critical: boolean): OllieView {
+  if (!isDismissed) return 'full'
+  return critical ? 'reminder-bar' : 'show-bar'
+}
+
 export type OllieTone = {
   /** Speech-bubble fill as a CSS colour — also fills the tail. */
   bubble: string
