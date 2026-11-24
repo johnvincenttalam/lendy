@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Lock, FolderLock, MessageCircle } from 'lucide-react'
+import { Lock, FolderLock, ChevronRight } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import LoanCard from '../features/loans/LoanCard'
 import PageHeader, { HeaderIconButton } from '../components/PageHeader'
@@ -10,6 +10,7 @@ import PrivateFolderGate from '../features/privateFolder/PrivateFolderGate'
 import { usePrivateFolderStore, selectIsSetUp } from '../features/privateFolder/privateFolderStore'
 import { folderLabel, needsPin } from '../features/privateFolder/privateFolderUtils'
 import AskOllieSheet from '../features/askOllie/AskOllieSheet'
+import OllieCharacter from '../features/ollie/OllieCharacter'
 
 export default function PrivateFolderPage() {
   const navigate = useNavigate()
@@ -36,24 +37,17 @@ export default function PrivateFolderPage() {
         title={label}
         subtitle="Hidden from the rest of Ollie"
         back
-        action={
-          <div className="flex items-center gap-2">
-            <HeaderIconButton label="Ask Ollie" onClick={() => setAsking(true)}>
-              <MessageCircle className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
-            </HeaderIconButton>
-            {pinHash !== null && (
-              <HeaderIconButton
-                label={`Lock ${label}`}
-                onClick={() => {
-                  lock()
-                  leave()
-                }}
-              >
-                <Lock className="w-[18px] h-[18px] text-primary" />
-              </HeaderIconButton>
-            )}
-          </div>
-        }
+        action={pinHash !== null && (
+          <HeaderIconButton
+            label={`Lock ${label}`}
+            onClick={() => {
+              lock()
+              leave()
+            }}
+          >
+            <Lock className="w-[18px] h-[18px] text-primary" />
+          </HeaderIconButton>
+        )}
       />
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28">
@@ -66,6 +60,19 @@ export default function PrivateFolderPage() {
           />
         ) : (
           <div className="space-y-3">
+            {/* The only place Ollie can see private loans — say so plainly. */}
+            <button
+              type="button"
+              onClick={() => setAsking(true)}
+              className="w-full flex items-center gap-3 rounded-2xl bg-[var(--tint-teal)] pl-2 pr-4 py-2 text-left active:scale-[0.98] transition-transform"
+            >
+              <OllieCharacter mood="happy" sizeClassName="w-11" still />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] font-bold text-primary">Ask Ollie about these loans</span>
+                <span className="block text-[12px] text-secondary">Only here can Ollie see what's in {label}</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-secondary shrink-0" />
+            </button>
             {privateLoans.map((loan) => <LoanCard key={loan.id} loan={loan} />)}
           </div>
         )}
