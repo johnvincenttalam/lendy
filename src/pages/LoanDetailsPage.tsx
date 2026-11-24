@@ -3,12 +3,15 @@ import { Search } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import LoanDetails from '../features/loans/LoanDetails'
 import EmptyState from '../components/EmptyState'
+import PrivateFolderGate from '../features/privateFolder/PrivateFolderGate'
+import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 
 export default function LoanDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { loans, markAsPaid, deleteLoan } = useLoanStore()
   const loan = loans.find((l) => l.id === id)
+  const folderUnlocked = usePrivateFolderStore((s) => s.unlocked)
 
   if (!loan) {
     return (
@@ -28,6 +31,11 @@ export default function LoanDetailsPage() {
         </EmptyState>
       </div>
     )
+  }
+
+  // A private loan opened from a link or history still needs the folder PIN.
+  if (loan.private && !folderUnlocked) {
+    return <PrivateFolderGate onCancel={() => navigate('/')} />
   }
 
   return (
