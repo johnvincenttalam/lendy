@@ -20,8 +20,8 @@ export default function EmptyState({ icon: Icon, title, subtitle, children, clas
         <img
           src={OLLIE_IMAGES[mood]}
           alt={OLLIE_ALT[mood]}
-          width={1254}
-          height={1254}
+          width={384}
+          height={384}
           decoding="async"
           draggable={false}
           className="w-28 h-auto mb-3 select-none animate-fade-in"
