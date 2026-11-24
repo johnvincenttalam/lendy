@@ -46,8 +46,8 @@ export default function OllieCharacter({ mood, celebrate = false, sizeClassName 
           key={shownMood}
           src={OLLIE_IMAGES[shownMood]}
           alt={OLLIE_ALT[mood]}
-          width={1254}
-          height={1254}
+          width={384}
+          height={384}
           decoding="async"
           draggable={false}
           onError={() => { if (shownMood !== OLLIE_FALLBACK_MOOD) setFailedMood(mood) }}

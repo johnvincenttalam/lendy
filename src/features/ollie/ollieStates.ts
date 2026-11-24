@@ -4,12 +4,12 @@ const ASSET_DIR = `${import.meta.env.BASE_URL}assets/ollie/`
 
 /** Expression artwork, used exactly as supplied. */
 export const OLLIE_IMAGES: Record<OllieMood, string> = {
-  happy: `${ASSET_DIR}ollie-happy.png`,
-  thinking: `${ASSET_DIR}ollie-thinking.png`,
-  upcoming: `${ASSET_DIR}ollie-upcoming.png`,
-  alert: `${ASSET_DIR}ollie-alert.png`,
-  celebrating: `${ASSET_DIR}ollie-celebrating.png`,
-  relaxed: `${ASSET_DIR}ollie-relaxed.png`,
+  happy: `${ASSET_DIR}ollie-happy.webp`,
+  thinking: `${ASSET_DIR}ollie-thinking.webp`,
+  upcoming: `${ASSET_DIR}ollie-upcoming.webp`,
+  alert: `${ASSET_DIR}ollie-alert.webp`,
+  celebrating: `${ASSET_DIR}ollie-celebrating.webp`,
+  relaxed: `${ASSET_DIR}ollie-relaxed.webp`,
 }
 
 /** Shown if an expression's file is missing, so Ollie never renders broken. */
