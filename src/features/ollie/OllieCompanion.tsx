@@ -7,7 +7,7 @@ import CurrencyAmount from '../../components/CurrencyAmount'
 import { useOllieStore } from './ollieStore'
 import { findCelebratablePayment, localISODate, selectOllieSituation } from './ollieUtils'
 import { buildOllieMessage } from './ollieMessages'
-import { OLLIE_TONES, isCritical, moodFor } from './ollieStates'
+import { OLLIE_TONES, isCritical, moodFor, ollieView } from './ollieStates'
 import OllieCharacter from './OllieCharacter'
 import OllieMessage from './OllieMessage'
 
@@ -99,13 +99,32 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
   const mood = moodFor(situation)
   const tone = OLLIE_TONES[situation.kind]
   const critical = isCritical(situation)
-  const isDismissed = dismissed[situation.key] !== undefined
+  const view = ollieView(dismissed[situation.key] !== undefined, critical)
 
-  // Ordinary messages disappear when dismissed.
-  if (isDismissed && !critical) return null
+  // Other messages leave a small bar behind, so a closed message can come back.
+  if (view === 'show-bar') {
+    return (
+      <section aria-label="Ollie, your financial companion" className={className}>
+        <button
+          type="button"
+          onClick={() => restore(situation.key)}
+          aria-label={`${content.label} message hidden. Show Ollie`}
+          className="w-full flex items-center gap-2.5 rounded-2xl border border-themed bg-card px-2.5 py-1.5 text-left transition-colors hover:bg-card-hover animate-fade-in"
+        >
+          <OllieCharacter mood={mood} sizeClassName="w-9" still />
+          <span className="flex-1 min-w-0 text-[12.5px] text-muted truncate">
+            <span className="font-extrabold text-primary">{content.label}</span> message hidden
+          </span>
+          <span className="flex items-center gap-0.5 text-[11.5px] font-semibold text-secondary shrink-0">
+            Show Ollie <ChevronUp className="w-3.5 h-3.5" />
+          </span>
+        </button>
+      </section>
+    )
+  }
 
   // Critical reminders collapse to a compact bar instead — they stay reachable.
-  if (isDismissed && critical && (situation.kind === 'overdue' || situation.kind === 'due-today')) {
+  if (view === 'reminder-bar' && (situation.kind === 'overdue' || situation.kind === 'due-today')) {
     const count = situation.payments.length
     const summary = situation.kind === 'overdue'
       ? (count === 1 ? `${situation.payments[0].loan.name} is overdue` : `${count} loans overdue`)

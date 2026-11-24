@@ -14,6 +14,14 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.9.1',
+    date: '2026-11-24',
+    title: 'Bring Ollie back',
+    highlights: [
+      'Closing one of Ollie’s messages now leaves a small Show Ollie bar, so you can open it again.',
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-11-24',
     title: 'Ask Ollie',
