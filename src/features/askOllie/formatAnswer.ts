@@ -49,7 +49,13 @@ export function parseAnswer(text: string): Block[] {
     current = null
   }
 
-  for (const raw of text.replace(/\r\n/g, '\n').split('\n')) {
+  const cleaned = text
+    .replace(/\r\n/g, '\n')
+    // The model sometimes uses narrow or no-break spaces, which phones show as odd gaps.
+    .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+
+  for (const raw of cleaned.split('\n')) {
     if (!raw.trim()) {
       close()
       continue

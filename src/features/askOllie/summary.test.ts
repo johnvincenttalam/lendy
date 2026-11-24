@@ -72,6 +72,20 @@ describe('buildSummary', () => {
     expect(text).toContain(`Total left to pay (regular loans): ${formatCurrency(remainingBalance(phone))}`)
   })
 
+  it('gives the figures behind a "should I borrow more?" question', () => {
+    const upToDate = makeLoan({ id: 'loan-3', name: 'Laptop', monthlyPayment: 2000, monthsPaid: 6, totalPaid: 6000 })
+    const text = buildSummary(input({ loans: [phone, upToDate, secret], monthlyIncome: 20000 }), NOW)
+    expect(text).toContain('Monthly loan payments as a share of monthly income (regular loans): 15%')
+    expect(text).toContain('Overdue regular loans: 1 (Phone)')
+  })
+
+  it('leaves the income share out without an income and says when nothing is overdue', () => {
+    const upToDate = makeLoan({ monthsPaid: 6, totalPaid: 6000 })
+    const text = buildSummary(input({ loans: [upToDate] }), NOW)
+    expect(text).not.toContain('share of monthly income')
+    expect(text).toContain('Overdue regular loans: none')
+  })
+
   it('ranks loans by remaining balance', () => {
     const big = makeLoan({ id: 'big', name: 'Big TV', totalAmount: 50000, monthlyPayment: 5000, durationMonths: 10, monthsPaid: 0, totalPaid: 0 })
     const text = buildSummary(input({ loans: [phone, big] }), NOW)
