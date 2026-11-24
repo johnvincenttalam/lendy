@@ -178,3 +178,52 @@ then shorten the entries window — never drop loans, bills or goals.
   flat style.
 - Which Groq model (current, production, free-tier) — one constant.
 - Line format of the summary, within the contents above.
+
+## Addendum: key on the server (decided after review)
+
+**Why.** The owner doesn't want to type a Groq key on every device. A key
+built into the app would be readable by anyone on the public site, so the
+key moves to a server the owner already has: Vercel, which deploys this
+repo from `main`. The owner uses (and will keep using) the Vercel site.
+
+**Approach (only sensible one).** A Vercel function in this repo,
+`api/ask.ts`, holds the key as the `GROQ_API_KEY` environment variable.
+The browser still builds the summary (the data only exists on the phone)
+and posts `{ summary, history, question }` to `/api/ask` on the same site.
+The function adds the system prompt, model and settings, calls Groq and
+returns `{ answer }` or `{ error }`. Rejected: a Cloudflare Worker (second
+account, cross-site again); the server building the summary (it has no
+data).
+
+**Guard rails (owner chose "no passphrase, guard rails").**
+- POST with JSON only; `Origin` must match the request's own host — so
+  other websites' pages can't use it (scripts can still fake it; accepted).
+- Fixed system prompt, model, temperature, reasoning effort and token
+  limit live only on the server; the client can't send its own.
+- Caps: question ≤ 500 characters; summary ≤ 30,000 characters; history
+  ≤ 10 messages of role `user`/`assistant`, each ≤ 2,000 characters.
+  Anything else → 400.
+- Request bodies and the key are never logged.
+- Worst case accepted by the owner: someone faking requests uses up the
+  day's free Groq allowance (no billing on the Groq account → no cost).
+
+**Errors.** Server responds with an error kind the client maps to copy:
+- `not-configured` (no `GROQ_API_KEY`, or Groq rejects it) → "Ask Ollie
+  isn't set up yet."
+- `rate-limit` (+ `retryAfter`) → existing free-limit copy.
+- `failed` → existing "couldn't get an answer" copy.
+- Browser can't reach the site → existing "No connection" copy.
+- `/api/ask` missing (404, e.g. the GitHub Pages copy) → "Ask Ollie only
+  works on the Vercel version of the app."
+
+**What goes away.** The Settings "Ask Ollie" key card, the key store and
+the sheet's "add your key" state. The What's New line about adding a key
+becomes "Ollie is ready to answer — nothing to set up."
+
+**Owner's one-time step.** Add `GROQ_API_KEY` in the Vercel project's
+Environment Variables (Production, and Preview if wanted), then redeploy.
+The owner does this themselves; the key never passes through this
+conversation or the repo.
+
+**Local development.** `vite` doesn't run `/api`; use `vercel dev` for a
+live local check. Tests cover the function's logic with a fake `fetch`.
