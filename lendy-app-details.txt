@@ -1,4 +1,4 @@
-LENDY - LOAN TRACKER APP
+OLLIE - LOAN TRACKER APP
 =========================
 "Track your loans, payments, and interest"
 
@@ -7,9 +7,9 @@ Platform: Progressive Web App (PWA) - works on any device with a browser
 Tech Stack: React, TypeScript, Vite, Tailwind CSS, Zustand
 
 
-WHAT IS LENDY?
+WHAT IS OLLIE?
 ==============
-Lendy is a free, mobile-first loan tracking app that helps people manage
+Ollie is a free, mobile-first loan tracking app that helps people manage
 multiple loans, track payments, and plan their debt payoff journey. It works
 entirely offline with no sign-up required - all data stays on the user's device.
 
@@ -118,7 +118,7 @@ DESIGN & USER EXPERIENCE
 
 INTEREST CALCULATION MODEL
 ===========================
-Lendy uses flat/simple interest calculation, which matches how informal and
+Ollie uses flat/simple interest calculation, which matches how informal and
 micro-finance lending works in the Philippines:
 
   Total Interest = Principal x Monthly Rate x Number of Months

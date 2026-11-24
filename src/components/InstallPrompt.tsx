@@ -61,7 +61,7 @@ export default function InstallPrompt() {
     return (
       <PromptShell onDismiss={handleDismiss}>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-primary">Install Lendy</p>
+          <p className="text-[14px] font-semibold text-primary">Install Ollie</p>
           <p className="text-[12px] text-muted">Add to home screen for quick access</p>
         </div>
         <button
@@ -78,7 +78,7 @@ export default function InstallPrompt() {
     return (
       <PromptShell onDismiss={handleDismiss}>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-primary">Install Lendy</p>
+          <p className="text-[14px] font-semibold text-primary">Install Ollie</p>
           <p className="text-[12px] text-muted flex items-center gap-1 flex-wrap">
             Tap
             <Share className="w-3.5 h-3.5 inline" />
@@ -96,7 +96,7 @@ function PromptShell({ children, onDismiss }: { children: React.ReactNode; onDis
   return (
     <div className="fixed bottom-6 left-0 right-0 z-[90] flex justify-center px-3 animate-slide-up">
       <div className="max-w-2xl w-full bg-card border border-themed rounded-2xl p-4 flex items-center gap-3">
-        <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-10 h-10 rounded-[13px] shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="Ollie" className="w-10 h-10 rounded-[13px] shrink-0" />
         {children}
         <button
           onClick={onDismiss}
