@@ -12,7 +12,6 @@ import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
 import PrivateFolderSettings from '../features/privateFolder/PrivateFolderSettings'
-import AskOllieSettings from '../features/askOllie/AskOllieSettings'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
@@ -147,11 +146,6 @@ export default function SettingsPage() {
         {/* Private folder */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <PrivateFolderSettings />
-        </div>
-
-        {/* Ask Ollie */}
-        <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-          <AskOllieSettings />
         </div>
 
         {/* Storage */}

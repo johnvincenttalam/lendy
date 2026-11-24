@@ -19,7 +19,7 @@ export const CHANGELOG: Release[] = [
     title: 'Ask Ollie',
     highlights: [
       'Ask Ollie about your loans, bills, savings and spending in your own words.',
-      'Uses your own free Groq key, added in Settings.',
+      'Ready to use — nothing to set up.',
       'Ollie only answers — it never changes your data.',
     ],
   },
