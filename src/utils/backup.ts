@@ -3,6 +3,8 @@ import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useMoneyStore } from '../features/money/moneyStore'
+import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
+import { parseFolderBackup } from '../features/privateFolder/privateFolderUtils'
 import { showToast } from '../components/Toast'
 
 export function exportAllData(): string {
@@ -11,6 +13,10 @@ export function exportAllData(): string {
   const { bills, billPayments } = useBillStore.getState()
   const { goals, transactions } = useSavingsStore.getState()
   const { entries: moneyEntries, customCategories: moneyCategories } = useMoneyStore.getState()
+  // Private loans travel with their folder's name and PIN, so a restore
+  // brings them back locked rather than open.
+  const { name, pinHash, recoveryHash } = usePrivateFolderStore.getState()
+  const privateFolder = name !== null ? { name, pinHash, recoveryHash } : undefined
   return JSON.stringify({
     loans,
     payments,
@@ -21,6 +27,7 @@ export function exportAllData(): string {
     savingsTransactions: transactions,
     moneyEntries,
     moneyCategories,
+    privateFolder,
     exportedAt: new Date().toISOString(),
   }, null, 2)
 }
@@ -55,6 +62,8 @@ export function importAllData(json: string): boolean {
   useBillStore.getState().importBackup(json)
   useSavingsStore.getState().importBackup(json)
   useMoneyStore.getState().importBackup(json)
+  const folder = parseFolderBackup(data)
+  if (folder) usePrivateFolderStore.getState().restoreBackup(folder)
 
   if (loanOk) {
     const counts = parseBackupCounts(json)

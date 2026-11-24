@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
-import { paymentSchedule } from '../features/loans/loanUtils'
+import { paymentSchedule, isTracked } from '../features/loans/loanUtils'
 import { DEFAULT_COLOR } from '../features/loans/loanTypes'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
@@ -25,7 +25,7 @@ function getPaymentsForMonth(loans: Loan[], year: number, month: number): Map<nu
   today.setHours(0, 0, 0, 0)
 
   for (const loan of loans) {
-    if (loan.archived) continue
+    if (!isTracked(loan)) continue
     const schedule = paymentSchedule(loan)
 
     for (let i = 0; i < schedule.length; i++) {
@@ -65,7 +65,7 @@ function getFirstDayOfMonth(year: number, month: number): number {
 export default function CalendarPage() {
   const navigate = useNavigate()
   const { loans } = useLoanStore()
-  const activeLoans = loans.filter((l) => !l.archived)
+  const activeLoans = loans.filter(isTracked)
 
   const today = new Date()
   // Read the initial month from the URL (if present) so that navigating to a

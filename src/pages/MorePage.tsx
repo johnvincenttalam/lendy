@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { Receipt, PiggyBank, Wallet, Settings, ChevronRight } from 'lucide-react'
+import { Receipt, PiggyBank, Wallet, Settings, ChevronRight, FolderLock } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
+import { folderLabel } from '../features/privateFolder/privateFolderUtils'
 
 const MORE_ITEMS = [
   { path: '/bills', icon: Receipt, label: 'Bills', description: 'Track your monthly bills' },
@@ -11,13 +13,22 @@ const MORE_ITEMS = [
 
 export default function MorePage() {
   const navigate = useNavigate()
+  const folderName = usePrivateFolderStore((s) => s.name)
+  const folderHasPin = usePrivateFolderStore((s) => s.pinHash !== null)
+
+  // The folder row never shows a count, so it reads the same empty or full.
+  const items = [
+    ...MORE_ITEMS.slice(0, 3),
+    { path: '/private', icon: FolderLock, label: folderLabel(folderName), description: folderHasPin ? 'Locked with its own PIN' : 'Hidden from the rest of Ollie' },
+    MORE_ITEMS[3],
+  ]
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
       <PageHeader title="More" subtitle="Bills, savings, money and settings" />
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-2.5">
-        {MORE_ITEMS.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon
           return (
             <button

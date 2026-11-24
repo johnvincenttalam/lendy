@@ -7,10 +7,11 @@ import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { useMoneyStore } from '../features/money/moneyStore'
 import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
-import { debtToIncomeRatio } from '../features/loans/loanUtils'
+import { debtToIncomeRatio, isTracked } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
+import PrivateFolderSettings from '../features/privateFolder/PrivateFolderSettings'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
@@ -38,7 +39,7 @@ export default function SettingsPage() {
   useBodyScrollLock(pendingImport !== null)
 
   const totalMonthly = loans.reduce((sum, l) => {
-    if (l.archived || l.monthsPaid >= l.durationMonths) return sum
+    if (!isTracked(l) || l.monthsPaid >= l.durationMonths) return sum
     return sum + l.monthlyPayment
   }, 0)
 
@@ -140,6 +141,11 @@ export default function SettingsPage() {
         {/* App Lock */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <PinSetup />
+        </div>
+
+        {/* Private folder */}
+        <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
+          <PrivateFolderSettings />
         </div>
 
         {/* Storage */}

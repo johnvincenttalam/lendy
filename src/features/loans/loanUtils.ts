@@ -168,8 +168,13 @@ export function offScheduleAmount(loan: Loan): number | null {
 
 // --- Aggregate calculations across all loans ---
 
+/** Counts toward totals, reminders and Ollie: not archived and not private. */
+export function isTracked(loan: Loan): boolean {
+  return !loan.archived && !loan.private
+}
+
 export function debtFreeDate(loans: Loan[]): Date | null {
-  const active = loans.filter((l) => !l.archived && !isFullyPaid(l))
+  const active = loans.filter((l) => isTracked(l) && !isFullyPaid(l))
   if (active.length === 0) return null
 
   let latest = new Date(0)
@@ -230,7 +235,7 @@ export function debtPayoffTimeline(loans: Loan[]): Array<{ date: Date; balance: 
 export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
   if (monthlyIncome <= 0) return 0
   const totalMonthly = loans
-    .filter((l) => !l.archived && !isFullyPaid(l))
+    .filter((l) => isTracked(l) && !isFullyPaid(l))
     .reduce((sum, l) => sum + l.monthlyPayment, 0)
   return totalMonthly / monthlyIncome
 }
@@ -284,7 +289,7 @@ export function daysOverdue(loan: Loan): number {
  * Get all overdue loans from a list
  */
 export function getOverdueLoans(loans: Loan[]): Loan[] {
-  return loans.filter((l) => !l.archived && isOverdue(l))
+  return loans.filter((l) => isTracked(l) && isOverdue(l))
 }
 
 /**
@@ -321,7 +326,7 @@ export function upcomingPayments(loans: Loan[]): UpcomingPayments | null {
   const entries: { date: Date; amount: number }[] = []
 
   for (const loan of loans) {
-    if (loan.archived || isFullyPaid(loan) || isOverdue(loan)) continue
+    if (!isTracked(loan) || isFullyPaid(loan) || isOverdue(loan)) continue
     const due = nextDueDate(loan)
     if (!due) continue
     due.setHours(0, 0, 0, 0)

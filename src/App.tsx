@@ -12,6 +12,7 @@ import SavingsPage from './pages/SavingsPage'
 import SavingsGoalDetailsPage from './pages/SavingsGoalDetailsPage'
 import MorePage from './pages/MorePage'
 import WhatsNewPage from './pages/WhatsNewPage'
+import PrivateFolderPage from './pages/PrivateFolderPage'
 import ToastContainer from './components/Toast'
 import ConfettiContainer from './components/Confetti'
 import InstallPrompt from './components/InstallPrompt'
@@ -26,6 +27,8 @@ import { useBillStore } from './features/bills/billStore'
 import { useSavingsStore } from './features/savings/savingsStore'
 import { useMoneyStore } from './features/money/moneyStore'
 import { useNotificationCheck } from './features/notifications/useNotificationCheck'
+import { usePrivateFolderStore } from './features/privateFolder/privateFolderStore'
+import { isPrivatePath } from './features/privateFolder/privateFolderUtils'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -40,6 +43,24 @@ function AppContent() {
   const addBill = useBillStore((s) => s.addBill)
   const addGoal = useSavingsStore((s) => s.addGoal)
   const addMoneyEntry = useMoneyStore((s) => s.addEntry)
+  const loans = useLoanStore((s) => s.loans)
+  const lockPrivate = usePrivateFolderStore((s) => s.lock)
+  const privateUnlocked = usePrivateFolderStore((s) => s.unlocked)
+
+  // The private folder stays open only while you're inside it (the folder or
+  // one of its loans). Leaving it, or putting the app in the background,
+  // locks it again so it's never left open when the phone is handed over.
+  const onPrivatePath = isPrivatePath(location.pathname, loans)
+  // Also catches an unlock that happens elsewhere (setting the folder up from
+  // Settings or a loan menu, checking the PIN in Settings).
+  useEffect(() => {
+    if (privateUnlocked && !onPrivatePath) lockPrivate()
+  }, [privateUnlocked, onPrivatePath, lockPrivate])
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') lockPrivate() }
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [lockPrivate])
 
   const handleAdd = () => {
     setShowForm(true)
@@ -81,12 +102,14 @@ function AppContent() {
         <Route path="/money" element={<MoneyPage />} />
         <Route path="/more" element={<MorePage />} />
         <Route path="/whats-new" element={<WhatsNewPage />} />
+        <Route path="/private" element={<PrivateFolderPage />} />
       </Routes>
       <BottomNav onAdd={handleAdd} />
       {showForm && addTarget === 'loan' && (
         <LoanForm
           onSubmit={(data) => {
-            addLoan(data)
+            // A loan added from inside the folder belongs in it.
+            addLoan(location.pathname === '/private' ? { ...data, private: true } : data)
             setShowForm(false)
           }}
           onClose={() => setShowForm(false)}

@@ -1,7 +1,7 @@
 import type { Loan, PaymentRecord } from '../loans/loanTypes'
 import {
   paymentSchedule, isFullyPaid, remainingBalance, monthsLeft, totalCostOfLoan,
-  debtFreeDate, debtToIncomeRatio,
+  debtFreeDate, debtToIncomeRatio, isTracked,
 } from '../loans/loanUtils'
 import { isBackfilledPayment } from '../finance/financeUtils'
 import { startOfDay } from '../../utils/dateUtils'
@@ -43,7 +43,7 @@ export function calendarDaysBetween(from: Date, to: Date): number {
  * loan is behind by several instalments, every missed one is summed.
  */
 export function duePaymentFor(loan: Loan, now: Date): DuePayment | null {
-  if (loan.archived || isFullyPaid(loan)) return null
+  if (!isTracked(loan) || isFullyPaid(loan)) return null
   const schedule = paymentSchedule(loan)
   const next = schedule[loan.monthsPaid]
   if (!next) return null
@@ -83,7 +83,7 @@ export function findCelebratablePayment(
   for (const payment of payments) {
     if (celebratedIds.has(payment.id)) continue
     const loan = loansById.get(payment.loanId)
-    if (!loan || loan.archived) continue
+    if (!loan || !isTracked(loan)) continue
     const at = new Date(payment.paidAt).getTime()
     const age = now.getTime() - at
     if (Number.isNaN(at) || age < 0 || age > CELEBRATION_WINDOW_MS) continue
@@ -103,7 +103,7 @@ export function collectInsights(
   monthlyIncome: number,
   now: Date,
 ): Array<{ key: string; insight: OllieInsight }> {
-  const tracked = loans.filter((l) => !l.archived)
+  const tracked = loans.filter(isTracked)
   const unpaid = tracked.filter((l) => !isFullyPaid(l))
   const insights: Array<{ key: string; insight: OllieInsight }> = []
   if (unpaid.length === 0) return insights
@@ -164,7 +164,7 @@ export function selectOllieSituation(input: OllieInput): OllieSituation {
   const today = localISODate(now)
   const windowDays = Math.max(MIN_WINDOW_DAYS, reminderDays)
 
-  const tracked = loans.filter((l) => !l.archived)
+  const tracked = loans.filter(isTracked)
   const due = tracked
     .map((l) => duePaymentFor(l, now))
     .filter((p): p is DuePayment => p !== null)

@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.8.0',
+    date: '2026-11-24',
+    title: 'A private folder',
+    highlights: [
+      'Move loans into a folder only you can open, with its own PIN.',
+      'Name the folder whatever you like, and turn its PIN on or off in Settings.',
+      'Loans in it stay out of your totals, reminders and Ollie.',
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-11-24',
     title: 'Meet Ollie',

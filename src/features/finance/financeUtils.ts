@@ -2,7 +2,7 @@ import type { Loan, PaymentRecord } from '../loans/loanTypes'
 import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import type { FinancialOverview, MetricScore, HealthScore, ScoreBandName } from './financeTypes'
-import { scheduledMonthlyPayment, remainingBalance, isFullyPaid, paymentSchedule } from '../loans/loanUtils'
+import { scheduledMonthlyPayment, remainingBalance, isFullyPaid, paymentSchedule, isTracked } from '../loans/loanUtils'
 import { daysBetween } from '../../utils/dateUtils'
 
 export type OverviewInput = {
@@ -13,7 +13,7 @@ export type OverviewInput = {
 }
 
 export function buildOverview({ loans, bills, goals, monthlyIncome }: OverviewInput): FinancialOverview {
-  const activeLoans = loans.filter((l) => !l.archived && !isFullyPaid(l))
+  const activeLoans = loans.filter((l) => isTracked(l) && !isFullyPaid(l))
 
   // scheduledMonthlyPayment, not loan.monthlyPayment: the stored field is
   // hand-entered and drifts from the amount/rate/tenure beside it.
@@ -247,7 +247,7 @@ export function scoreReliability(
   const realLoanPayments = payments.filter((p) => {
     const loan = loansById.get(p.loanId)
     if (!loan) return true
-    return !loan.archived && !isBackfilledPayment(p, loan)
+    return isTracked(loan) && !isBackfilledPayment(p, loan)
   })
 
   const archivedBillIds = new Set(bills.filter((b) => b.archived).map((b) => b.id))
