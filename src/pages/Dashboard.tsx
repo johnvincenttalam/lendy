@@ -70,10 +70,12 @@ export default function Dashboard() {
   }
 
   // Memoized derived state
+  // Private loans never reach this page, in any filter, count or tag list.
+  const visibleLoans = useMemo(() => loans.filter((l) => !l.private), [loans])
   const { activeLoans, archivedLoans } = useMemo(() => ({
-    activeLoans: loans.filter((l) => !l.archived),
-    archivedLoans: loans.filter((l) => l.archived),
-  }), [loans])
+    activeLoans: visibleLoans.filter((l) => !l.archived),
+    archivedLoans: visibleLoans.filter((l) => l.archived),
+  }), [visibleLoans])
 
   const { totalDebt, totalMonthly, paidRatio } = useMemo(() => {
     // Weighted by each loan's schedule progress (months paid), the same
@@ -94,12 +96,12 @@ export default function Dashboard() {
 
   const tags = useMemo(() => {
     const set = new Set<string>()
-    loans.forEach((l) => { if (l.tag) set.add(l.tag) })
+    visibleLoans.forEach((l) => { if (l.tag) set.add(l.tag) })
     return Array.from(set).sort()
-  }, [loans])
+  }, [visibleLoans])
 
   const filtered = useMemo(() => {
-    let result = [...loans]
+    let result = [...visibleLoans]
 
     // Handle archived filter separately
     if (filter === 'archived') {
@@ -126,7 +128,7 @@ export default function Dashboard() {
     })
 
     return result
-  }, [loans, filter, tagFilter, sortBy])
+  }, [visibleLoans, filter, tagFilter, sortBy])
 
   const { activeCount, paidCount, archivedCount } = useMemo(() => ({
     activeCount: activeLoans.filter((l) => !isFullyPaid(l)).length,
@@ -167,11 +169,11 @@ export default function Dashboard() {
           upcoming={upcoming}
         />
 
-        {loans.length > 0 && (
+        {visibleLoans.length > 0 && (
           <h2 className="text-[22px] font-extrabold tracking-tight mt-8 mb-3">Your loans</h2>
         )}
 
-        {loans.length > 0 && (
+        {visibleLoans.length > 0 && (
           <div className="space-y-3 mb-3">
             {/* Filters + Sort */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -297,12 +299,12 @@ export default function Dashboard() {
         )}
 
         {/* Loan list */}
-        <div className={loans.length === 0 || filtered.length === 0
+        <div className={visibleLoans.length === 0 || filtered.length === 0
           ? ''
           : viewMode === 'grid'
             ? 'grid grid-cols-2 gap-3 items-stretch'
             : 'space-y-3'}>
-          {loans.length === 0 ? (
+          {visibleLoans.length === 0 ? (
             <EmptyState
               icon={Receipt}
               title="No loans yet"

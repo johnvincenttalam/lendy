@@ -7,7 +7,7 @@ import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { useMoneyStore } from '../features/money/moneyStore'
 import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
-import { debtToIncomeRatio } from '../features/loans/loanUtils'
+import { debtToIncomeRatio, isTracked } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
@@ -38,7 +38,7 @@ export default function SettingsPage() {
   useBodyScrollLock(pendingImport !== null)
 
   const totalMonthly = loans.reduce((sum, l) => {
-    if (l.archived || l.monthsPaid >= l.durationMonths) return sum
+    if (!isTracked(l) || l.monthsPaid >= l.durationMonths) return sum
     return sum + l.monthlyPayment
   }, 0)
 

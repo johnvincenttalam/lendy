@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useLoanStore } from '../loans/loanStore'
 import { useNotificationStore } from './notificationStore'
-import { isFullyPaid, formatCurrency, isOverdue, daysOverdue } from '../loans/loanUtils'
+import { isFullyPaid, formatCurrency, isOverdue, daysOverdue, isTracked } from '../loans/loanUtils'
 import type { Loan } from '../loans/loanTypes'
 
 function getNextDueDate(loan: Loan): Date {
@@ -23,7 +23,7 @@ function getPaymentStatus(loans: Loan[], reminderDays: number, includeDueDate: b
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   return loans
-    .filter((l) => !isFullyPaid(l) && !l.archived)
+    .filter((l) => !isFullyPaid(l) && isTracked(l))
     .map((loan) => {
       const dueDate = getNextDueDate(loan)
       const due = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())

@@ -14,6 +14,8 @@ export type Loan = {
   totalInterestPaid: number
   createdAt: string
   archived?: boolean
+  /** Hidden in the PIN-locked private folder; left out of everything else. */
+  private?: boolean
 }
 
 export type PaymentRecord = {

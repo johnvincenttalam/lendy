@@ -90,6 +90,8 @@ type LoanStore = {
   deleteLoan: (id: string) => void
   archiveLoan: (id: string) => void
   unarchiveLoan: (id: string) => void
+  makePrivate: (id: string) => void
+  makePublic: (id: string) => void
   getPaymentsForLoan: (loanId: string) => PaymentRecord[]
   setSortBy: (sort: SortOption) => void
   setViewMode: (mode: ViewMode) => void
@@ -296,6 +298,25 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       return { loans }
     }),
 
+  // The toast never names the folder: it can show on a screen a borrower sees.
+  makePrivate: (id) =>
+    set((state) => {
+      const loans = state.loans.map((l) => (l.id === id ? { ...l, private: true } : l))
+      saveLoans(loans)
+      const loan = loans.find((l) => l.id === id)
+      if (loan) showToast(`"${loan.name}" moved`)
+      return { loans }
+    }),
+
+  makePublic: (id) =>
+    set((state) => {
+      const loans = state.loans.map((l) => (l.id === id ? { ...l, private: false } : l))
+      saveLoans(loans)
+      const loan = loans.find((l) => l.id === id)
+      if (loan) showToast(`"${loan.name}" moved`)
+      return { loans }
+    }),
+
   getPaymentsForLoan: (loanId) => {
     return get().payments
       .filter((p) => p.loanId === loanId)
@@ -313,7 +334,8 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   },
 
   exportCSV: () => {
-    const { loans } = get()
+    // A readable report — private loans stay out of it.
+    const loans = get().loans.filter((l) => !l.private)
     const headers = ['Name', 'Total Amount', 'Monthly Payment', 'Interest Rate (%/mo)', 'Duration (months)', 'Months Paid', 'Total Paid', 'Start Date', 'Status', 'Notes']
     const rows = loans.map((l) => [
       `"${l.name}"`,

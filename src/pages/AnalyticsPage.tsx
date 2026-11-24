@@ -10,7 +10,7 @@ import EmptyState from '../components/EmptyState'
 import {
   isFullyPaid, totalInterestOverLife, totalCostOfLoan,
   interestPaidSoFar, remainingBalance, debtFreeDate, monthsLeft,
-  interestRemaining, debtToIncomeRatio,
+  interestRemaining, debtToIncomeRatio, isTracked,
 } from '../features/loans/loanUtils'
 import type { Loan, PaymentRecord } from '../features/loans/loanTypes'
 import { DEFAULT_COLOR, LOAN_COLORS, LOAN_TAGS } from '../features/loans/loanTypes'
@@ -137,10 +137,10 @@ export default function AnalyticsPage() {
   const { loans, payments } = useLoanStore()
   const { monthlyIncome } = useIncomeStore()
 
-  // Archived loans are withdrawn from the app's numbers entirely: every stat on
+  // Archived and private loans are withdrawn from the app's numbers entirely: every stat on
   // this page — lifetime totals and payment history included — is computed from
   // visibleLoans, never from the raw store list.
-  const visibleLoans = useMemo(() => loans.filter((l) => !l.archived), [loans])
+  const visibleLoans = useMemo(() => loans.filter(isTracked), [loans])
   const visibleLoanIds = useMemo(() => new Set(visibleLoans.map((l) => l.id)), [visibleLoans])
   const visiblePayments = useMemo(
     () => payments.filter((p) => visibleLoanIds.has(p.loanId)),

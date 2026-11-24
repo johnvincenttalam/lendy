@@ -239,3 +239,14 @@ describe('collectInsights', () => {
     expect(collectInsights([makeLoan({ monthsPaid: 12, totalPaid: 12000 })], 2000, NOW)).toEqual([])
   })
 })
+
+describe('private loans', () => {
+  it('never mentions private loans', () => {
+    const s = selectOllieSituation(input({
+      loans: [makeLoan({ id: 'secret', startDate: dayOffset(-5), private: true })],
+      greetingEligible: true,
+    }))
+    expect(s.kind).toBe('greeting')
+    expect(s.kind === 'greeting' && s.hasLoans).toBe(false)
+  })
+})
