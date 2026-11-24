@@ -13,7 +13,8 @@ import type { MoneyEntry } from '../features/money/moneyTypes'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { formatDate } from '../utils/dateUtils'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader, { HeaderIconButton } from '../components/PageHeader'
+import ProgressBar from '../components/ProgressBar'
 
 type Filter = 'all' | 'income' | 'expense'
 
@@ -55,52 +56,44 @@ export default function MoneyPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Money</h1>
-              <p className="text-[12px] text-white/55 font-medium">Where your money goes</p>
-            </div>
-            <button
-              onClick={() => setShowCategories(true)}
-              aria-label="Manage categories"
-              className="w-9 h-9 rounded-xl bg-white/[0.13] border border-white/[0.12] flex items-center justify-center hover:opacity-80 transition-opacity"
-            >
-              <Tags className="w-4 h-4 text-white" />
+      <PageHeader
+        title="Money"
+        subtitle="Where your money goes"
+        action={
+          <HeaderIconButton label="Manage categories" onClick={() => setShowCategories(true)}>
+            <Tags className="w-4 h-4 text-primary" strokeWidth={2.5} />
+          </HeaderIconButton>
+        }
+      >
+        <div className="rounded-2xl p-4 bg-card border border-themed">
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month" className="w-8 h-8 flex items-center justify-center hover:opacity-70">
+              <ChevronLeft className="w-4 h-4 text-primary" />
+            </button>
+            <span className="text-[12px] font-semibold text-secondary">{formatMonthLabel(month)}</span>
+            <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month" className="w-8 h-8 flex items-center justify-center hover:opacity-70">
+              <ChevronRight className="w-4 h-4 text-primary" />
             </button>
           </div>
-
-          <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
-            <div className="flex items-center justify-between mb-2">
-              <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month" className="w-8 h-8 flex items-center justify-center hover:opacity-70">
-                <ChevronLeft className="w-4 h-4 text-white" />
-              </button>
-              <span className="text-[12px] font-semibold text-white/70 uppercase tracking-wider">{formatMonthLabel(month)}</span>
-              <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month" className="w-8 h-8 flex items-center justify-center hover:opacity-70">
-                <ChevronRight className="w-4 h-4 text-white" />
-              </button>
-            </div>
-            <p className="text-center text-[11px] font-semibold text-white/60 uppercase tracking-wider">Net this month</p>
-            <p className="text-center text-[28px] font-bold font-mono text-white tracking-tight">
-              {totals.net < 0 && '−'}
-              <CurrencyAmount value={Math.abs(totals.net)} />
-            </p>
-            <div className="flex justify-center gap-4 mt-1 text-[12px] font-medium">
-              <span className="text-white/80">
-                <span style={{ color: '#3ECF8E' }}><CurrencyAmount value={totals.income} /></span> income
-              </span>
-              <span className="text-white/80">
-                <span className="text-red-300"><CurrencyAmount value={totals.expenses} /></span> spent
-              </span>
-            </div>
+          <p className="text-center text-[11px] font-semibold text-muted">Net this month</p>
+          <p className="text-center text-[32px] font-extrabold font-display tabular-nums text-primary tracking-tight">
+            {totals.net < 0 && '−'}
+            <CurrencyAmount value={Math.abs(totals.net)} />
+          </p>
+          <div className="flex justify-center gap-4 mt-1 text-[12px] font-medium">
+            <span className="text-secondary">
+              <span className="text-emerald-700 dark:text-emerald-600 dark:text-emerald-400"><CurrencyAmount value={totals.income} /></span> income
+            </span>
+            <span className="text-secondary">
+              <span className="text-red-600 dark:text-red-400"><CurrencyAmount value={totals.expenses} /></span> spent
+            </span>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28 space-y-3">
         {!hasAnyEntries ? (
-          <EmptyState icon={Wallet} title="No entries yet" subtitle="Add your first income or expense to see where your money goes.">
+          <EmptyState icon={Wallet} mood="thinking" title="No entries yet" subtitle="Add your first income or expense to see where your money goes.">
             <button
               onClick={() => setShowForm(true)}
               className="px-5 py-2.5 rounded-xl bg-brand text-on-brand font-semibold text-[14px] hover:opacity-90"
@@ -111,7 +104,7 @@ export default function MoneyPage() {
         ) : (
           <>
             <section className="bg-card rounded-2xl border border-themed p-4">
-              <h2 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Where it went</h2>
+              <h2 className="text-[11px] font-semibold text-muted mb-3">Where it went</h2>
               {breakdownRows.length === 0 ? (
                 <p className="text-[13px] text-secondary">No expenses this month</p>
               ) : (
@@ -124,12 +117,10 @@ export default function MoneyPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <Icon className="w-3.5 h-3.5 text-muted shrink-0" />
                           <span className="text-[13px] font-semibold text-primary flex-1 truncate">{cat.name}</span>
-                          <span className="text-[13px] font-mono text-primary"><CurrencyAmount value={row.total} /></span>
+                          <span className="text-[13px] font-display tabular-nums text-primary"><CurrencyAmount value={row.total} /></span>
                           <span className="text-[11px] text-muted w-9 text-right">{Math.round(row.share * 100)}%</span>
                         </div>
-                        <div className="h-1.5 bg-subtle rounded-full overflow-hidden">
-                          <div className="h-full bg-brand rounded-full" style={{ width: `${Math.max(row.share * 100, 2)}%` }} />
-                        </div>
+                        <ProgressBar value={row.share * 100} label={`Share of spending on ${cat.name}`} />
                       </li>
                     )
                   })}
@@ -157,7 +148,7 @@ export default function MoneyPage() {
             ) : (
               groups.map((g) => (
                 <section key={g.date}>
-                  <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1.5 px-1">
+                  <h3 className="text-[11px] font-semibold text-muted mb-1.5 px-1">
                     {formatDate(`${g.date}T00:00:00`, { weekday: 'short', day: 'numeric', month: 'short' })}
                   </h3>
                   <ul className="space-y-1.5">
@@ -178,7 +169,7 @@ export default function MoneyPage() {
                               {e.note && <p className="text-[12px] text-muted truncate">{e.note}</p>}
                             </div>
                             <span
-                              className={`text-[14px] font-mono font-semibold shrink-0 ${
+                              className={`text-[14px] font-display tabular-nums font-semibold shrink-0 ${
                                 e.type === 'income' ? 'text-emerald-500 dark:text-emerald-400' : 'text-primary'
                               }`}
                             >

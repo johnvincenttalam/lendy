@@ -4,7 +4,7 @@ import { useSavingsStore } from '../features/savings/savingsStore'
 import SavingsGoalCard from '../features/savings/SavingsGoalCard'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
 
 export default function SavingsPage() {
   const { goals } = useSavingsStore()
@@ -20,21 +20,17 @@ export default function SavingsPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Savings</h1>
-          <p className="text-[12px] text-white/55 font-medium mb-4">
-            {activeGoals.length} active {activeGoals.length === 1 ? 'goal' : 'goals'}
+      <PageHeader
+        title="Savings"
+        subtitle={`${activeGoals.length} active ${activeGoals.length === 1 ? 'goal' : 'goals'}`}
+      >
+        <div className="rounded-2xl p-4 bg-card border border-themed">
+          <span className="text-[11px] font-semibold text-muted">Total Saved</span>
+          <p className="text-[32px] font-extrabold font-display tabular-nums text-primary tracking-tight mt-1">
+            <CurrencyAmount value={totalSaved} />
           </p>
-
-          <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
-            <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Total Saved</span>
-            <p className="text-[28px] font-bold font-mono text-white tracking-tight mt-1">
-              <CurrencyAmount value={totalSaved} />
-            </p>
-          </div>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
         {archivedGoals.length > 0 && (
@@ -55,6 +51,7 @@ export default function SavingsPage() {
           {visible.length === 0 ? (
             <EmptyState
               icon={PiggyBank}
+              mood={showArchived ? undefined : 'happy'}
               title={showArchived ? 'No archived goals' : 'No savings goals yet'}
               subtitle={showArchived ? undefined : 'Add a goal to start setting money aside'}
             >

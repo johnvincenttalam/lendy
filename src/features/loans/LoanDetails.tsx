@@ -28,6 +28,7 @@ import LoanForm from './LoanForm'
 import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
+import ProgressBar from '../../components/ProgressBar'
 
 type Props = {
   loan: Loan
@@ -179,12 +180,12 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
         {/* Hero balance */}
         <div className="bg-card rounded-2xl border border-themed transition-colors overflow-hidden">
           {loan.archived && (
-            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider text-center py-2 border-b border-amber-500/20">
+            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold text-center py-2">
               Archived
             </div>
           )}
           {overdue && (
-            <div className="bg-red-500/10 text-red-500 text-[12px] font-semibold text-center py-2.5 border-b border-red-500/20 flex items-center justify-center gap-2">
+            <div className="bg-red-500/10 text-red-500 text-[12px] font-semibold text-center py-2.5 flex items-center justify-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               <span>
                 Payment overdue by {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
@@ -204,8 +205,8 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             </div>
           )}
           <div className="px-4 pt-6 pb-4 text-center">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Remaining Balance</p>
-            <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none"><CurrencyAmount value={remBalance} /></p>
+            <p className="text-[11px] font-semibold text-muted mb-1.5">Remaining Balance</p>
+            <p className="text-[36px] font-bold font-display tabular-nums text-primary tracking-tighter leading-none"><CurrencyAmount value={remBalance} /></p>
             {hasInterest && (
               <p className="text-[12px] text-muted mt-2">
                 Principal: <CurrencyAmount value={remPrincipal} />
@@ -214,15 +215,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
           </div>
 
           <div className="px-4 pb-5">
-            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: `${color}12` }}>
-              <div
-                className="h-2.5 rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${Math.max(pct, 2)}%`,
-                  background: `linear-gradient(90deg, ${color}, ${color}cc)`,
-                }}
-              />
-            </div>
+            <ProgressBar value={pct} label="Paid off" color={color} size="md" />
             <div className="flex justify-between items-center mt-2.5">
               <span
                 className="text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -246,7 +239,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
 
         {loan.notes && (
           <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">Notes</p>
+            <p className="text-[11px] font-semibold text-muted mb-1.5">Notes</p>
             <p className="text-[13px] text-secondary whitespace-pre-wrap break-words leading-relaxed">{loan.notes}</p>
           </div>
         )}
@@ -277,7 +270,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
 
         {/* Monthly no longer matches the amount/rate/tenure it was entered against */}
         {offSchedule !== null && (
-          <div className="bg-card rounded-2xl border border-amber-500/30 p-4 transition-colors">
+          <div className="bg-[var(--tint-amber)] rounded-2xl p-4 transition-colors">
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-[2px]" />
               <div className="flex-1 min-w-0">
@@ -362,7 +355,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                   </div>
 
                   <span
-                    className={`text-[10px] font-bold mt-0.5 shrink-0 px-2.5 py-[3px] rounded-md uppercase tracking-wide ${
+                    className={`text-[10px] font-bold mt-0.5 shrink-0 px-2.5 py-[3px] rounded-md ${
                       isPaid
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                         : !isNext
@@ -383,7 +376,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
         {!fullyPaid && <div className="h-24" />}
 
         {fullyPaid && (
-          <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold py-4 rounded-2xl text-center text-[15px] border border-emerald-500/15 tracking-tight">
+          <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold py-4 rounded-2xl text-center text-[15px] tracking-tight">
             Fully Paid
           </div>
         )}
@@ -471,9 +464,9 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                   } else onDelete()
                   setShowConfirm(null)
                 }}
-                className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
+                className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
                 style={{
-                  backgroundColor: showConfirm === 'pay' ? color : showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#6366F1' : '#EF4444',
+                  backgroundColor: showConfirm === 'pay' ? color : showConfirm === 'undo' ? '#F59E0B' : showConfirm === 'archive' ? '#0B7C77' : '#EF4444',
                 }}
               >
                 {showConfirm === 'pay' ? 'Confirm' : showConfirm === 'undo' ? 'Undo' : showConfirm === 'archive' ? (loan.archived ? 'Restore' : 'Archive') : 'Delete'}
@@ -489,7 +482,7 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
 function Stat({ label, value, color, customColor }: { label: string; value: React.ReactNode; color?: string; customColor?: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-[10px] font-semibold text-muted mb-1">{label}</p>
       <p
         className={`font-bold text-[15px] tracking-tight ${color || ''}`}
         style={customColor ? { color: customColor } : undefined}
@@ -515,7 +508,7 @@ function InfoCard({
     <div className="bg-card rounded-2xl p-3.5 border border-themed transition-colors">
       <div className="flex items-center gap-1 text-muted mb-1.5">
         {icon}
-        <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">{label}</span>
+        <span className="text-[10px] font-semibold whitespace-nowrap">{label}</span>
       </div>
       <p
         className={`font-bold text-[13px] tracking-tight ${highlightColor ? '' : 'text-primary'}`}

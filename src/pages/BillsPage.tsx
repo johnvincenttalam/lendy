@@ -6,7 +6,7 @@ import BillCard from '../features/bills/BillCard'
 import MonthlyBillsChart from '../features/bills/MonthlyBillsChart'
 import EmptyState from '../components/EmptyState'
 import CurrencyAmount from '../components/CurrencyAmount'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
 
 export default function BillsPage() {
   const { bills, billPayments } = useBillStore()
@@ -29,37 +29,33 @@ export default function BillsPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Bills</h1>
-          <p className="text-[12px] text-white/55 font-medium mb-4">
-            {activeBills.length} active {activeBills.length === 1 ? 'bill' : 'bills'}
-          </p>
-
-          {overdueBills.length > 0 && (
-            <div className="mb-4 rounded-xl bg-red-500/90 backdrop-blur-sm border border-red-400/30 p-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-white">
-                  {overdueBills.length} overdue {overdueBills.length === 1 ? 'bill' : 'bills'}
-                </p>
-                <p className="text-[11px] text-white/70">
-                  <CurrencyAmount value={overdueAmount} /> total due
-                </p>
-              </div>
+      <PageHeader
+        title="Bills"
+        subtitle={`${activeBills.length} active ${activeBills.length === 1 ? 'bill' : 'bills'}`}
+      >
+        {overdueBills.length > 0 && (
+          <div className="rounded-2xl bg-card border border-themed p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
-          )}
-
-          <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
-            <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Monthly Bills</span>
-            <p className="text-[28px] font-bold font-mono text-white tracking-tight mt-1">
-              <CurrencyAmount value={totalMonthly} />
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-primary">
+                {overdueBills.length} overdue {overdueBills.length === 1 ? 'bill' : 'bills'}
+              </p>
+              <p className="text-[11px] text-secondary">
+                <CurrencyAmount value={overdueAmount} /> total due
+              </p>
+            </div>
           </div>
+        )}
+
+        <div className="rounded-2xl p-4 bg-card border border-themed">
+          <span className="text-[11px] font-semibold text-muted">Monthly Bills</span>
+          <p className="text-[32px] font-extrabold font-display tabular-nums text-primary tracking-tight mt-1">
+            <CurrencyAmount value={totalMonthly} />
+          </p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="max-w-2xl mx-auto px-3 pt-3 pb-28">
         {/* Spending history is about the bills you still keep, so it stays out
@@ -84,6 +80,7 @@ export default function BillsPage() {
           {sorted.length === 0 ? (
             <EmptyState
               icon={Receipt}
+              mood={showArchived ? undefined : 'relaxed'}
               title={showArchived ? 'No archived bills' : 'No bills yet'}
               subtitle={showArchived ? undefined : 'Add your first recurring bill to start budgeting'}
             >

@@ -25,7 +25,7 @@ export default function ConfirmDialog({ title, message, confirmLabel, onConfirm,
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 rounded-xl font-semibold text-[14px] text-white hover:opacity-90 transition-opacity"
+            className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#EF4444' }}
           >
             {confirmLabel}

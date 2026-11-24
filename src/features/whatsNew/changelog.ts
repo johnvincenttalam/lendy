@@ -14,6 +14,19 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.7.0',
+    date: '2026-11-24',
+    title: 'Meet Ollie',
+    highlights: [
+      'Lendy is now Ollie. Your loans, payments and settings carry over unchanged.',
+      "A whole new look: clean and flat, with Ollie's teal scarf as the accent colour.",
+      'Ollie the owl now greets you on the dashboard with reminders for overdue, due-today and upcoming payments.',
+      'Tap a reminder to jump straight to the loan, or view every payment that needs attention.',
+      'Ollie celebrates when you record a payment and shares progress milestones along the way.',
+      'Choose Light, Dark or System appearance in Settings.',
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-10-02',
     title: 'Money Tracker',

@@ -13,7 +13,7 @@ export default function BillDetailsPage() {
   if (!bill) {
     return (
       <div className="min-h-screen bg-page flex items-center justify-center transition-colors duration-300">
-        <EmptyState icon={Search} title="Bill not found" subtitle="This bill may have been deleted, or the link is invalid">
+        <EmptyState icon={Search} mood="thinking" title="Bill not found" subtitle="This bill may have been deleted, or the link is invalid">
           <button
             onClick={() => navigate('/bills')}
             className="bg-brand text-on-brand text-[13px] font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity active:scale-95"

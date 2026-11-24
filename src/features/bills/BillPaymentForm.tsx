@@ -105,7 +105,7 @@ export default function BillPaymentForm({ bill, remaining, paid, onSubmit, onClo
           )}
 
           <div>
-            <label htmlFor="bill-payment-amount" className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">
+            <label htmlFor="bill-payment-amount" className="block text-[12px] font-semibold text-muted mb-1.5">
               Amount (&#8369;)
             </label>
             <div className={error ? 'rounded-[14px] ring-2 ring-red-500/50' : undefined}>

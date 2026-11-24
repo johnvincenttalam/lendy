@@ -15,7 +15,7 @@ export default function PinSetup() {
 
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1.5">
+      <label className="block text-[11px] font-semibold text-muted mb-1.5">
         App Lock
       </label>
       {enabled ? (

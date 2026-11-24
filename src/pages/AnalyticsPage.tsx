@@ -14,8 +14,9 @@ import {
 } from '../features/loans/loanUtils'
 import type { Loan, PaymentRecord } from '../features/loans/loanTypes'
 import { DEFAULT_COLOR, LOAN_COLORS, LOAN_TAGS } from '../features/loans/loanTypes'
-import { BRAND_GRADIENT } from '../constants/styles'
+import PageHeader from '../components/PageHeader'
 import CurrencyAmount from '../components/CurrencyAmount'
+import ProgressBar from '../components/ProgressBar'
 
 function computePaymentStreak(loans: Loan[]): number {
   // Total payments made across every loan still on the books, paid-off ones
@@ -207,13 +208,10 @@ export default function AnalyticsPage() {
   if (visibleLoans.length === 0) {
     return (
       <div className="min-h-screen bg-page transition-colors duration-300">
-        <div style={{ background: BRAND_GRADIENT }}>
-          <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-            <h1 className="text-[22px] font-bold text-white tracking-tight">Analytics</h1>
-          </div>
-        </div>
+        <PageHeader title="Analytics" subtitle="How your loans are going" />
         <EmptyState
           icon={BarChart3}
+          mood="thinking"
           title="No data yet"
           subtitle="Add loans to see your analytics"
         />
@@ -224,29 +222,22 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
       {/* Header */}
-      <div style={{ background: BRAND_GRADIENT }}>
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-5">
-          <div className="mb-4">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Analytics</h1>
-            <p className="text-[12px] text-white/55 font-medium">Smart insights on your loans</p>
-          </div>
-
-          {/* Payment streak */}
-          <div className="rounded-2xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[13px] bg-white/15 flex items-center justify-center">
-                <Flame className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Payment Streak</p>
-                <p className="text-[28px] font-bold font-mono text-white tracking-tight leading-tight">
-                  {streak} <span className="text-[14px] font-sans font-semibold text-white/60">payments made</span>
-                </p>
-              </div>
+      <PageHeader title="Analytics" subtitle="How your loans are going">
+        {/* Payment streak */}
+        <div className="rounded-2xl bg-card border border-themed p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[13px] bg-subtle flex items-center justify-center">
+              <Flame className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-muted">Payment Streak</p>
+              <p className="text-[32px] font-extrabold font-display tabular-nums text-primary tracking-tight leading-tight">
+                {streak} <span className="text-[14px] font-sans font-semibold text-muted">payments made</span>
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4">
         {/* Payment reliability */}
@@ -263,7 +254,7 @@ export default function AnalyticsPage() {
               <h3 className="font-bold text-primary text-[15px] tracking-tight">Payment Reliability</h3>
             </div>
             <div className="flex items-center gap-4">
-              <p className={`text-[36px] font-bold font-mono tracking-tighter leading-none ${
+              <p className={`text-[36px] font-bold font-display tabular-nums tracking-tighter leading-none ${
                 onTimeStats.onTimeRate >= 90 ? 'text-emerald-500' : onTimeStats.onTimeRate >= 70 ? 'text-amber-500' : 'text-red-500'
               }`}>
                 {onTimeStats.onTimeRate}%
@@ -295,21 +286,21 @@ export default function AnalyticsPage() {
           {debtFree ? (
             <div className="space-y-3">
               <div className="text-center py-2">
-                <p className="text-[36px] font-bold font-mono text-primary tracking-tighter leading-none">
+                <p className="text-[36px] font-bold font-display tabular-nums text-primary tracking-tighter leading-none">
                   {totalMonthsLeft}
                 </p>
                 <p className="text-[13px] text-muted mt-1">months remaining</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Target Date</p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Target Date</p>
                   <p className="text-[14px] font-bold text-primary tracking-tight">
                     {debtFree.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Remaining</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={totalRemainingDebt} /></p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Remaining</p>
+                  <p className="text-[14px] font-bold font-display tabular-nums text-primary tracking-tight"><CurrencyAmount value={totalRemainingDebt} /></p>
                 </div>
               </div>
             </div>
@@ -331,7 +322,7 @@ export default function AnalyticsPage() {
           {monthlyIncome > 0 ? (
             <div className="space-y-3">
               <div className="flex items-end justify-between">
-                <p className={`text-[36px] font-bold font-mono tracking-tighter leading-none ${
+                <p className={`text-[36px] font-bold font-display tabular-nums tracking-tighter leading-none ${
                   dtiBand === 'healthy' ? 'text-emerald-500' : dtiBand === 'moderate' ? 'text-amber-500' : 'text-red-500'
                 }`}>
                   {dtiPercent}%
@@ -353,12 +344,12 @@ export default function AnalyticsPage() {
               </p>
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Monthly Income</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={monthlyIncome} /></p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Monthly Income</p>
+                  <p className="text-[14px] font-bold font-display tabular-nums text-primary tracking-tight"><CurrencyAmount value={monthlyIncome} /></p>
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Monthly Debt</p>
-                  <p className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={dtiMonthly} /></p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Monthly Debt</p>
+                  <p className="text-[14px] font-bold font-display tabular-nums text-primary tracking-tight"><CurrencyAmount value={dtiMonthly} /></p>
                 </div>
               </div>
             </div>
@@ -387,7 +378,7 @@ export default function AnalyticsPage() {
           {totalPaid > 0 ? (
             <>
               {/* Bar */}
-              <div className="w-full h-3 rounded-full overflow-hidden flex mb-3">
+              <div className="w-full h-3 rounded-full overflow-hidden flex gap-[3px] mb-3">
                 <div
                   className="h-full transition-all duration-700"
                   style={{ width: `${principalPercent}%`, backgroundColor: '#10B981' }}
@@ -413,12 +404,12 @@ export default function AnalyticsPage() {
               {/* Paid so far */}
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Principal Paid</p>
-                  <p className="text-[14px] font-bold font-mono text-emerald-500 tracking-tight"><CurrencyAmount value={totalPrincipalPaid} /></p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Principal Paid</p>
+                  <p className="text-[14px] font-bold font-display tabular-nums text-emerald-500 tracking-tight"><CurrencyAmount value={totalPrincipalPaid} /></p>
                 </div>
                 <div className="bg-subtle rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Interest Paid</p>
-                  <p className="text-[14px] font-bold font-mono text-red-500 tracking-tight"><CurrencyAmount value={totalInterestPaid} /></p>
+                  <p className="text-[10px] font-semibold text-muted mb-1">Interest Paid</p>
+                  <p className="text-[14px] font-bold font-display tabular-nums text-red-500 tracking-tight"><CurrencyAmount value={totalInterestPaid} /></p>
                 </div>
               </div>
             </>
@@ -428,19 +419,19 @@ export default function AnalyticsPage() {
 
           {/* Lifetime totals */}
           <div className="pt-3 border-t border-divider">
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-2">Lifetime Totals</p>
+            <p className="text-[10px] font-semibold text-muted mb-2">Lifetime Totals</p>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Borrowed</span>
-                <span className="text-[13px] font-bold font-mono text-primary"><CurrencyAmount value={lifetimePrincipal} /></span>
+                <span className="text-[13px] font-bold font-display tabular-nums text-primary"><CurrencyAmount value={lifetimePrincipal} /></span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Total Interest</span>
-                <span className="text-[13px] font-bold font-mono text-red-500"><CurrencyAmount value={lifetimeInterest} /></span>
+                <span className="text-[13px] font-bold font-display tabular-nums text-red-500"><CurrencyAmount value={lifetimeInterest} /></span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[13px] text-secondary">Total Cost</span>
-                <span className="text-[13px] font-bold font-mono text-primary"><CurrencyAmount value={lifetimeTotal} /></span>
+                <span className="text-[13px] font-bold font-display tabular-nums text-primary"><CurrencyAmount value={lifetimeTotal} /></span>
               </div>
             </div>
           </div>
@@ -460,7 +451,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Stacked bar */}
-            <div className="w-full h-3 rounded-full overflow-hidden flex mb-3">
+            <div className="w-full h-3 rounded-full overflow-hidden flex gap-[3px] mb-3">
               {categoryBreakdown.map((c) => (
                 <div
                   key={c.tag}
@@ -480,7 +471,7 @@ export default function AnalyticsPage() {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[13px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={c.remaining} /></p>
+                    <p className="text-[13px] font-bold font-display tabular-nums text-primary tracking-tight"><CurrencyAmount value={c.remaining} /></p>
                     <p className="text-[10px] text-muted">{categoryTotal > 0 ? Math.round((c.remaining / categoryTotal) * 100) : 0}%</p>
                   </div>
                 </div>
@@ -500,7 +491,7 @@ export default function AnalyticsPage() {
                 <h3 className="font-bold text-primary text-[15px] tracking-tight">Monthly Burden</h3>
                 <p className="text-[11px] text-muted">Your total monthly payment over time</p>
               </div>
-              <span className="text-[14px] font-bold font-mono text-primary tracking-tight"><CurrencyAmount value={currentBurden} />/mo</span>
+              <span className="text-[14px] font-bold font-display tabular-nums text-primary tracking-tight"><CurrencyAmount value={currentBurden} />/mo</span>
             </div>
 
             {/* Simple bar chart */}
@@ -544,12 +535,12 @@ export default function AnalyticsPage() {
 
             <button
               onClick={() => navigate(`/loan/${payoffPriority[0].loan.id}`)}
-              className="w-full text-left bg-cyan-500/[0.08] border border-cyan-500/20 rounded-xl p-3 mb-3 hover:opacity-80 transition-opacity"
+              className="w-full text-left bg-cyan-500/[0.08] rounded-xl p-3 mb-3 hover:opacity-80 transition-opacity"
             >
               <p className="text-[13px] text-secondary">
                 Pay off <span className="font-bold text-primary">{payoffPriority[0].loan.name}</span> first — it carries the highest rate at{' '}
                 <span className="font-bold text-primary">{payoffPriority[0].loan.interestRate}%/mo</span>, costing{' '}
-                <span className="font-bold font-mono text-cyan-500"><CurrencyAmount value={payoffPriority[0].remainingInterest} /></span> more in interest.
+                <span className="font-bold font-display tabular-nums text-cyan-500"><CurrencyAmount value={payoffPriority[0].remainingInterest} /></span> more in interest.
               </p>
             </button>
 
@@ -567,7 +558,7 @@ export default function AnalyticsPage() {
                     </p>
                     <p className="text-[10px] text-muted">{left} {left === 1 ? 'month' : 'months'} left</p>
                   </div>
-                  <span className="text-[13px] font-bold font-mono text-primary shrink-0">{loan.interestRate}%/mo</span>
+                  <span className="text-[13px] font-bold font-display tabular-nums text-primary shrink-0">{loan.interestRate}%/mo</span>
                 </button>
               ))}
             </div>
@@ -613,15 +604,12 @@ export default function AnalyticsPage() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[13px] font-bold font-mono text-red-500 tracking-tight"><CurrencyAmount value={totalInterest} /></p>
+                        <p className="text-[13px] font-bold font-display tabular-nums text-red-500 tracking-tight"><CurrencyAmount value={totalInterest} /></p>
                         <p className="text-[10px] text-muted">{Math.round(costRatio * 100)}% of principal</p>
                       </div>
                     </div>
-                    <div className="ml-8 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${color}12` }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${barWidth}%`, backgroundColor: color }}
-                      />
+                    <div className="ml-8">
+                      <ProgressBar value={barWidth} label="Share of the highest interest cost" color={color} />
                     </div>
                   </button>
                 )

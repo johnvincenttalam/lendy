@@ -51,7 +51,7 @@ export default function SavingsTransactionForm({ goal, mode, onSubmit, onClose }
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="txn-amount" className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">
+            <label htmlFor="txn-amount" className="block text-[12px] font-semibold text-muted mb-1.5">
               Amount (₱)
             </label>
             <div className={error ? 'rounded-[14px] ring-2 ring-red-500/50' : undefined}>
@@ -70,7 +70,7 @@ export default function SavingsTransactionForm({ goal, mode, onSubmit, onClose }
           </div>
 
           <div>
-            <label htmlFor="txn-note" className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">
+            <label htmlFor="txn-note" className="block text-[12px] font-semibold text-muted mb-1.5">
               Note
             </label>
             <input

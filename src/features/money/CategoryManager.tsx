@@ -31,7 +31,7 @@ export default function CategoryManager({ onClose }: Props) {
             if (list.length === 0) return null
             return (
               <section key={type}>
-                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+                <h3 className="text-[11px] font-semibold text-muted mb-2">
                   {type === 'expense' ? 'Expense' : 'Income'}
                 </h3>
                 <ul className="space-y-2">

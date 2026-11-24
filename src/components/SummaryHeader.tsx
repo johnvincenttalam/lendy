@@ -1,9 +1,10 @@
-import { Wallet, CreditCard, CalendarCheck, TrendingUp, AlertTriangle, CalendarClock } from 'lucide-react'
+import { CreditCard, CalendarCheck, TrendingUp, Wallet, CalendarClock } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { UpcomingPayments } from '../features/loans/loanUtils'
 import type { FinancialOverview, HealthScore } from '../features/finance/financeTypes'
-import { BRAND_GRADIENT } from '../constants/styles'
 import CurrencyAmount from './CurrencyAmount'
 import HealthScoreCard from '../features/finance/HealthScoreCard'
+import ProgressBar from './ProgressBar'
 
 type Props = {
   totalDebt: number
@@ -15,8 +16,8 @@ type Props = {
   hasIncome: boolean
   overview: FinancialOverview
   health: HealthScore
-  overdueCount?: number
-  overdueAmount?: number
+  /** Share of the total cost of active loans already paid, 0–1. */
+  paidRatio: number
   upcoming?: UpcomingPayments | null
 }
 
@@ -29,6 +30,23 @@ function formatDateRange(from: Date, to: Date): string {
   return `${fromLabel} – ${toLabel}`
 }
 
+/** Flat colour-block stat: a soft tint carries the category, no outline. */
+function StatTile({ icon: Icon, label, children, tint, wide = false }: { icon: LucideIcon; label: string; children: React.ReactNode; tint: string; wide?: boolean }) {
+  return (
+    <div className={`rounded-2xl p-4 ${wide ? 'col-span-2' : ''}`} style={{ backgroundColor: tint }}>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Icon className="w-4 h-4 text-secondary" strokeWidth={2.25} />
+        <span className="text-[13px] font-bold text-secondary">{label}</span>
+      </div>
+      <p className="text-[20px] font-extrabold font-display tabular-nums text-primary tracking-tight leading-tight">{children}</p>
+    </div>
+  )
+}
+
+/**
+ * The dashboard's money summary: what's left to pay (with a payoff bar),
+ * the next due date, a few key stats, and the financial health score.
+ */
 export default function SummaryHeader({
   totalDebt,
   totalMonthly,
@@ -39,123 +57,65 @@ export default function SummaryHeader({
   hasIncome,
   overview,
   health,
-  overdueCount = 0,
-  overdueAmount = 0,
+  paidRatio,
   upcoming = null,
 }: Props) {
   const dtiPercent = Math.round(debtToIncome * 100)
   const dtiColor =
-    dtiPercent > 50 ? 'text-red-300' : dtiPercent > 30 ? 'text-amber-300' : 'text-emerald-300'
+    dtiPercent > 50 ? 'text-red-600 dark:text-red-400' : dtiPercent > 30 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'
+  const paidPercent = Math.round(Math.min(1, Math.max(0, paidRatio)) * 100)
 
   return (
-    <div
-      className="relative transition-colors duration-300"
-      style={{ background: BRAND_GRADIENT }}
-    >
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+    <section aria-label="Summary" className="space-y-3">
+      {/* Left to pay */}
+      <div className="rounded-3xl bg-card p-5">
+        <p className="text-[13px] font-bold text-muted">Left to pay</p>
+        <p className="text-[40px] font-extrabold font-display tabular-nums text-primary tracking-tight leading-none mt-1">
+          <CurrencyAmount value={totalDebt} />
+        </p>
 
-      <div className="relative max-w-2xl mx-auto px-4 pt-5 pb-5">
-        <div className="flex items-center gap-3 mb-5">
-          <img src={`${import.meta.env.BASE_URL}lendy.png`} alt="Lendy" className="w-10 h-10 rounded-[13px]" />
-          <div>
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight">Lendy</h1>
-            <p className="text-[12px] text-white/55 font-medium">
-              {loanCount} active {loanCount === 1 ? 'loan' : 'loans'}
-            </p>
-          </div>
-        </div>
-
-        <HealthScoreCard overview={overview} health={health} />
-
-        {overdueCount > 0 && (
-          <div className="mb-4 rounded-xl bg-red-500/90 backdrop-blur-sm border border-red-400/30 p-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-4 h-4 text-white" />
+        {loanCount > 0 && (
+          <>
+            <ProgressBar value={paidPercent} label="Paid off" size="md" className="mt-5" />
+            <div className="flex justify-between mt-2 text-[13px] font-semibold">
+              <span className="text-primary">{paidPercent}% paid off</span>
+              <span className="text-muted">{loanCount} active {loanCount === 1 ? 'loan' : 'loans'}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold text-white">
-                {overdueCount} overdue {overdueCount === 1 ? 'payment' : 'payments'}
-              </p>
-              <p className="text-[11px] text-white/70">
-                <CurrencyAmount value={overdueAmount} /> total due
-              </p>
-            </div>
-          </div>
+          </>
         )}
 
         {upcoming && (
-          <div className="mb-4 rounded-xl bg-white/[0.13] backdrop-blur-sm border border-white/[0.12] p-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-              <CalendarClock className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold text-white">
-                Next due {formatDateRange(upcoming.from, upcoming.to)}
-              </p>
-              <p className="text-[11px] text-white/70">
-                <CurrencyAmount value={upcoming.amount} /> for {upcoming.count} {upcoming.count === 1 ? 'payment' : 'payments'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <div className="w-6 h-6 rounded-lg bg-white/15 flex items-center justify-center">
-                <Wallet className="w-3.5 h-3.5 text-white/90" />
-              </div>
-              <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Debt</span>
-            </div>
-            <p className="text-[22px] font-bold font-mono text-white tracking-tight"><CurrencyAmount value={totalDebt} /></p>
-          </div>
-          <div className="rounded-2xl p-4 bg-white/[0.13] backdrop-blur-sm border border-white/[0.12]">
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <div className="w-6 h-6 rounded-lg bg-white/15 flex items-center justify-center">
-                <CreditCard className="w-3.5 h-3.5 text-white/90" />
-              </div>
-              <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Monthly</span>
-            </div>
-            <p className="text-[22px] font-bold font-mono text-white tracking-tight"><CurrencyAmount value={totalMonthly} /></p>
-          </div>
-        </div>
-
-        {/* Extra stats row */}
-        {loanCount > 0 && (
-          <div className={`grid ${hasIncome ? 'grid-cols-3' : 'grid-cols-2'} gap-2.5 mt-3`}>
-            <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
-              <div className="flex items-center gap-1 mb-1">
-                <TrendingUp className="w-3 h-3 text-white/60" />
-                <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Interest</span>
-              </div>
-              <p className="text-[14px] font-bold text-white tracking-tight"><CurrencyAmount value={totalInterest} /></p>
-            </div>
-            <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
-              <div className="flex items-center gap-1 mb-1">
-                <CalendarCheck className="w-3 h-3 text-white/60" />
-                <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Debt-free</span>
-              </div>
-              <p className="text-[14px] font-bold text-white tracking-tight">
-                {debtFreeDate
-                  ? debtFreeDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                  : 'Now'}
-              </p>
-            </div>
-            {hasIncome && (
-              <div className="rounded-xl p-2.5 bg-white/[0.08] border border-white/[0.06]">
-                <div className="flex items-center gap-1 mb-1">
-                  <Wallet className="w-3 h-3 text-white/60" />
-                  <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">DTI</span>
-                </div>
-                <p className={`text-[14px] font-bold tracking-tight ${dtiColor}`}>
-                  {dtiPercent}%
-                </p>
-              </div>
-            )}
+          <div className="mt-3.5 pt-3.5 border-t border-divider flex items-center gap-2.5">
+            <CalendarClock className="w-4 h-4 text-brand shrink-0" strokeWidth={2.5} />
+            <p className="text-[13px] text-secondary">
+              <span className="font-bold text-primary">Next due {formatDateRange(upcoming.from, upcoming.to)}:</span>{' '}
+              <CurrencyAmount value={upcoming.amount} /> for {upcoming.count} {upcoming.count === 1 ? 'payment' : 'payments'}
+            </p>
           </div>
         )}
       </div>
-    </div>
+
+      {/* Key stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile icon={CreditCard} label="Monthly" tint="var(--tint-teal)">
+          <CurrencyAmount value={totalMonthly} />
+        </StatTile>
+        <StatTile icon={CalendarCheck} label="Debt-free" tint="var(--tint-amber)">
+          {debtFreeDate ? debtFreeDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Now'}
+        </StatTile>
+        {loanCount > 0 && (
+          <StatTile icon={TrendingUp} label="Total interest" tint="var(--tint-red)" wide={!hasIncome}>
+            <CurrencyAmount value={totalInterest} />
+          </StatTile>
+        )}
+        {loanCount > 0 && hasIncome && (
+          <StatTile icon={Wallet} label="Of your income" tint="var(--tint-neutral)">
+            <span className={dtiColor}>{dtiPercent}%</span>
+          </StatTile>
+        )}
+      </div>
+
+      <HealthScoreCard overview={overview} health={health} />
+    </section>
   )
 }

@@ -49,13 +49,13 @@ export default function ToastContainer() {
   return (
     <div className="fixed bottom-6 left-0 right-0 z-[100] flex justify-center px-3 pointer-events-none">
       <div
-        className="pointer-events-auto max-w-2xl w-full rounded-xl bg-[#1C1C1E] dark:bg-[#2C2C2E] px-4 py-3.5 flex items-center gap-3 transition-all duration-300 ease-out"
+        className="pointer-events-auto max-w-2xl w-full rounded-2xl bg-[#26201C] dark:bg-[#F2F2F0] px-4 py-3.5 flex items-center gap-3 transition-all duration-300 ease-out"
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(20px)',
           opacity: visible ? 1 : 0,
         }}
       >
-        <p className="text-[14px] font-medium text-white flex-1 leading-snug">{toast.message}</p>
+        <p className="text-[14px] font-bold text-white dark:text-[#26201C] flex-1 leading-snug">{toast.message}</p>
         {toast.action && (
           <button
             onClick={() => {
@@ -63,7 +63,7 @@ export default function ToastContainer() {
               setVisible(false)
               setTimeout(() => setToast(null), 300)
             }}
-            className="shrink-0 text-brand font-bold text-[14px] uppercase tracking-wide hover:opacity-80 transition-opacity"
+            className="shrink-0 text-[#67D8C6] dark:text-[#0B7D70] font-extrabold text-[14px] hover:opacity-80 transition-opacity"
           >
             {toast.action.label}
           </button>

@@ -79,7 +79,7 @@ export default function MoneyEntryForm({ onSubmit, onClose, onDelete, initial }:
     })
   }
 
-  const accent = type === 'income' ? '#3ECF8E' : '#EF4444'
+  const accent = type === 'income' ? '#0B7C77' : '#EF4444'
 
   return (
     <Sheet
@@ -243,7 +243,7 @@ export default function MoneyEntryForm({ onSubmit, onClose, onDelete, initial }:
 function Field({ label, id, error, children }: { label: string; id?: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-[12px] font-semibold text-muted uppercase tracking-wider mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-[12px] font-semibold text-muted mb-1.5">{label}</label>
       <div className={error ? 'rounded-[14px] ring-2 ring-red-500/50' : undefined}>{children}</div>
       {error && <p className="text-[11px] text-red-500 dark:text-red-400 mt-1 font-medium">{error}</p>}
     </div>

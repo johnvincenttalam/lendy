@@ -63,7 +63,7 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-muted mb-2">
           Payment Reminders
         </label>
 
@@ -139,7 +139,7 @@ export default function NotificationSettings() {
           {/* Preview list */}
           {showPreview && upcomingPayments.length > 0 && (
             <div className="space-y-1.5 pt-1">
-              <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">Upcoming Reminders</p>
+              <p className="text-[10px] font-semibold text-muted">Upcoming Reminders</p>
               {upcomingPayments.slice(0, 5).map(({ loan, daysUntil, isOverdue, daysOverdue }) => (
                 <div
                   key={loan.id}
