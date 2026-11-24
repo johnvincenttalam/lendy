@@ -60,6 +60,9 @@ export async function askGroq(opts: {
         model: GROQ_MODEL,
         messages: buildMessages(opts.summary, opts.history, opts.question),
         temperature: 0.2,
+        // gpt-oss thinks before answering, and that thinking counts against
+        // max_completion_tokens — keep it short so the answer fits.
+        reasoning_effort: 'low',
         max_completion_tokens: 1024,
       }),
     })
@@ -77,8 +80,11 @@ export async function askGroq(opts: {
   if (!res.ok) return { ok: false, error: 'failed' }
 
   try {
-    const data = await res.json() as { choices?: Array<{ message?: { content?: unknown } }> }
-    const content = data.choices?.[0]?.message?.content
+    const data = await res.json() as { choices?: Array<{ finish_reason?: string; message?: { content?: unknown } }> }
+    const choice = data.choices?.[0]
+    // A reply cut off at the token limit can look complete but miss items.
+    if (choice?.finish_reason === 'length') return { ok: false, error: 'failed' }
+    const content = choice?.message?.content
     const answer = typeof content === 'string' ? content.trim() : ''
     return answer ? { ok: true, answer } : { ok: false, error: 'failed' }
   } catch {

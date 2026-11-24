@@ -39,6 +39,17 @@ describe('askGroq', () => {
     expect(await askGroq({ ...base, fetchImpl: fakeFetch(noChoices) })).toEqual({ ok: false, error: 'failed' })
   })
 
+  it('treats a cut-off answer as a failure', async () => {
+    const cutOff = () => new Response(JSON.stringify({ choices: [{ finish_reason: 'length', message: { content: 'Due this week: Phone' } }] }), { status: 200 })
+    expect(await askGroq({ ...base, fetchImpl: fakeFetch(cutOff) })).toEqual({ ok: false, error: 'failed' })
+  })
+
+  it('asks the model to keep its thinking short', async () => {
+    const captured: Captured[] = []
+    await askGroq({ ...base, fetchImpl: fakeFetch(ok('Phone.'), captured) })
+    expect(JSON.parse(captured[0].init.body as string).reasoning_effort).toBe('low')
+  })
+
   it('maps 401 to bad-key and 429 to rate-limit', async () => {
     const unauthorized = () => new Response('{}', { status: 401 })
     expect(await askGroq({ ...base, fetchImpl: fakeFetch(unauthorized) })).toEqual({ ok: false, error: 'bad-key' })
