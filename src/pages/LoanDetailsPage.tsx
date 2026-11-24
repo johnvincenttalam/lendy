@@ -5,13 +5,14 @@ import LoanDetails from '../features/loans/LoanDetails'
 import EmptyState from '../components/EmptyState'
 import PrivateFolderGate from '../features/privateFolder/PrivateFolderGate'
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
+import { needsPin } from '../features/privateFolder/privateFolderUtils'
 
 export default function LoanDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { loans, markAsPaid, deleteLoan } = useLoanStore()
   const loan = loans.find((l) => l.id === id)
-  const folderUnlocked = usePrivateFolderStore((s) => s.unlocked)
+  const folderLocked = usePrivateFolderStore((s) => needsPin(s.pinHash, s.unlocked))
 
   if (!loan) {
     return (
@@ -34,7 +35,7 @@ export default function LoanDetailsPage() {
   }
 
   // A private loan opened from a link or history still needs the folder PIN.
-  if (loan.private && !folderUnlocked) {
+  if (loan.private && folderLocked) {
     return <PrivateFolderGate onCancel={() => navigate('/')} />
   }
 

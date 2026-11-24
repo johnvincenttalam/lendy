@@ -78,3 +78,15 @@ number, reminder and screen — unless they know a separate code.
   app PIN, then lets the owner set a new folder PIN.
 - If the app lock is off, there is no reset: the loans stay in the folder
   until the PIN is remembered. No button ever reveals or deletes them.
+
+## Addendum: optional PIN (requested during build)
+
+- Settings gets a "Require PIN" switch for the folder.
+- Turning it off asks for the current PIN, then forgets the PIN hash. With
+  no PIN the folder opens directly, but its loans stay hidden everywhere
+  else (an Archive the owner names).
+- Turning it on chooses a new PIN (entered twice).
+- Setup still asks for a PIN; it can be switched off afterwards.
+- "Set up" now means the folder has a name record (possibly empty), not a
+  PIN hash. More's description reads "Locked with its own PIN" or "Hidden
+  from the rest of Ollie" to match.

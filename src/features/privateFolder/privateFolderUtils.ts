@@ -19,3 +19,8 @@ export function isPrivatePath(pathname: string, loans: Loan[]): boolean {
   if (!match) return false
   return loans.some((l) => l.id === match[1] && l.private === true)
 }
+
+/** Whether opening the folder (or one of its loans) must ask for the PIN. */
+export function needsPin(pinHash: string | null, unlocked: boolean): boolean {
+  return pinHash !== null && !unlocked
+}

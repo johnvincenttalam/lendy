@@ -13,6 +13,14 @@ function read(key: string): string | null {
   }
 }
 
+function remove(key: string) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // nothing to clean up
+  }
+}
+
 function write(key: string, value: string) {
   try {
     localStorage.setItem(key, value)
@@ -24,7 +32,7 @@ function write(key: string, value: string) {
 const cleanName = (name: string) => name.trim().slice(0, MAX_FOLDER_NAME).trim()
 
 type PrivateFolderStore = {
-  /** The owner's name for the folder; null until set up. */
+  /** The owner's name for the folder; null until set up ("" = default label). */
   name: string | null
   pinHash: string | null
   /** In memory only — every reload starts locked. */
@@ -35,6 +43,8 @@ type PrivateFolderStore = {
   rename: (name: string) => void
   /** Callers check the current PIN (or the app PIN) first. */
   changePin: (pin: string) => Promise<void>
+  /** Turns the PIN off. Callers check the current PIN first. */
+  removePin: () => void
 }
 
 export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
@@ -73,6 +83,13 @@ export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
     write(PIN_HASH_KEY, hash)
     set({ pinHash: hash })
   },
+
+  removePin: () => {
+    remove(PIN_HASH_KEY)
+    set({ pinHash: null })
+  },
 }))
 
-export const selectIsSetUp = (s: PrivateFolderStore) => s.pinHash !== null
+/** Set up once named (even with an empty name), whether or not a PIN is on. */
+export const selectIsSetUp = (s: PrivateFolderStore) => s.name !== null
+export const selectHasPin = (s: PrivateFolderStore) => s.pinHash !== null

@@ -19,7 +19,7 @@ export const CHANGELOG: Release[] = [
     title: 'A private folder',
     highlights: [
       'Move loans into a folder only you can open, with its own PIN.',
-      'Name the folder whatever you like.',
+      'Name the folder whatever you like, and turn its PIN on or off in Settings.',
       'Loans in it stay out of your totals, reminders and Ollie.',
     ],
   },

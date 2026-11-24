@@ -14,11 +14,12 @@ const MORE_ITEMS = [
 export default function MorePage() {
   const navigate = useNavigate()
   const folderName = usePrivateFolderStore((s) => s.name)
+  const folderHasPin = usePrivateFolderStore((s) => s.pinHash !== null)
 
   // The folder row never shows a count, so it reads the same empty or full.
   const items = [
     ...MORE_ITEMS.slice(0, 3),
-    { path: '/private', icon: FolderLock, label: folderLabel(folderName), description: 'Locked with its own PIN' },
+    { path: '/private', icon: FolderLock, label: folderLabel(folderName), description: folderHasPin ? 'Locked with its own PIN' : 'Hidden from the rest of Ollie' },
     MORE_ITEMS[3],
   ]
 

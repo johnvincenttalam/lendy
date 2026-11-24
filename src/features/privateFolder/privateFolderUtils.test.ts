@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Loan } from '../loans/loanTypes'
-import { folderLabel, isPrivatePath, DEFAULT_FOLDER_LABEL, MAX_FOLDER_NAME } from './privateFolderUtils'
+import { folderLabel, isPrivatePath, needsPin, DEFAULT_FOLDER_LABEL, MAX_FOLDER_NAME } from './privateFolderUtils'
 
 const loan = (id: string, isPrivate: boolean) => ({ id, private: isPrivate }) as Loan
 
@@ -24,5 +24,13 @@ describe('isPrivatePath', () => {
     expect(isPrivatePath('/loan/n1', [loan('n1', false)])).toBe(false)
     expect(isPrivatePath('/loan/missing', [])).toBe(false)
     expect(isPrivatePath('/', [loan('p1', true)])).toBe(false)
+  })
+})
+
+describe('needsPin', () => {
+  it('asks only when a PIN is set and the folder is locked', () => {
+    expect(needsPin('hash', false)).toBe(true)
+    expect(needsPin('hash', true)).toBe(false)
+    expect(needsPin(null, false)).toBe(false)
   })
 })
