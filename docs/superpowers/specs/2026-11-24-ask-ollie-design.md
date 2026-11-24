@@ -227,3 +227,16 @@ conversation or the repo.
 
 **Local development.** `vite` doesn't run `/api`; use `vercel dev` for a
 live local check. Tests cover the function's logic with a fake `fetch`.
+
+## Addendum: dashboard chat survives an accidental close (owner chose A)
+
+- **Why:** closing the chat by accident lost the conversation. The
+  "clear on close" rule exists only so private-loan answers don't linger,
+  and the dashboard chat never sees private loans.
+- **Dashboard chat** (`includePrivate` false): the conversation and the
+  "Ollie is thinking" state live in memory for as long as the app is open,
+  so closing and reopening the sheet shows it again — including an answer
+  that arrived while it was closed. A "New chat" button clears it. Nothing
+  is written to storage; reloading or fully closing the app starts fresh.
+- **Folder chat** (`includePrivate` true): unchanged — clears on close and
+  when the folder locks.
