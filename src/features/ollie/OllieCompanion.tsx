@@ -33,6 +33,8 @@ type Props = {
   className?: string
   /** Page-header presentation: a larger Ollie standing on the page, no card. */
   hero?: boolean
+  /** Tapping the owl opens the Ask Ollie chat. */
+  onAsk?: () => void
 }
 
 /**
@@ -40,7 +42,7 @@ type Props = {
  * and reminder settings, picks the single most important thing to say via
  * selectOllieSituation, and remembers what's been celebrated or dismissed.
  */
-export default function OllieCompanion({ className = '', hero = false }: Props) {
+export default function OllieCompanion({ className = '', hero = false, onAsk }: Props) {
   const loans = useLoanStore((s) => s.loans)
   const payments = useLoanStore((s) => s.payments)
   const monthlyIncome = useIncomeStore((s) => s.monthlyIncome)
@@ -129,6 +131,15 @@ export default function OllieCompanion({ className = '', hero = false }: Props) 
     )
   }
 
+  const owl = (
+    <OllieCharacter
+      key={situation.key}
+      mood={mood}
+      celebrate={situation.kind === 'celebrating'}
+      sizeClassName={hero ? 'w-[92px] sm:w-[116px]' : undefined}
+    />
+  )
+
   return (
     <section
       aria-label="Ollie, your financial companion"
@@ -136,12 +147,11 @@ export default function OllieCompanion({ className = '', hero = false }: Props) 
         ? 'gap-4 sm:gap-5'
         : 'gap-3.5 sm:gap-4 rounded-2xl border border-themed bg-card p-3 sm:p-3.5'} ${className}`}
     >
-      <OllieCharacter
-        key={situation.key}
-        mood={mood}
-        celebrate={situation.kind === 'celebrating'}
-        sizeClassName={hero ? 'w-[92px] sm:w-[116px]' : undefined}
-      />
+      {onAsk ? (
+        <button type="button" onClick={onAsk} aria-label="Ask Ollie" className="shrink-0 rounded-3xl active:scale-95 transition-transform">
+          {owl}
+        </button>
+      ) : owl}
       <div className="flex-1 min-w-0" aria-live="polite" aria-atomic="true">
         <OllieMessage
           key={situation.key}
