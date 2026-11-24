@@ -36,3 +36,20 @@ export async function verifyRecovery(appPin: string, recoveryHash: string | null
   if (!recoveryHash) return false
   return (await hashPin(appPin)) === recoveryHash
 }
+
+export type FolderBackup = { name: string; pinHash: string | null; recoveryHash: string | null }
+
+const optionalString = (v: unknown) => (typeof v === 'string' ? v : null)
+
+/**
+ * The folder's name and PIN from a backup file, so restored private loans
+ * come back locked instead of open. Null when the backup has no folder.
+ */
+export function parseFolderBackup(data: unknown): FolderBackup | null {
+  if (!data || typeof data !== 'object') return null
+  const folder = (data as { privateFolder?: unknown }).privateFolder
+  if (!folder || typeof folder !== 'object') return null
+  const { name, pinHash, recoveryHash } = folder as Record<string, unknown>
+  if (typeof name !== 'string') return null
+  return { name, pinHash: optionalString(pinHash), recoveryHash: optionalString(recoveryHash) }
+}

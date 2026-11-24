@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Loan } from '../loans/loanTypes'
-import { folderLabel, isPrivatePath, needsPin, verifyRecovery, DEFAULT_FOLDER_LABEL, MAX_FOLDER_NAME } from './privateFolderUtils'
+import { folderLabel, isPrivatePath, needsPin, verifyRecovery, parseFolderBackup, DEFAULT_FOLDER_LABEL, MAX_FOLDER_NAME } from './privateFolderUtils'
 import { hashPin } from '../lock/pinHash'
 
 const loan = (id: string, isPrivate: boolean) => ({ id, private: isPrivate }) as Loan
@@ -46,5 +46,23 @@ describe('verifyRecovery', () => {
 
   it('never recovers when no app PIN was saved', async () => {
     expect(await verifyRecovery('1234', null)).toBe(false)
+  })
+})
+
+describe('parseFolderBackup', () => {
+  it('reads the folder from a backup', () => {
+    expect(parseFolderBackup({ privateFolder: { name: 'Receipts', pinHash: 'abc', recoveryHash: null } }))
+      .toEqual({ name: 'Receipts', pinHash: 'abc', recoveryHash: null })
+  })
+
+  it('keeps a folder whose PIN is off', () => {
+    expect(parseFolderBackup({ privateFolder: { name: '', pinHash: null } }))
+      .toEqual({ name: '', pinHash: null, recoveryHash: null })
+  })
+
+  it('returns null for backups without a folder or with a bad one', () => {
+    expect(parseFolderBackup({ loans: [] })).toBeNull()
+    expect(parseFolderBackup({ privateFolder: { name: 5 } })).toBeNull()
+    expect(parseFolderBackup(null)).toBeNull()
   })
 })

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { hashPin } from '../lock/pinHash'
 import { useLockStore } from '../lock/lockStore'
 import { MAX_FOLDER_NAME } from './privateFolderUtils'
+import type { FolderBackup } from './privateFolderUtils'
 
 const NAME_KEY = 'loan-tracker-private-name'
 const PIN_HASH_KEY = 'loan-tracker-private-pin-hash'
@@ -60,6 +61,8 @@ type PrivateFolderStore = {
   changePin: (pin: string) => Promise<void>
   /** Turns the PIN off. Callers check the current PIN first. */
   removePin: () => void
+  /** Replaces the folder with one from a backup; it opens locked. */
+  restoreBackup: (folder: FolderBackup) => void
 }
 
 export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
@@ -108,6 +111,15 @@ export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
     remove(PIN_HASH_KEY)
     saveRecovery(null)
     set({ pinHash: null, recoveryHash: null })
+  },
+
+  restoreBackup: ({ name, pinHash, recoveryHash }) => {
+    const clean = cleanName(name)
+    write(NAME_KEY, clean)
+    if (pinHash) write(PIN_HASH_KEY, pinHash)
+    else remove(PIN_HASH_KEY)
+    saveRecovery(pinHash ? recoveryHash : null)
+    set({ name: clean, pinHash, recoveryHash: pinHash ? recoveryHash : null, unlocked: false })
   },
 }))
 
