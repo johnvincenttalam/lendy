@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { askOllie, errorMessage, MAX_HISTORY } from './askClient'
+import { askOllie, errorMessage, MAX_HISTORY, MAX_TURN } from './askClient'
 import type { ChatMessage } from './askClient'
 
 type Captured = { url: string; init: RequestInit }
@@ -27,6 +27,19 @@ describe('askOllie', () => {
     expect(body.history).toHaveLength(10)
     expect(body.history[0].content).toBe('m4')
     expect(body.question).toBe('Biggest loan?')
+  })
+
+  it('says unavailable when the site has no function (GitHub Pages answers 405)', async () => {
+    const pages = () => new Response('<html>405 Not Allowed</html>', { status: 405 })
+    expect(await askOllie({ ...base, fetchImpl: server(pages) })).toEqual({ ok: false, error: 'unavailable' })
+  })
+
+  it('shortens long earlier answers so the next question still fits', async () => {
+    const captured: Captured[] = []
+    const history: ChatMessage[] = [{ role: 'user', content: 'list my bills' }, { role: 'assistant', content: 'x'.repeat(3_000) }]
+    await askOllie({ ...base, history, fetchImpl: server(json({ answer: 'ok' }), captured) })
+    const sent = JSON.parse(captured[0].init.body as string).history
+    expect(sent[1].content.length).toBeLessThanOrEqual(MAX_TURN)
   })
 
   it('maps server replies', async () => {

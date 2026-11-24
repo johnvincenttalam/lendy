@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { handleAsk, GROQ_MODEL } from './askHandler'
+import { handleAsk, GROQ_MODEL } from '../../api/ask'
+import source from '../../api/ask.ts?raw'
 
 const SITE = 'https://ollie.example'
 
@@ -108,5 +109,12 @@ describe('handleAsk', () => {
     const text = await res.text()
     expect(text).not.toContain('secret')
     expect(text).not.toContain('Bearer')
+  })
+})
+
+describe('the Vercel function file', () => {
+  it('is self-contained, so Node can load it on Vercel without resolving local imports', () => {
+    expect(source).not.toMatch(/from\s+['"]\./)
+    expect(source).toMatch(/export default \{/)
   })
 })

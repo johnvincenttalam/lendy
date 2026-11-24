@@ -1,12 +1,14 @@
 /**
  * Browser side of Ask Ollie: posts the summary and question to the app's
- * own /api/ask function, which holds the Groq key (see src/server).
+ * own /api/ask function, which holds the Groq key (see api/ask.ts).
  */
 
 /** Same site as the app; on GitHub Pages this path doesn't exist (→ 'unavailable'). */
 export const ASK_URL = `${import.meta.env.BASE_URL}api/ask`
 /** Earlier turns sent with each question, so requests stay small. */
 export const MAX_HISTORY = 10
+/** The server rejects longer turns; long earlier answers are shortened to fit. */
+export const MAX_TURN = 2_000
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 export type AskError = 'not-configured' | 'unavailable' | 'rate-limit' | 'offline' | 'failed'
@@ -28,7 +30,7 @@ export async function askOllie(opts: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         summary: opts.summary,
-        history: opts.history.slice(-MAX_HISTORY),
+        history: opts.history.slice(-MAX_HISTORY).map((m) => ({ role: m.role, content: m.content.slice(0, MAX_TURN) })),
         question: opts.question,
       }),
     })
@@ -36,7 +38,8 @@ export async function askOllie(opts: {
     return { ok: false, error: 'offline' }
   }
 
-  if (res.status === 404) return { ok: false, error: 'unavailable' }
+  // No function here (e.g. the GitHub Pages copy: 404, or 405 for a POST).
+  if (res.status === 404 || res.status === 405) return { ok: false, error: 'unavailable' }
 
   let data: { answer?: unknown; error?: unknown; retryAfter?: unknown }
   try {
