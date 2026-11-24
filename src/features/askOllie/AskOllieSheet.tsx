@@ -1,25 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, RotateCcw } from 'lucide-react'
 import Sheet from '../money/Sheet'
 import OllieCharacter from '../ollie/OllieCharacter'
 import { askOllie, errorMessage } from './askClient'
 import type { ChatMessage } from './askClient'
 import { buildSummary } from './summary'
 import { readSummaryInput } from './readSummaryInput'
+import { useDashboardChat } from './dashboardChat'
+import type { Bubble } from './dashboardChat'
 
 const QUICK_QUESTIONS = ['Biggest loan?', "What's due this week?", 'How much did I spend this month?']
 
-type Bubble = ChatMessage & { error?: boolean }
-
 /**
- * A read-only chat with Ollie. The conversation lives only in this
- * component: closing the sheet throws it away, so nothing about a private
- * loan is left behind to scroll back to.
+ * A read-only chat with Ollie.
+ * - From the dashboard, the conversation is kept in memory while the app is
+ *   open, so closing the sheet by accident doesn't lose it.
+ * - From the private folder (`includePrivate`), it lives only in this
+ *   component: closing the sheet or locking the folder throws it away, so
+ *   nothing about a private loan is left behind to scroll back to.
  */
 export default function AskOllieSheet({ includePrivate, onClose }: { includePrivate: boolean; onClose: () => void }) {
-  const [messages, setMessages] = useState<Bubble[]>([])
+  const remembered = useDashboardChat()
+  const [localMessages, setLocalMessages] = useState<Bubble[]>([])
+  const [localWaiting, setLocalWaiting] = useState(false)
+  const remember = !includePrivate
+  const messages = remember ? remembered.messages : localMessages
+  const waiting = remember ? remembered.waiting : localWaiting
+  const add = remember ? remembered.add : (m: Bubble) => setLocalMessages((prev) => [...prev, m])
+  const setWaiting = remember ? remembered.setWaiting : setLocalWaiting
   const [draft, setDraft] = useState('')
-  const [waiting, setWaiting] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,7 +40,7 @@ export default function AskOllieSheet({ includePrivate, onClose }: { includePriv
     if (!question || waiting) return
     // Failed turns aren't real answers — keep them out of what Groq sees.
     const history: ChatMessage[] = messages.filter((m) => !m.error).map(({ role, content }) => ({ role, content }))
-    setMessages((m) => [...m, { role: 'user', content: question }])
+    add({ role: 'user', content: question })
     setDraft('')
     setWaiting(true)
     const result = await askOllie({
@@ -39,10 +48,11 @@ export default function AskOllieSheet({ includePrivate, onClose }: { includePriv
       history,
       question,
     })
+    // For the dashboard chat this lands even if the sheet was closed meanwhile.
     setWaiting(false)
-    setMessages((m) => [...m, result.ok
+    add(result.ok
       ? { role: 'assistant', content: result.answer }
-      : { role: 'assistant', content: errorMessage(result.error, result.retryAfter), error: true }])
+      : { role: 'assistant', content: errorMessage(result.error, result.retryAfter), error: true })
   }
 
   const footer = (
@@ -94,6 +104,20 @@ export default function AskOllieSheet({ includePrivate, onClose }: { includePriv
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {remember && messages.length > 0 && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={remembered.clear}
+              disabled={waiting}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--tint-neutral)] text-[12px] font-semibold text-secondary disabled:opacity-40"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              New chat
+            </button>
           </div>
         )}
 
