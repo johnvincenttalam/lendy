@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react'
 import {
   ArrowLeft, Trash2, CheckCircle, CheckCircle2, Calendar, DollarSign,
   Clock, TrendingUp, PiggyBank, CircleDot, Pencil, Undo2, Archive, ArchiveRestore,
-  AlertTriangle, MoreVertical,
+  AlertTriangle, MoreVertical, Lock, LockOpen,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan, PaymentRecord } from './loanTypes'
 import {
@@ -29,6 +30,9 @@ import { showToast } from '../../components/Toast'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import ProgressBar from '../../components/ProgressBar'
+import PrivateFolderSetup from '../privateFolder/PrivateFolderSetup'
+import { usePrivateFolderStore, selectIsSetUp } from '../privateFolder/privateFolderStore'
+import { folderLabel } from '../privateFolder/privateFolderUtils'
 
 type Props = {
   loan: Loan
@@ -58,6 +62,20 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
   const updateLoan = useLoanStore((s) => s.updateLoan)
   const undoMarkAsPaid = useLoanStore((s) => s.undoMarkAsPaid)
   const archiveLoan = useLoanStore((s) => s.archiveLoan)
+  const makePrivate = useLoanStore((s) => s.makePrivate)
+  const makePublic = useLoanStore((s) => s.makePublic)
+  const folderName = usePrivateFolderStore((s) => s.name)
+  const folderReady = usePrivateFolderStore(selectIsSetUp)
+  const [showFolderSetup, setShowFolderSetup] = useState(false)
+  const navigate = useNavigate()
+  const folder = folderLabel(folderName)
+
+  // Moving in sends you Home: the loan has just vanished from everything a
+  // borrower could see, and Back must not lead to its (now locked) page.
+  const moveToFolder = () => {
+    makePrivate(loan.id)
+    navigate('/', { replace: true })
+  }
   const unarchiveLoan = useLoanStore((s) => s.unarchiveLoan)
   const payments = useLoanStore((s) => s.payments)
   const recalcMonthlyPayment = useLoanStore((s) => s.recalcMonthlyPayment)
@@ -159,6 +177,19 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
                         Archive loan
                       </>
                     )}
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMenu(false)
+                      if (loan.private) makePublic(loan.id)
+                      else if (folderReady) moveToFolder()
+                      else setShowFolderSetup(true)
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-secondary hover:bg-subtle transition-colors"
+                  >
+                    {loan.private ? <LockOpen className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    <span className="truncate">{loan.private ? `Move out of ${folder}` : `Move to ${folder}`}</span>
                   </button>
                   <div className="my-1 border-t border-themed" />
                   <button
@@ -407,6 +438,16 @@ export default function LoanDetails({ loan, onMarkPaid, onDelete, onBack }: Prop
             showToast(`"${data.name}" updated`)
           }}
           onClose={() => setShowEdit(false)}
+        />
+      )}
+
+      {showFolderSetup && (
+        <PrivateFolderSetup
+          onCancel={() => setShowFolderSetup(false)}
+          onDone={() => {
+            setShowFolderSetup(false)
+            moveToFolder()
+          }}
         />
       )}
 

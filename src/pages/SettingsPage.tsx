@@ -11,6 +11,7 @@ import { debtToIncomeRatio, isTracked } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
+import PrivateFolderSettings from '../features/privateFolder/PrivateFolderSettings'
 import NotificationSettings from '../features/notifications/NotificationSettings'
 import { showToast } from '../components/Toast'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
@@ -140,6 +141,11 @@ export default function SettingsPage() {
         {/* App Lock */}
         <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
           <PinSetup />
+        </div>
+
+        {/* Private folder */}
+        <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
+          <PrivateFolderSettings />
         </div>
 
         {/* Storage */}

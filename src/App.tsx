@@ -45,14 +45,17 @@ function AppContent() {
   const addMoneyEntry = useMoneyStore((s) => s.addEntry)
   const loans = useLoanStore((s) => s.loans)
   const lockPrivate = usePrivateFolderStore((s) => s.lock)
+  const privateUnlocked = usePrivateFolderStore((s) => s.unlocked)
 
   // The private folder stays open only while you're inside it (the folder or
   // one of its loans). Leaving it, or putting the app in the background,
   // locks it again so it's never left open when the phone is handed over.
   const onPrivatePath = isPrivatePath(location.pathname, loans)
+  // Also catches an unlock that happens elsewhere (setting the folder up from
+  // Settings or a loan menu, checking the PIN in Settings).
   useEffect(() => {
-    if (!onPrivatePath) lockPrivate()
-  }, [onPrivatePath, lockPrivate])
+    if (privateUnlocked && !onPrivatePath) lockPrivate()
+  }, [privateUnlocked, onPrivatePath, lockPrivate])
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') lockPrivate() }
     document.addEventListener('visibilitychange', onHide)
