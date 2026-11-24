@@ -1,9 +1,22 @@
 import { create } from 'zustand'
-import { hashPin } from '../lock/lockStore'
+import { hashPin } from '../lock/pinHash'
+import { useLockStore } from '../lock/lockStore'
 import { MAX_FOLDER_NAME } from './privateFolderUtils'
 
 const NAME_KEY = 'loan-tracker-private-name'
 const PIN_HASH_KEY = 'loan-tracker-private-pin-hash'
+const RECOVERY_KEY = 'loan-tracker-private-recovery'
+
+/** The app PIN's hash right now, if the app lock is on — saved as the folder's recovery key. */
+function currentAppPinHash(): string | null {
+  const { enabled, pinHash } = useLockStore.getState()
+  return enabled && pinHash ? pinHash : null
+}
+
+function saveRecovery(hash: string | null) {
+  if (hash) write(RECOVERY_KEY, hash)
+  else remove(RECOVERY_KEY)
+}
 
 function read(key: string): string | null {
   try {
@@ -35,6 +48,8 @@ type PrivateFolderStore = {
   /** The owner's name for the folder; null until set up ("" = default label). */
   name: string | null
   pinHash: string | null
+  /** App PIN hash saved when the folder PIN was set; "Forgot PIN" checks this. */
+  recoveryHash: string | null
   /** In memory only — every reload starts locked. */
   unlocked: boolean
   setUp: (name: string, pin: string) => Promise<void>
@@ -50,6 +65,7 @@ type PrivateFolderStore = {
 export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
   name: read(NAME_KEY),
   pinHash: read(PIN_HASH_KEY),
+  recoveryHash: read(RECOVERY_KEY),
   unlocked: false,
 
   setUp: async (name, pin) => {
@@ -57,7 +73,9 @@ export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
     const clean = cleanName(name)
     write(NAME_KEY, clean)
     write(PIN_HASH_KEY, hash)
-    set({ name: clean, pinHash: hash, unlocked: true })
+    const recoveryHash = currentAppPinHash()
+    saveRecovery(recoveryHash)
+    set({ name: clean, pinHash: hash, recoveryHash, unlocked: true })
   },
 
   unlock: async (pin) => {
@@ -81,12 +99,15 @@ export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
   changePin: async (pin) => {
     const hash = await hashPin(pin)
     write(PIN_HASH_KEY, hash)
-    set({ pinHash: hash })
+    const recoveryHash = currentAppPinHash()
+    saveRecovery(recoveryHash)
+    set({ pinHash: hash, recoveryHash })
   },
 
   removePin: () => {
     remove(PIN_HASH_KEY)
-    set({ pinHash: null })
+    saveRecovery(null)
+    set({ pinHash: null, recoveryHash: null })
   },
 }))
 

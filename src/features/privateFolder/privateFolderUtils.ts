@@ -1,4 +1,5 @@
 import type { Loan } from '../loans/loanTypes'
+import { hashPin } from '../lock/pinHash'
 
 export const DEFAULT_FOLDER_LABEL = 'Private folder'
 export const MAX_FOLDER_NAME = 24
@@ -23,4 +24,15 @@ export function isPrivatePath(pathname: string, loans: Loan[]): boolean {
 /** Whether opening the folder (or one of its loans) must ask for the PIN. */
 export function needsPin(pinHash: string | null, unlocked: boolean): boolean {
   return pinHash !== null && !unlocked
+}
+
+/**
+ * "Forgot PIN" check. `recoveryHash` is the app PIN's hash saved at the
+ * moment the folder PIN was set — never the current app PIN — so someone
+ * who turns the app lock on (or changes it) later can't use it to reset
+ * the folder.
+ */
+export async function verifyRecovery(appPin: string, recoveryHash: string | null): Promise<boolean> {
+  if (!recoveryHash) return false
+  return (await hashPin(appPin)) === recoveryHash
 }
