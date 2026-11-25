@@ -12,6 +12,7 @@ import SavingsGoalDetailsPage from './pages/SavingsGoalDetailsPage'
 import MorePage from './pages/MorePage'
 import WhatsNewPage from './pages/WhatsNewPage'
 import PrivateFolderPage from './pages/PrivateFolderPage'
+import PlannerPage from './pages/PlannerPage'
 import ToastContainer from './components/Toast'
 import ConfettiContainer from './components/Confetti'
 import InstallPrompt from './components/InstallPrompt'
@@ -90,6 +91,7 @@ function AppContent() {
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/planner" element={<PlannerPage />} />
         <Route path="/bills" element={<BillsPage />} />
         <Route path="/bills/:id" element={<BillDetailsPage />} />
         <Route path="/savings" element={<SavingsPage />} />

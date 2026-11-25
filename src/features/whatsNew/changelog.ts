@@ -14,6 +14,17 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.13.0',
+    date: '2026-11-25',
+    title: 'Planner',
+    highlights: [
+      'Try a loan before you take it: Planner (under More) works out the monthly payment and interest, and Ollie tells you whether it fits your comfortable limit, or from when it would.',
+      'See when your monthly loan payments go down as each loan finishes.',
+      'Ask Ollie "when can I borrow again?" and get the date your payments drop back under the limit.',
+      'Loans that are behind now show a realistic finish date, assuming you catch up, instead of a date that has already passed.',
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-11-25',
     title: 'Your data, kept safe',

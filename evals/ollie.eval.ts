@@ -39,7 +39,7 @@ const CASES: Case[] = [
   {
     id: 'wait-for-loan-to-finish', ...owner('stretched'),
     question: 'If I really need to borrow, when would be a better time?',
-    checks: [has(/Sloan/, 'names the next loan to finish'), date('2027-01-01', 'when Sloan finishes'), amount(2871.25, 'frees up')],
+    checks: [has(/Sloan/, 'names the next loan to finish'), { label: 'says when (Dec 2026 last payment or Jan 2027)', pass: (a) => date('2026-12-01').pass(a) || date('2027-01-01').pass(a) }, amount(2871.25, 'frees up')],
   },
   {
     id: 'borrow-tagalog', ...owner('stretched'),
@@ -64,6 +64,16 @@ const CASES: Case[] = [
     ],
     question: '₱2,000 a month for 6 months',
     checks: [anyAmount([8000, 12000], 'new total or room after'), has(/estimate|about|around|roughly|approx/i, 'calls it an estimate')],
+  },
+  {
+    id: 'specific-loan-points-to-planner', ...owner('roomy'),
+    question: "I'm thinking of borrowing ₱20,000 at 3% a month for 12 months. Can I?",
+    checks: [has(/Planner/, 'points to the Planner'), manageable],
+  },
+  {
+    id: 'when-payments-drop', ...owner('stretched'),
+    question: 'When will my monthly payments go down?',
+    checks: [amount(6380, 'after Sloan'), { label: 'says when (Dec 2026 or Jan 2027)', pass: (a) => date('2026-12-01').pass(a) || date('2027-01-01').pass(a) }],
   },
   {
     id: 'borrow-no-income', ...owner('noIncome'),
