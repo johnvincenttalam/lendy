@@ -55,6 +55,7 @@ describe('handleAsk', () => {
     expect(prompt).toContain('QUICK READ')
     expect(prompt).toContain('final call is theirs')
     expect(prompt).toContain('follow-up')
+    expect(prompt).toContain('Planner')
     expect(body.temperature).toBe(0.5)
   })
 

@@ -72,8 +72,12 @@ describe('buildSummary', () => {
     }), NOW)
     expect(text).toContain(`Comfortable limit for monthly loan payments (40% of the ${formatCurrency(20000)} income setting): ${formatCurrency(8000)}`)
     expect(text).toContain(`Monthly loan payments are over that limit by ${formatCurrency(500)}`)
-    expect(text).toContain(`Next loan to finish: Phone on 2027-06-01, freeing ${formatCurrency(1000)} a month (monthly loan payments after that: ${formatCurrency(7500)})`)
+    // Both loans are behind (next due 2026-10-01), so their finish is projected from today.
+    expect(text).toContain(`Next loan to finish: Phone, last payment 2027-06-24, freeing ${formatCurrency(1000)} a month from 2027-07-24 (estimated: behind schedule) (monthly loan payments after that: ${formatCurrency(7500)})`)
+    expect(text).toContain(`Monthly loan payments ahead: from 2027-07-24 ${formatCurrency(7500)} (Phone done, estimated); from 2027-10-24 ${formatCurrency(0)} (Laptop done, estimated)`)
+    expect(text).toContain(`Monthly loan payments drop under the comfortable limit from 2027-07-24 (after Phone), leaving ${formatCurrency(500)} of room`)
     expect(text).toContain('Overdue bills: 1 (Water)')
+    expect(text).toContain('last payment 2027-09-24 (estimated: behind schedule')
   })
 
   it('shows room left, and says when no income is set', () => {

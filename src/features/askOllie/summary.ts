@@ -3,12 +3,14 @@ import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import {
   formatCurrency, remainingBalance, totalCostOfLoan, monthsLeft, nextDueDate, daysOverdue,
-  endDate, isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio,
+  isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio,
 } from '../loans/loanUtils'
 import { isBillOverdue, billDaysOverdue, paidForCycle } from '../bills/billUtils'
 import { progressPercent } from '../savings/savingsUtils'
 import { folderLabel } from '../privateFolder/privateFolderUtils'
 import { HIGH_DTI, localISODate } from '../ollie/ollieUtils'
+import { paymentSteps, projectedFinish } from '../planner/plannerUtils'
+import type { PaymentStep } from '../planner/plannerUtils'
 
 export type SummaryInput = {
   loans: Loan[]
@@ -28,7 +30,7 @@ function monthYear(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-function loanLine(loan: Loan): string {
+function loanLine(loan: Loan, now: Date): string {
   const status = loan.archived ? 'archived' : isFullyPaid(loan) ? 'paid off' : daysOverdue(loan) > 0 ? 'overdue' : 'active'
   const remaining = remainingBalance(loan)
   const cost = totalCostOfLoan(loan)
@@ -46,17 +48,20 @@ function loanLine(loan: Loan): string {
   if (due) parts.push(`next due ${localISODate(due)}`)
   const late = daysOverdue(loan)
   if (late > 0 && !loan.archived) parts.push(`${late} days overdue`)
-  parts.push(`ends ${endDate(loan)}`)
+  if (!isFullyPaid(loan)) {
+    const finish = projectedFinish(loan, now)
+    parts.push(`last payment ${finish.lastPayment}${finish.estimated ? ' (estimated: behind schedule, assuming it is caught up now)' : ''}`)
+  }
   return parts.join(', ')
 }
 
-function loanSections(input: SummaryInput): string[] {
+function loanSections(input: SummaryInput, now: Date): string[] {
   const regular = input.loans.filter((l) => !l.private)
   const secret = input.includePrivate ? input.loans.filter((l) => l.private) : []
   const tracked = input.loans.filter(isTracked)
   const lines: string[] = ['LOANS']
   if (regular.length === 0) lines.push('- none')
-  lines.push(...regular.map(loanLine))
+  lines.push(...regular.map((l) => loanLine(l, now)))
 
   const leftToPay = tracked.reduce((sum, l) => sum + remainingBalance(l), 0)
   const monthly = tracked.filter((l) => !isFullyPaid(l)).reduce((sum, l) => sum + l.monthlyPayment, 0)
@@ -76,7 +81,7 @@ function loanSections(input: SummaryInput): string[] {
 
   if (secret.length > 0) {
     lines.push('', `PRIVATE FOLDER "${folderLabel(input.folderName)}" (shown only because the folder is open)`)
-    lines.push(...secret.map(loanLine))
+    lines.push(...secret.map((l) => loanLine(l, now)))
     const open = secret.filter((l) => !l.archived)
     lines.push(
       `Private folder left to pay: ${money(open.reduce((sum, l) => sum + remainingBalance(l), 0))}`,
@@ -103,15 +108,15 @@ function loanSections(input: SummaryInput): string[] {
  * Comparisons a friend would make — headroom, what frees up next — worked out here so Ollie can give an honest read
  * without doing the maths. Regular loans only, like the totals above.
  */
-function quickReadSection(input: SummaryInput): string[] {
+function quickReadSection(input: SummaryInput, now: Date): string[] {
   const lines = ['QUICK READ (worked out by the app)']
   const active = input.loans.filter((l) => isTracked(l) && !isFullyPaid(l))
   const monthly = active.reduce((sum, l) => sum + l.monthlyPayment, 0)
   const income = input.monthlyIncome
   const limitPercent = Math.round(HIGH_DTI * 100)
 
+  const limit = income * HIGH_DTI
   if (income > 0) {
-    const limit = income * HIGH_DTI
     lines.push(`Comfortable limit for monthly loan payments (${limitPercent}% of the ${money(income)} income setting): ${money(limit)}`)
     lines.push(monthly > limit
       ? `Monthly loan payments are over that limit by ${money(monthly - limit)}`
@@ -120,11 +125,15 @@ function quickReadSection(input: SummaryInput): string[] {
     lines.push('No monthly income is set in Settings, so there is no comfortable limit to compare against.')
   }
 
-  if (active.length > 0) {
-    const firstEnd = active.map(endDate).sort()[0]
-    const finishing = active.filter((l) => endDate(l) === firstEnd)
-    const freed = finishing.reduce((sum, l) => sum + l.monthlyPayment, 0)
-    lines.push(`Next loan to finish: ${finishing.map((l) => l.name).join(' and ')} on ${firstEnd}, freeing ${money(freed)} a month (monthly loan payments after that: ${money(monthly - freed)})`)
+  const steps = paymentSteps(input.loans, now)
+  if (steps.length > 0) {
+    const names = (s: PaymentStep) => s.loans.join(' and ')
+    const next = steps[0]
+    lines.push(`Next loan to finish: ${names(next)}, last payment ${next.lastPayment}, freeing ${money(next.freed)} a month from ${next.from}${next.estimated ? ' (estimated: behind schedule)' : ''} (monthly loan payments after that: ${money(next.monthlyAfter)})`)
+    lines.push(`Monthly loan payments ahead: ${steps.slice(0, 4).map((s) => `from ${s.from} ${money(s.monthlyAfter)} (${names(s)} done${s.estimated ? ', estimated' : ''})`).join('; ')}`)
+    // The answer to "when could I borrow again?"
+    const under = income > 0 && monthly > limit ? steps.find((s) => s.monthlyAfter <= limit) : undefined
+    if (under) lines.push(`Monthly loan payments drop under the comfortable limit from ${under.from} (after ${names(under)}), leaving ${money(limit - under.monthlyAfter)} of room`)
   }
 
   const overdueBills = input.bills.filter(isBillOverdue)
@@ -177,9 +186,9 @@ export function buildSummary(input: SummaryInput, now: Date): string {
   return [
     `Today: ${localISODate(now)}. Currency: Philippine peso (₱). Dates are YYYY-MM-DD.`,
     '',
-    ...loanSections(input),
+    ...loanSections(input, now),
     '',
-    ...quickReadSection(input),
+    ...quickReadSection(input, now),
     '',
     ...billSection(input.bills, input.billPayments),
     '',
