@@ -79,6 +79,41 @@ describe('buildSummary', () => {
     expect(text).toContain('Overdue regular loans: 1 (Phone)')
   })
 
+  it('gives a quick read: headroom, what frees up next, and income actually recorded', () => {
+    // Phone: ₱1,000/month ending 2027-06-01. Laptop: ₱7,500/month ending 2027-09-01.
+    const laptop = makeLoan({ id: 'loan-3', name: 'Laptop', monthlyPayment: 7500, durationMonths: 15 })
+    const text = buildSummary(input({
+      loans: [phone, laptop],
+      monthlyIncome: 20000,
+      bills: [makeBill({ name: 'Water', nextDueDate: '2020-01-01' })],
+      moneyEntries: [
+        makeEntry({ type: 'income', categoryId: 'inc-salary', amount: 10000, date: '2026-10-15' }),
+        makeEntry({ amount: 8641, date: '2026-10-20' }),
+        makeEntry({ type: 'income', categoryId: 'inc-salary', amount: 5000, date: '2026-09-15' }),
+        makeEntry({ amount: 6000, date: '2026-09-20' }),
+        makeEntry({ type: 'income', categoryId: 'inc-salary', amount: 50000, date: '2026-11-15' }),
+      ],
+    }), NOW)
+    expect(text).toContain(`Comfortable limit for monthly loan payments (40% of the ${formatCurrency(20000)} income setting): ${formatCurrency(8000)}`)
+    expect(text).toContain(`Monthly loan payments are over that limit by ${formatCurrency(500)}`)
+    expect(text).toContain(`Next loan to finish: Phone on 2027-06-01, freeing ${formatCurrency(1000)} a month (monthly loan payments after that: ${formatCurrency(7500)})`)
+    expect(text).toContain('Overdue bills: 1 (Water)')
+    // November is still in progress, so October is the last full month.
+    expect(text).toContain(`Last full month with income recorded: 2026-10, income ${formatCurrency(10000)}, net ${formatCurrency(1359)}`)
+    expect(text).toContain(`Income recorded in 2026-10 is ${formatCurrency(10000)} below the income setting`)
+    expect(text).toContain('Monthly loan payments as a share of the income recorded in 2026-10: 85%')
+    expect(text).toContain('where expenses beat income: 1 (2026-09)')
+  })
+
+  it('shows room left, and says when no income is set', () => {
+    const withIncome = buildSummary(input({ loans: [phone], monthlyIncome: 20000 }), NOW)
+    expect(withIncome).toContain(`Room left under that limit: ${formatCurrency(7000)} a month`)
+    expect(withIncome).toContain('Overdue bills: none')
+    expect(withIncome).not.toContain('Last full month')
+    const without = buildSummary(input({ loans: [phone] }), NOW)
+    expect(without).toContain('No monthly income is set in Settings')
+  })
+
   it('leaves the income share out without an income and says when nothing is overdue', () => {
     const upToDate = makeLoan({ monthsPaid: 6, totalPaid: 6000 })
     const text = buildSummary(input({ loans: [upToDate] }), NOW)

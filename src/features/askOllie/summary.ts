@@ -13,6 +13,7 @@ import {
   monthTotals, expenseBreakdown,
 } from '../money/moneyUtils'
 import { folderLabel } from '../privateFolder/privateFolderUtils'
+import { HIGH_DTI } from '../ollie/ollieUtils'
 
 /** ~6,000 tokens — well under a free-tier model's per-minute limit. */
 export const SUMMARY_CHAR_BUDGET = 24_000
@@ -111,6 +112,64 @@ function loanSections(input: SummaryInput): string[] {
   return lines
 }
 
+/** Recorded income this far below the income setting is worth pointing out. */
+const INCOME_GAP_SHARE = 0.1
+
+/**
+ * Comparisons a friend would make — headroom, what frees up next, what was
+ * actually earned — worked out here so Ollie can give an honest read
+ * without doing the maths. Regular loans only, like the totals above.
+ */
+function quickReadSection(input: SummaryInput, now: Date): string[] {
+  const lines = ['QUICK READ (worked out by the app)']
+  const active = input.loans.filter((l) => isTracked(l) && !isFullyPaid(l))
+  const monthly = active.reduce((sum, l) => sum + l.monthlyPayment, 0)
+  const income = input.monthlyIncome
+  const limitPercent = Math.round(HIGH_DTI * 100)
+
+  if (income > 0) {
+    const limit = income * HIGH_DTI
+    lines.push(`Comfortable limit for monthly loan payments (${limitPercent}% of the ${money(income)} income setting): ${money(limit)}`)
+    lines.push(monthly > limit
+      ? `Monthly loan payments are over that limit by ${money(monthly - limit)}`
+      : `Room left under that limit: ${money(limit - monthly)} a month`)
+  } else {
+    lines.push('No monthly income is set in Settings, so there is no comfortable limit to compare against.')
+  }
+
+  if (active.length > 0) {
+    const firstEnd = active.map(endDate).sort()[0]
+    const finishing = active.filter((l) => endDate(l) === firstEnd)
+    const freed = finishing.reduce((sum, l) => sum + l.monthlyPayment, 0)
+    lines.push(`Next loan to finish: ${finishing.map((l) => l.name).join(' and ')} on ${firstEnd}, freeing ${money(freed)} a month (monthly loan payments after that: ${money(monthly - freed)})`)
+  }
+
+  const overdueBills = input.bills.filter(isBillOverdue)
+  lines.push(`Overdue bills: ${overdueBills.length ? `${overdueBills.length} (${overdueBills.map((b) => b.name).join(', ')})` : 'none'}`)
+
+  // Completed months only — the current one is still filling up.
+  const thisMonth = monthKeyOf(localISODate(now))
+  const pastMonths = Array.from({ length: MONTHS_OF_HISTORY }, (_, i) => shiftMonth(thisMonth, -(i + 1)))
+    .map((key) => ({ key, totals: monthTotals(entriesForMonth(input.moneyEntries, key)) }))
+    .filter((m) => m.totals.income > 0)
+  const last = pastMonths[0]
+  if (last) {
+    const recorded = last.totals.income
+    lines.push(`Last full month with income recorded: ${last.key}, income ${money(recorded)}, net ${money(last.totals.net)}`)
+    if (income > 0 && Math.abs(income - recorded) >= income * INCOME_GAP_SHARE) {
+      lines.push(recorded < income
+        ? `Income recorded in ${last.key} is ${money(income - recorded)} below the income setting`
+        : `Income recorded in ${last.key} is ${money(recorded - income)} above the income setting`)
+    }
+    if (monthly > 0) {
+      lines.push(`Monthly loan payments as a share of the income recorded in ${last.key}: ${Math.round((monthly / recorded) * 100)}%`)
+    }
+    const negative = pastMonths.filter((m) => m.totals.net < 0).map((m) => m.key)
+    lines.push(`Full months (of the last ${MONTHS_OF_HISTORY}) where expenses beat income: ${negative.length ? `${negative.length} (${negative.join(', ')})` : 'none'}`)
+  }
+  return lines
+}
+
 function billSection(bills: Bill[], payments: BillPaymentRecord[]): string[] {
   const lines = ['BILLS']
   if (bills.length === 0) lines.push('- none')
@@ -191,6 +250,8 @@ export function buildSummary(input: SummaryInput, now: Date): string {
     `Today: ${localISODate(now)}. Currency: Philippine peso (₱). Dates are YYYY-MM-DD.`,
     '',
     ...loanSections(input),
+    '',
+    ...quickReadSection(input, now),
     '',
     ...billSection(input.bills, input.billPayments),
     '',

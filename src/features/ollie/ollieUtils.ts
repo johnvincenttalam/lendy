@@ -16,7 +16,7 @@ const CELEBRATION_WINDOW_MS = 24 * 60 * 60 * 1000
 /** Debt-free date close enough to call out as an insight. */
 const DEBT_FREE_SOON_MONTHS = 3
 /** Share of income going to loans above which Ollie suggests a review. */
-const HIGH_DTI = 0.4
+export const HIGH_DTI = 0.4
 
 /** YYYY-MM-DD in the device's own timezone (toISOString would give UTC). */
 export function localISODate(date: Date): string {
