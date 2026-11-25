@@ -2,12 +2,13 @@ import { create } from 'zustand'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
 import { monthlyInterestPortion, monthlyPrincipalPortion, offScheduleAmount, paymentSchedule } from './loanUtils'
-import { showToast } from '../../components/Toast'
-import { triggerConfetti } from '../../components/Confetti'
+import { showToast } from '../../components/toastEvents'
+import { triggerConfetti } from '../../components/confettiEvents'
 import { useIncomeStore, setMonthlyIncomeFromBackup } from '../finance/incomeStore'
+import { STORAGE_FIELDS } from '../backup/schema'
 
-const STORAGE_KEY = 'loan-tracker-loans'
-const PAYMENTS_KEY = 'loan-tracker-payments'
+const STORAGE_KEY = STORAGE_FIELDS.loans
+const PAYMENTS_KEY = STORAGE_FIELDS.payments
 const SORT_KEY = 'loan-tracker-sort'
 const VIEW_KEY = 'loan-tracker-view'
 

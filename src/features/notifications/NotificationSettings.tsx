@@ -4,7 +4,7 @@ import { useNotificationStore } from './notificationStore'
 import { useLoanStore } from '../loans/loanStore'
 import { getUpcomingPaymentsPreview } from './useNotificationCheck'
 import { DEFAULT_COLOR } from '../loans/loanTypes'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
 import CurrencyAmount from '../../components/CurrencyAmount'
 
 export default function NotificationSettings() {

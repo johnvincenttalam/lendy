@@ -4,7 +4,7 @@ import PinPad from '../lock/PinPad'
 import { usePrivateFolderStore } from './privateFolderStore'
 import { folderLabel, verifyRecovery } from './privateFolderUtils'
 import { ChoosePin, FolderBadge, FolderScreen } from './PrivateFolderSetup'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
 
 type Step = 'pin' | 'app-pin' | 'new-pin'
 

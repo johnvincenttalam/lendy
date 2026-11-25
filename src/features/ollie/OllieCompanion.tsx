@@ -3,6 +3,7 @@ import { ChevronUp } from 'lucide-react'
 import { useLoanStore } from '../loans/loanStore'
 import { useIncomeStore } from '../finance/incomeStore'
 import { useNotificationStore } from '../notifications/notificationStore'
+import { useLastBackupStore } from '../backup/lastBackupStore'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import { useOllieStore } from './ollieStore'
 import { findCelebratablePayment, localISODate, selectOllieSituation } from './ollieUtils'
@@ -47,6 +48,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
   const payments = useLoanStore((s) => s.payments)
   const monthlyIncome = useIncomeStore((s) => s.monthlyIncome)
   const reminderDays = useNotificationStore((s) => s.reminderDays)
+  const lastBackupAt = useLastBackupStore((s) => s.lastBackupAt)
   const {
     celebratedIds, dismissed, seenInsights, lastGreetingDate, visit,
     markCelebrated, dismiss, restore, markInsightSeen, markGreeted, setVisit,
@@ -85,8 +87,9 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
       celebratedIds: seen,
       seenInsights,
       greetingEligible,
+      lastBackupAt,
     })
-  }, [loans, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible])
+  }, [loans, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible, lastBackupAt])
 
   // Record what Ollie actually showed.
   useEffect(() => {

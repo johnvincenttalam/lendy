@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { onConfetti } from './confettiEvents'
 
 // Ollie's palette (teal scarf, orange beak, caramel) plus a few party colours
 const COLORS = ['#14B8A6', '#037574', '#F2A33A', '#E07A3F', '#FACC15', '#3B82F6', '#EC4899']
@@ -12,12 +13,6 @@ type Particle = {
   duration: number
   drift: number
   size: number
-}
-
-let listeners: (() => void)[] = []
-
-export function triggerConfetti() {
-  listeners.forEach((fn) => fn())
 }
 
 export default function ConfettiContainer() {
@@ -37,10 +32,7 @@ export default function ConfettiContainer() {
       setParticles(newParticles)
       setTimeout(() => setParticles([]), 3500)
     }
-    listeners.push(handler)
-    return () => {
-      listeners = listeners.filter((fn) => fn !== handler)
-    }
+    return onConfetti(handler)
   }, [])
 
   if (particles.length === 0) return null

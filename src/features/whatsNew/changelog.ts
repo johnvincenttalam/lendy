@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.12.0',
+    date: '2026-11-25',
+    title: 'Your data, kept safe',
+    highlights: [
+      'Settings shows when you last made a backup, and Ollie reminds you about once a month if it’s been a while.',
+      'Ollie asks your browser to keep your data even when your phone runs low on space.',
+      'Backups now note which version of Ollie made them, so future updates can still restore older ones.',
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-11-25',
     title: 'A simpler app',

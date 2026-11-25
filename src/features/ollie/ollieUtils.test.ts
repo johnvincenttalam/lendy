@@ -238,6 +238,19 @@ describe('collectInsights', () => {
   it('returns nothing when every loan is paid off', () => {
     expect(collectInsights([makeLoan({ monthsPaid: 12, totalPaid: 12000 })], 2000, NOW)).toEqual([])
   })
+
+  it('suggests a backup once a month, after the other insights, even with every loan paid off', () => {
+    const insights = collectInsights([makeLoan({ monthlyPayment: 1000 })], 2000, NOW, null)
+    expect(insights.at(-1)).toEqual({ key: 'backup:2026-11', insight: { type: 'backup-due', daysSince: null } })
+    const paidOff = collectInsights([makeLoan({ monthsPaid: 12, totalPaid: 12000 })], 2000, NOW, null)
+    expect(paidOff.map((i) => i.insight.type)).toEqual(['backup-due'])
+  })
+
+  it('stays quiet about backups after a recent one, or with only private loans', () => {
+    const recent = new Date(NOW.getTime() - 3 * 86_400_000).toISOString()
+    expect(collectInsights([makeLoan({ monthlyPayment: 1 })], 0, NOW, recent)).toEqual([])
+    expect(collectInsights([makeLoan({ private: true })], 0, NOW, null)).toEqual([])
+  })
 })
 
 describe('private loans', () => {

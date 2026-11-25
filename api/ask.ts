@@ -17,6 +17,17 @@ export const MAX_SUMMARY = 30_000
 export const MAX_HISTORY = 10
 export const MAX_TURN = 2_000
 
+/**
+ * Questions one visitor may ask per window. The Origin check stops other
+ * websites, but a script can fake that header, so this is what keeps a
+ * stranger from running up the Groq bill. Generous for a real person.
+ */
+export const RATE_LIMIT = 30
+export const RATE_WINDOW_SECONDS = 600
+
+/** Counts one question for `key`; resolves to the seconds to wait if over the limit, else 0. */
+export type Limiter = (key: string) => Promise<number>
+
 export type AskReply =
   | { answer: string }
   | { error: 'not-configured' | 'rate-limit' | 'failed'; retryAfter?: number }
@@ -78,6 +89,77 @@ function parseBody(raw: unknown): AskBody | null {
   return { summary, history: turns, question: question.trim() }
 }
 
+/**
+ * Who is asking, as a hash of their IP, so raw addresses are never stored.
+ * Vercel sets x-real-ip and overwrites x-forwarded-for, so neither can be spoofed there.
+ */
+async function visitorKey(request: Request): Promise<string> {
+  const ip = request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ollie-ask:${ip}`))
+  return Array.from(new Uint8Array(digest).slice(0, 16), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Best-effort limiter kept in the function's memory. Each server instance
+ * counts on its own and forgets on a cold start, so it's only a fallback
+ * for when Redis isn't set up.
+ */
+export function memoryLimiter(
+  limit = RATE_LIMIT,
+  windowSeconds = RATE_WINDOW_SECONDS,
+  clock: () => number = Date.now,
+): Limiter {
+  const hits = new Map<string, { count: number; resetAt: number }>()
+  return async (key) => {
+    const now = clock()
+    if (hits.size > 10_000) {
+      for (const [k, v] of hits) if (v.resetAt <= now) hits.delete(k)
+    }
+    let entry = hits.get(key)
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 0, resetAt: now + windowSeconds * 1000 }
+      hits.set(key, entry)
+    }
+    entry.count++
+    return entry.count > limit ? Math.ceil((entry.resetAt - now) / 1000) : 0
+  }
+}
+
+/**
+ * Limiter shared by every server instance, counted in Upstash Redis over its
+ * REST API (no client library, so this file stays self-contained). If Redis
+ * is unreachable the question goes through: Groq's own limits still apply.
+ */
+export function redisLimiter(
+  url: string,
+  token: string,
+  fetchImpl: typeof fetch = fetch,
+  limit = RATE_LIMIT,
+  windowSeconds = RATE_WINDOW_SECONDS,
+  clock: () => number = Date.now,
+): Limiter {
+  return async (key) => {
+    const now = clock()
+    const windowMs = windowSeconds * 1000
+    const window = Math.floor(now / windowMs)
+    const redisKey = `ask:${key}:${window}`
+    try {
+      const res = await fetchImpl(`${url.replace(/\/$/, '')}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', redisKey], ['EXPIRE', redisKey, String(windowSeconds)]]),
+      })
+      if (!res.ok) return 0
+      const data = await res.json() as Array<{ result?: unknown }>
+      const count = Number(data?.[0]?.result)
+      if (!Number.isFinite(count) || count <= limit) return 0
+      return Math.max(1, Math.ceil(((window + 1) * windowMs - now) / 1000))
+    } catch {
+      return 0
+    }
+  }
+}
+
 /** Same-site check: other websites' pages can't use this endpoint. */
 function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin')
@@ -91,7 +173,7 @@ function sameOrigin(request: Request): boolean {
 
 export async function handleAsk(
   request: Request,
-  deps: { apiKey: string | undefined; fetchImpl?: typeof fetch },
+  deps: { apiKey: string | undefined; fetchImpl?: typeof fetch; limiter?: Limiter },
 ): Promise<Response> {
   if (request.method !== 'POST') return reply({ error: 'failed' }, 405, { Allow: 'POST' })
   if (!sameOrigin(request)) return reply({ error: 'failed' }, 403)
@@ -104,6 +186,12 @@ export async function handleAsk(
   }
   if (!body) return reply({ error: 'failed' }, 400)
   if (!deps.apiKey) return reply({ error: 'not-configured' }, 503)
+
+  // Counted only for questions that would reach Groq.
+  if (deps.limiter) {
+    const wait = await deps.limiter(await visitorKey(request))
+    if (wait > 0) return reply({ error: 'rate-limit', retryAfter: wait }, 429, { 'Retry-After': String(wait) })
+  }
 
   let res: Response
   try {
@@ -153,9 +241,16 @@ export async function handleAsk(
   }
 }
 
-/** The Groq key comes from the GROQ_API_KEY environment variable in the Vercel project. */
+/**
+ * Set in the Vercel project: GROQ_API_KEY, and optionally an Upstash Redis
+ * database (the Vercel marketplace integration adds KV_REST_API_URL and
+ * KV_REST_API_TOKEN; a direct Upstash setup uses the UPSTASH_REDIS_REST_* names).
+ */
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env
+const redisUrl = env?.UPSTASH_REDIS_REST_URL ?? env?.KV_REST_API_URL
+const redisToken = env?.UPSTASH_REDIS_REST_TOKEN ?? env?.KV_REST_API_TOKEN
+const limiter = redisUrl && redisToken ? redisLimiter(redisUrl, redisToken) : memoryLimiter()
 
 export default {
-  fetch: (request: Request) => handleAsk(request, { apiKey: env?.GROQ_API_KEY }),
+  fetch: (request: Request) => handleAsk(request, { apiKey: env?.GROQ_API_KEY, limiter }),
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { handleAsk, GROQ_MODEL } from '../../api/ask'
+import { handleAsk, GROQ_MODEL, RATE_LIMIT, memoryLimiter, redisLimiter } from '../../api/ask'
 import source from '../../api/ask.ts?raw'
 
 const SITE = 'https://ollie.example'
@@ -121,6 +121,58 @@ describe('handleAsk', () => {
     const text = await res.text()
     expect(text).not.toContain('secret')
     expect(text).not.toContain('Bearer')
+  })
+})
+
+describe('rate limiting', () => {
+  it('turns a visitor away before Groq once the limiter says wait', async () => {
+    const calls: Call[] = []
+    const keys: string[] = []
+    const limiter = async (key: string) => { keys.push(key); return 120 }
+    const request = req(valid)
+    request.headers.set('x-real-ip', '203.0.113.7')
+    const res = await handleAsk(request, { apiKey: 'k', fetchImpl: groq(answer('x'), calls), limiter })
+    expect(res.status).toBe(429)
+    expect(res.headers.get('Retry-After')).toBe('120')
+    expect(await res.json()).toEqual({ error: 'rate-limit', retryAfter: 120 })
+    expect(calls).toHaveLength(0)
+    // The IP is hashed, never stored as-is.
+    expect(keys[0]).toMatch(/^[0-9a-f]{32}$/)
+    expect(keys[0]).not.toContain('203.0.113.7')
+  })
+
+  it("doesn't count requests that never reach Groq", async () => {
+    let counted = 0
+    const limiter = async () => { counted++; return 0 }
+    await handleAsk(req({ ...valid, question: '' }), { apiKey: 'k', limiter })
+    await handleAsk(req(valid), { apiKey: undefined, limiter })
+    expect(counted).toBe(0)
+  })
+
+  it('in memory: allows the limit, then says how long to wait, then resets', async () => {
+    let now = 0
+    const limit = memoryLimiter(2, 600, () => now)
+    expect(await limit('a')).toBe(0)
+    expect(await limit('a')).toBe(0)
+    expect(await limit('b')).toBe(0)
+    now = 100_000
+    expect(await limit('a')).toBe(500)
+    now = 600_000
+    expect(await limit('a')).toBe(0)
+  })
+
+  it('in Redis: counts per window with an expiry, and lets questions through if Redis fails', async () => {
+    const calls: Call[] = []
+    const count = (n: number) => () => new Response(JSON.stringify([{ result: n }, { result: 1 }]), { status: 200 })
+    const at = () => 1_200_000 + 60_000 // one minute into window 2
+    expect(await redisLimiter('https://r.example/', 't', groq(count(RATE_LIMIT), calls), RATE_LIMIT, 600, at)('v')).toBe(0)
+    expect(JSON.parse(calls[0].init.body as string)).toEqual([['INCR', 'ask:v:2'], ['EXPIRE', 'ask:v:2', '600']])
+    expect(calls[0].url).toBe('https://r.example/pipeline')
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer t')
+    expect(await redisLimiter('https://r.example', 't', groq(count(RATE_LIMIT + 1)), RATE_LIMIT, 600, at)('v')).toBe(540)
+    expect(await redisLimiter('https://r.example', 't', groq(() => new Response('', { status: 500 })))('v')).toBe(0)
+    const down = (async () => { throw new TypeError('network') }) as typeof fetch
+    expect(await redisLimiter('https://r.example', 't', down)('v')).toBe(0)
   })
 })
 

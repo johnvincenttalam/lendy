@@ -28,6 +28,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      # A failing test or lint error stops the deploy.
+      - run: npm run verify
       - run: npm run build
         env:
           VITE_BASE: /lendy/

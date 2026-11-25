@@ -60,7 +60,7 @@ describe('errorMessage', () => {
     expect(errorMessage('not-configured')).toBe("Ask Ollie isn't set up yet.")
     expect(errorMessage('unavailable')).toBe('Ask Ollie only works on the Vercel version of the app.')
     expect(errorMessage('offline')).toBe('No connection. Ollie needs the internet to answer.')
-    expect(errorMessage('rate-limit')).toBe("Groq's free limit is used up for now. Try again in a minute.")
+    expect(errorMessage('rate-limit')).toBe("Ollie has answered a lot of questions for now. Try again in a minute.")
     expect(errorMessage('rate-limit', 300)).toContain('about 5 minutes')
     expect(errorMessage('failed')).toBe("Ollie couldn't get an answer. Try again.")
   })

@@ -21,6 +21,8 @@ export type OllieInsight =
   | { type: 'debt-free-soon'; date: Date }
   | { type: 'milestone'; percent: number }
   | { type: 'high-dti'; percent: number }
+  /** No backup yet (daysSince null), or the last one is getting old. */
+  | { type: 'backup-due'; daysSince: number | null }
 
 /**
  * What Ollie should talk about right now. `key` identifies the specific
@@ -51,4 +53,6 @@ export type OllieInput = {
   seenInsights: Readonly<Record<string, string>>
   /** Whether this is the first dashboard visit of the day. */
   greetingEligible: boolean
+  /** ISO time of the last backup (null: never). Left out, Ollie doesn't bring up backups. */
+  lastBackupAt?: string | null
 }

@@ -69,8 +69,8 @@ export function errorMessage(error: AskError, retryAfter?: number): string {
       return 'Ask Ollie only works on the Vercel version of the app.'
     case 'rate-limit':
       return retryAfter && retryAfter > 90
-        ? `Groq's free limit is used up for now. Try again in about ${Math.ceil(retryAfter / 60)} minutes.`
-        : "Groq's free limit is used up for now. Try again in a minute."
+        ? `Ollie has answered a lot of questions for now. Try again in about ${Math.ceil(retryAfter / 60)} minutes.`
+        : "Ollie has answered a lot of questions for now. Try again in a minute."
     case 'offline':
       return 'No connection. Ollie needs the internet to answer.'
     default:
