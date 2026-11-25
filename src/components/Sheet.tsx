@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 
 type Props = {
   title: string

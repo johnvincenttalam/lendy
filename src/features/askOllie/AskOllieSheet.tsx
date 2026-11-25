@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { ArrowUp, RotateCcw } from 'lucide-react'
-import Sheet from '../money/Sheet'
+import Sheet from '../../components/Sheet'
 import OllieCharacter from '../ollie/OllieCharacter'
 import { askOllie, errorMessage } from './askClient'
 import type { ChatMessage } from './askClient'

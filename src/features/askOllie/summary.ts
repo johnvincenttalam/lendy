@@ -1,25 +1,14 @@
 import type { Loan, PaymentRecord } from '../loans/loanTypes'
 import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
-import type { MoneyCategory, MoneyEntry } from '../money/moneyTypes'
 import {
   formatCurrency, remainingBalance, totalCostOfLoan, monthsLeft, nextDueDate, daysOverdue,
   endDate, isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio,
 } from '../loans/loanUtils'
 import { isBillOverdue, billDaysOverdue, paidForCycle } from '../bills/billUtils'
 import { progressPercent } from '../savings/savingsUtils'
-import {
-  allCategories, resolveCategory, localISODate, monthKeyOf, shiftMonth, entriesForMonth,
-  monthTotals, expenseBreakdown,
-} from '../money/moneyUtils'
 import { folderLabel } from '../privateFolder/privateFolderUtils'
-import { HIGH_DTI } from '../ollie/ollieUtils'
-
-/** ~6,000 tokens — well under a free-tier model's per-minute limit. */
-export const SUMMARY_CHAR_BUDGET = 24_000
-
-const MONTHS_OF_HISTORY = 12
-const ENTRY_WINDOWS = [60, 30, 15, 0]
+import { HIGH_DTI, localISODate } from '../ollie/ollieUtils'
 
 export type SummaryInput = {
   loans: Loan[]
@@ -27,8 +16,6 @@ export type SummaryInput = {
   bills: Bill[]
   billPayments: BillPaymentRecord[]
   goals: SavingsGoal[]
-  moneyEntries: MoneyEntry[]
-  moneyCategories: MoneyCategory[]
   monthlyIncome: number
   /** True only when the chat was opened from inside the private folder. */
   includePrivate: boolean
@@ -112,15 +99,11 @@ function loanSections(input: SummaryInput): string[] {
   return lines
 }
 
-/** Recorded income this far below the income setting is worth pointing out. */
-const INCOME_GAP_SHARE = 0.1
-
 /**
- * Comparisons a friend would make — headroom, what frees up next, what was
- * actually earned — worked out here so Ollie can give an honest read
+ * Comparisons a friend would make — headroom, what frees up next — worked out here so Ollie can give an honest read
  * without doing the maths. Regular loans only, like the totals above.
  */
-function quickReadSection(input: SummaryInput, now: Date): string[] {
+function quickReadSection(input: SummaryInput): string[] {
   const lines = ['QUICK READ (worked out by the app)']
   const active = input.loans.filter((l) => isTracked(l) && !isFullyPaid(l))
   const monthly = active.reduce((sum, l) => sum + l.monthlyPayment, 0)
@@ -147,26 +130,6 @@ function quickReadSection(input: SummaryInput, now: Date): string[] {
   const overdueBills = input.bills.filter(isBillOverdue)
   lines.push(`Overdue bills: ${overdueBills.length ? `${overdueBills.length} (${overdueBills.map((b) => b.name).join(', ')})` : 'none'}`)
 
-  // Completed months only — the current one is still filling up.
-  const thisMonth = monthKeyOf(localISODate(now))
-  const pastMonths = Array.from({ length: MONTHS_OF_HISTORY }, (_, i) => shiftMonth(thisMonth, -(i + 1)))
-    .map((key) => ({ key, totals: monthTotals(entriesForMonth(input.moneyEntries, key)) }))
-    .filter((m) => m.totals.income > 0)
-  const last = pastMonths[0]
-  if (last) {
-    const recorded = last.totals.income
-    lines.push(`Last full month with income recorded: ${last.key}, income ${money(recorded)}, net ${money(last.totals.net)}`)
-    if (income > 0 && Math.abs(income - recorded) >= income * INCOME_GAP_SHARE) {
-      lines.push(recorded < income
-        ? `Income recorded in ${last.key} is ${money(income - recorded)} below the income setting`
-        : `Income recorded in ${last.key} is ${money(recorded - income)} above the income setting`)
-    }
-    if (monthly > 0) {
-      lines.push(`Monthly loan payments as a share of the income recorded in ${last.key}: ${Math.round((monthly / recorded) * 100)}%`)
-    }
-    const negative = pastMonths.filter((m) => m.totals.net < 0).map((m) => m.key)
-    lines.push(`Full months (of the last ${MONTHS_OF_HISTORY}) where expenses beat income: ${negative.length ? `${negative.length} (${negative.join(', ')})` : 'none'}`)
-  }
   return lines
 }
 
@@ -205,69 +168,21 @@ function savingsSection(goals: SavingsGoal[]): string[] {
   return lines
 }
 
-function moneySection(input: SummaryInput, now: Date, months: number, windowDays: number): string[] {
-  const categories = allCategories(input.moneyCategories)
-  const nameOf = (categoryId: string, type: MoneyEntry['type']) => resolveCategory(categories, { categoryId, type }).name
-  const lines = ['MONEY (income and expenses)']
-  if (input.monthlyIncome > 0) lines.push(`Monthly income setting: ${money(input.monthlyIncome)}`)
-
-  const thisMonth = monthKeyOf(localISODate(now))
-  for (let i = 0; i < months; i++) {
-    const key = shiftMonth(thisMonth, -i)
-    const inMonth = entriesForMonth(input.moneyEntries, key)
-    if (inMonth.length === 0) continue
-    const { income, expenses, net } = monthTotals(inMonth)
-    const byCategory = expenseBreakdown(inMonth).map((c) => `${nameOf(c.categoryId, 'expense')} ${money(c.total)}`)
-    lines.push(`${key}: income ${money(income)}, expenses ${money(expenses)}, net ${money(net)}` +
-      (byCategory.length ? `; expenses by category: ${byCategory.join(', ')}` : ''))
-  }
-
-  if (windowDays > 0) {
-    const from = new Date(now)
-    from.setDate(from.getDate() - windowDays)
-    const cutoff = localISODate(from)
-    const recent = input.moneyEntries
-      .filter((e) => e.date >= cutoff)
-      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-    if (recent.length > 0) {
-      lines.push(`Individual entries, last ${windowDays} days (newest first):`)
-      for (const e of recent) {
-        lines.push(`- ${e.date} ${e.type} ${nameOf(e.categoryId, e.type)} ${money(e.amount)}${e.note ? ` — ${e.note}` : ''}`)
-      }
-    }
-  }
-  if (lines.length === 1) lines.push('- no entries')
-  return lines
-}
-
 /**
  * Everything Ollie may know, as plain text with every figure already
  * worked out by the app — so the model only has to find and phrase.
  * Private loans (and the folder's name) appear only with `includePrivate`.
  */
 export function buildSummary(input: SummaryInput, now: Date): string {
-  const fixed = [
+  return [
     `Today: ${localISODate(now)}. Currency: Philippine peso (₱). Dates are YYYY-MM-DD.`,
     '',
     ...loanSections(input),
     '',
-    ...quickReadSection(input, now),
+    ...quickReadSection(input),
     '',
     ...billSection(input.bills, input.billPayments),
     '',
     ...savingsSection(input.goals),
-    '',
   ].join('\n')
-
-  // Trim money history to fit: oldest months first, then the entries window.
-  let months = MONTHS_OF_HISTORY
-  let windowIndex = 0
-  for (;;) {
-    const text = `${fixed}\n${moneySection(input, now, months, ENTRY_WINDOWS[windowIndex]).join('\n')}`
-    if (text.length <= SUMMARY_CHAR_BUDGET) return text
-    if (months > 1) months -= 1
-    else if (windowIndex < ENTRY_WINDOWS.length - 1) windowIndex += 1
-    else if (months > 0) months = 0
-    else return text // only loans, bills and goals left — never cut those
-  }
 }
