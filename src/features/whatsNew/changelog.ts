@@ -14,6 +14,16 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.10.0',
+    date: '2026-11-25',
+    title: 'Ollie talks like a friend',
+    highlights: [
+      'Ask Ollie "should I take another loan?" and get an honest read, like "I’d hold off for now", with the reasons behind it.',
+      'Ollie now spots what the numbers mean together, like how much room is left before loans get too heavy, which loan finishes next and frees up money, and when the income you recorded is lower than your income setting.',
+      'Answers sound warmer and often end with a helpful follow-up question.',
+    ],
+  },
+  {
     version: '1.9.2',
     date: '2026-11-24',
     title: 'Ollie helps you weigh a decision',

@@ -46,13 +46,16 @@ describe('handleAsk', () => {
     expect(body.messages.at(-1)).toEqual({ role: 'user', content: 'Biggest loan?' })
   })
 
-  it('tells Ollie to lay out the figures for "should I…?" questions instead of refusing', async () => {
+  it('tells Ollie to give an honest read on "should I…?" questions, from the ready-made figures', async () => {
     const calls: Call[] = []
     await handleAsk(req(valid), { apiKey: 'k', fetchImpl: groq(answer('Phone.'), calls) })
-    const prompt = JSON.parse(calls[0].init.body as string).messages[0].content as string
-    expect(prompt).toContain('share of monthly income')
-    expect(prompt).toContain('Overdue regular loans')
-    expect(prompt).toMatch(/decision is the owner's/)
+    const body = JSON.parse(calls[0].init.body as string)
+    const prompt = body.messages[0].content as string
+    expect(prompt).toContain('honest read')
+    expect(prompt).toContain('QUICK READ')
+    expect(prompt).toContain('final call is theirs')
+    expect(prompt).toContain('follow-up')
+    expect(body.temperature).toBe(0.5)
   })
 
   it('rejects other sites and missing origin', async () => {
