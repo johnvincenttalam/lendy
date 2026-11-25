@@ -5,7 +5,6 @@ import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
-import { useMoneyStore } from '../features/money/moneyStore'
 import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
 import { debtToIncomeRatio, isTracked } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
@@ -28,8 +27,7 @@ export default function SettingsPage() {
   const { monthlyIncome, setMonthlyIncome } = useIncomeStore()
   const { bills } = useBillStore()
   const { goals } = useSavingsStore()
-  const moneyEntryCount = useMoneyStore((s) => s.entries.length)
-  const existing = { loans: loans.length, bills: bills.length, goals: goals.length, moneyEntries: moneyEntryCount }
+  const existing = { loans: loans.length, bills: bills.length, goals: goals.length }
   const navigate = useNavigate()
   const unseenReleases = useUnseenReleaseCount()
   const fileInputRef = useRef<HTMLInputElement>(null)

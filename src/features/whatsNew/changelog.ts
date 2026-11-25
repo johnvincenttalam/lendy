@@ -14,6 +14,15 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.11.0',
+    date: '2026-11-25',
+    title: 'A simpler app',
+    highlights: [
+      'The Money page is gone, so Ollie can stay focused on your loans, bills and savings.',
+      'Ollie still uses the monthly income you set in Settings to tell you how much room your loans leave.',
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-11-25',
     title: 'Ollie talks like a friend',
