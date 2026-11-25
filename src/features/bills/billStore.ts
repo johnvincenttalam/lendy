@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import type { Bill, BillFormData, BillPaymentRecord } from './billTypes'
 import { advanceDueDate, paidForCycle, remainingForCycle } from './billUtils'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
+import { STORAGE_FIELDS } from '../backup/schema'
 
-const BILLS_KEY = 'loan-tracker-bills'
-const BILL_PAYMENTS_KEY = 'loan-tracker-bill-payments'
+const BILLS_KEY = STORAGE_FIELDS.bills
+const BILL_PAYMENTS_KEY = STORAGE_FIELDS.billPayments
 
 function formatDue(amount: number): string {
   return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Lock, Unlock, Delete } from 'lucide-react'
 import { useLockStore } from './lockStore'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
 
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'] as const
 

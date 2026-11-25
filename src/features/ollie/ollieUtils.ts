@@ -5,6 +5,7 @@ import {
 } from '../loans/loanUtils'
 import { isBackfilledPayment } from '../finance/financeUtils'
 import { startOfDay } from '../../utils/dateUtils'
+import { daysSinceBackup, isBackupDue } from '../backup/backupStatus'
 import type { DuePayment, OllieInput, OllieInsight, OllieSituation } from './ollieTypes'
 
 /** Payments due within this many days count as "soon" (priority 3). */
@@ -102,11 +103,22 @@ export function collectInsights(
   loans: Loan[],
   monthlyIncome: number,
   now: Date,
+  /** Undefined skips the backup reminder. */
+  lastBackupAt?: string | null,
 ): Array<{ key: string; insight: OllieInsight }> {
   const tracked = loans.filter(isTracked)
   const unpaid = tracked.filter((l) => !isFullyPaid(l))
   const insights: Array<{ key: string; insight: OllieInsight }> = []
-  if (unpaid.length === 0) return insights
+
+  // 5. No recent backup — at most once a month, and last, since it's never urgent.
+  const backup: { key: string; insight: OllieInsight } | null = lastBackupAt !== undefined && tracked.length > 0 && isBackupDue(lastBackupAt, now)
+    ? {
+        key: `backup:${now.getFullYear()}-${now.getMonth() + 1}`,
+        insight: { type: 'backup-due', daysSince: daysSinceBackup(lastBackupAt, now) },
+      }
+    : null
+
+  if (unpaid.length === 0) return backup ? [backup] : insights
 
   // 1. A loan on its final stretch.
   const closest = [...unpaid].sort((a, b) => monthsLeft(a) - monthsLeft(b))[0]
@@ -149,6 +161,7 @@ export function collectInsights(
     })
   }
 
+  if (backup) insights.push(backup)
   return insights
 }
 
@@ -160,7 +173,7 @@ export function collectInsights(
  * Relaxed is only reachable when nothing is overdue or due in the window.
  */
 export function selectOllieSituation(input: OllieInput): OllieSituation {
-  const { loans, payments, now, reminderDays, monthlyIncome, celebratedIds, seenInsights, greetingEligible } = input
+  const { loans, payments, now, reminderDays, monthlyIncome, celebratedIds, seenInsights, greetingEligible, lastBackupAt } = input
   const today = localISODate(now)
   const windowDays = Math.max(MIN_WINDOW_DAYS, reminderDays)
 
@@ -206,7 +219,7 @@ export function selectOllieSituation(input: OllieInput): OllieSituation {
     }
   }
 
-  const insight = collectInsights(loans, monthlyIncome, now)
+  const insight = collectInsights(loans, monthlyIncome, now, lastBackupAt)
     .find(({ key }) => seenInsights[key] === undefined || seenInsights[key] === today)
   if (insight) {
     return { kind: 'insight', key: `insight:${insight.key}`, insightKey: insight.key, insight: insight.insight }

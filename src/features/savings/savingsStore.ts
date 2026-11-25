@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import type { SavingsGoal, SavingsGoalFormData, SavingsTransaction } from './savingsTypes'
 import { isGoalReached } from './savingsUtils'
-import { showToast } from '../../components/Toast'
-import { triggerConfetti } from '../../components/Confetti'
+import { showToast } from '../../components/toastEvents'
+import { triggerConfetti } from '../../components/confettiEvents'
+import { STORAGE_FIELDS } from '../backup/schema'
 
-const GOALS_KEY = 'loan-tracker-savings-goals'
-const TRANSACTIONS_KEY = 'loan-tracker-savings-transactions'
+const GOALS_KEY = STORAGE_FIELDS.savingsGoals
+const TRANSACTIONS_KEY = STORAGE_FIELDS.savingsTransactions
 
 function loadGoals(): SavingsGoal[] {
   try {

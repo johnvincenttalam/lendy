@@ -26,7 +26,7 @@ import {
 } from './loanUtils'
 import { useLoanStore } from './loanStore'
 import LoanForm from './LoanForm'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import ProgressBar from '../../components/ProgressBar'

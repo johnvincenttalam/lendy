@@ -50,6 +50,7 @@ export default function OllieMessage({ situation, content, tone, now, critical, 
   const payments = duePayments(situation)
   const showDetails = payments.length > 1
   const showCalendar = situation.kind === 'upcoming' || (situation.kind === 'relaxed' && situation.next !== null)
+  const showBackup = situation.kind === 'insight' && situation.insight.type === 'backup-due'
 
   return (
     <div className="relative flex-1 min-w-0 rounded-2xl px-4 py-3.5" style={{ backgroundColor: tone.bubble }}>
@@ -79,7 +80,7 @@ export default function OllieMessage({ situation, content, tone, now, critical, 
         </button>
       </div>
 
-      {(loanId || showDetails || showCalendar) && (
+      {(loanId || showDetails || showCalendar || showBackup) && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5">
           {loanId && (
             <button type="button" onClick={() => navigate(`/loan/${loanId}`)} className={linkButton}>
@@ -101,6 +102,11 @@ export default function OllieMessage({ situation, content, tone, now, critical, 
           {showCalendar && (
             <button type="button" onClick={() => navigate('/calendar')} className={linkButton}>
               <CalendarDays className="w-3.5 h-3.5" /> Schedule
+            </button>
+          )}
+          {showBackup && (
+            <button type="button" onClick={() => navigate('/settings')} className={linkButton}>
+              Back up now <ChevronRight className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

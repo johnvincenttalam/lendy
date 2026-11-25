@@ -128,6 +128,10 @@ function insightText(insight: OllieInsight, rotation: number): string {
       ], rotation, null)
     case 'high-dti':
       return `Loan payments take up about ${insight.percent}% of your monthly income. Let's review your remaining balances before taking on more.`
+    case 'backup-due':
+      return insight.daysSince === null
+        ? `Your loans live only on this device. Make a backup so nothing is lost if anything happens to it.`
+        : `It's been ${insight.daysSince} days since your last backup. A fresh one keeps everything safe.`
   }
 }
 

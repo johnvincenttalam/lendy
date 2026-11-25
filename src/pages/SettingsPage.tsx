@@ -12,11 +12,13 @@ import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
 import PrivateFolderSettings from '../features/privateFolder/PrivateFolderSettings'
 import NotificationSettings from '../features/notifications/NotificationSettings'
-import { showToast } from '../components/Toast'
+import { showToast } from '../components/toastEvents'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
-import { exportAllData, importAllData, parseBackupCounts } from '../utils/backup'
+import { exportAllData, importAllData, checkBackup } from '../utils/backup'
+import { useLastBackupStore } from '../features/backup/lastBackupStore'
+import { describeLastBackup, isBackupDue } from '../features/backup/backupStatus'
 import type { BackupCounts } from '../utils/backup'
 import ProgressBar from '../components/ProgressBar'
 
@@ -30,6 +32,9 @@ export default function SettingsPage() {
   const existing = { loans: loans.length, bills: bills.length, goals: goals.length }
   const navigate = useNavigate()
   const unseenReleases = useUnseenReleaseCount()
+  const { lastBackupAt, markBackedUp } = useLastBackupStore()
+  const hasData = hasExistingData(existing)
+  const backupDue = hasData && isBackupDue(lastBackupAt, new Date())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
@@ -55,6 +60,7 @@ export default function SettingsPage() {
     if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'Ollie backup' })
+        markBackedUp()
         showToast('Backup shared')
         return
       } catch (err) {
@@ -63,6 +69,7 @@ export default function SettingsPage() {
     }
 
     downloadFile(json, filename, 'application/json')
+    markBackedUp()
     showToast('Backup saved')
   }
 
@@ -72,12 +79,14 @@ export default function SettingsPage() {
     const reader = new FileReader()
     reader.onload = () => {
       const json = reader.result as string
-      const counts = parseBackupCounts(json)
-      if (!counts) {
-        showToast('Invalid backup file')
+      const check = checkBackup(json)
+      if (!check.ok) {
+        showToast(check.reason === 'newer'
+          ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'
+          : 'Invalid backup file')
         return
       }
-      setPendingImport({ json, counts })
+      setPendingImport({ json, counts: check.counts })
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -198,6 +207,12 @@ export default function SettingsPage() {
               Restore
             </button>
           </div>
+          {hasData && (
+            <p className={`text-[12px] mt-2.5 ${backupDue ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-muted'}`}>
+              {describeLastBackup(lastBackupAt, new Date())}
+              {backupDue && ' · Your data lives only on this device, so keep a copy somewhere safe.'}
+            </p>
+          )}
         </div>
       </div>
 

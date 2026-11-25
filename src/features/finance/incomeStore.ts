@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { STORAGE_FIELDS } from '../backup/schema'
 
-const INCOME_KEY = 'loan-tracker-income'
+const INCOME_KEY = STORAGE_FIELDS.monthlyIncome
 
 type IncomeStore = {
   monthlyIncome: number

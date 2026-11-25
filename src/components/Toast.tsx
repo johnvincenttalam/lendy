@@ -1,17 +1,6 @@
 import { useEffect, useState } from 'react'
-
-export type ToastData = {
-  id: string
-  message: string
-  action?: { label: string; onClick: () => void }
-}
-
-let listeners: ((toast: ToastData) => void)[] = []
-
-export function showToast(message: string, action?: { label: string; onClick: () => void }) {
-  const toast: ToastData = { id: crypto.randomUUID(), message, action }
-  listeners.forEach((fn) => fn(toast))
-}
+import { onToast } from './toastEvents'
+import type { ToastData } from './toastEvents'
 
 export default function ToastContainer() {
   const [toast, setToast] = useState<ToastData | null>(null)
@@ -36,9 +25,9 @@ export default function ToastContainer() {
       }, 3000)
     }
 
-    listeners.push(handler)
+    const unsubscribe = onToast(handler)
     return () => {
-      listeners = listeners.filter((fn) => fn !== handler)
+      unsubscribe()
       clearTimeout(hideTimer)
       clearTimeout(removeTimer)
     }

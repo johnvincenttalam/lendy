@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { FolderLock, Lock } from 'lucide-react'
 import PinPad from '../lock/PinPad'
-import { showToast } from '../../components/Toast'
+import { showToast } from '../../components/toastEvents'
 import { usePrivateFolderStore, selectIsSetUp, selectHasPin } from './privateFolderStore'
 import { DEFAULT_FOLDER_LABEL, MAX_FOLDER_NAME, folderLabel } from './privateFolderUtils'
 import PrivateFolderSetup, { ChoosePin, FolderBadge, FolderScreen } from './PrivateFolderSetup'
