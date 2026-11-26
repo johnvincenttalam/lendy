@@ -77,9 +77,9 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       const json = reader.result as string
-      const check = checkBackup(json)
+      const check = await checkBackup(json)
       if (!check.ok) {
         showToast(check.reason === 'newer'
           ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'

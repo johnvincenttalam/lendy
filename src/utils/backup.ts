@@ -5,7 +5,7 @@ import { useIncomeStore } from '../features/finance/incomeStore'
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 import { showToast } from '../components/toastEvents'
 import { SCHEMA_VERSION } from '../features/backup/schema'
-import { prepareRestore, writeRestore, undoRestore, readSafetyCopy } from '../features/backup/restore'
+import { writeRestore, undoRestore, readSafetyCopy } from '../features/backup/restore'
 import type { PreparedRestore, RestoreData } from '../features/backup/restore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 
@@ -33,7 +33,8 @@ export function exportAllData(): string {
 }
 
 /** Reads and checks a backup file without changing anything. */
-export function checkBackup(json: string): PreparedRestore {
+export async function checkBackup(json: string): Promise<PreparedRestore> {
+  const { prepareRestore } = await import('../features/backup/prepareRestore')
   return prepareRestore(json)
 }
 

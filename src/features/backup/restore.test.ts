@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { prepareRestore, writeRestore, undoRestore, readSafetyCopy, SAFETY_COPY_KEY } from './restore'
+import { writeRestore, undoRestore, readSafetyCopy, SAFETY_COPY_KEY } from './restore'
+import { prepareRestore } from './prepareRestore'
 import type { RestoreData } from './restore'
 import { STORAGE_FIELDS } from './schema'
 
