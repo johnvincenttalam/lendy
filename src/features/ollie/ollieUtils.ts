@@ -5,6 +5,7 @@ import {
 } from '../loans/loanUtils'
 import { isBackfilledPayment } from '../finance/financeUtils'
 import { startOfDay } from '../../utils/dateUtils'
+import { localISODate, calendarDaysBetween } from '../../core/time/localDate'
 import { daysSinceBackup, isBackupDue } from '../backup/backupStatus'
 import type { DuePayment, OllieInput, OllieInsight, OllieSituation } from './ollieTypes'
 
@@ -19,23 +20,7 @@ const DEBT_FREE_SOON_MONTHS = 3
 /** Share of income going to loans above which Ollie suggests a review. */
 export const HIGH_DTI = 0.4
 
-/** YYYY-MM-DD in the device's own timezone (toISOString would give UTC). */
-export function localISODate(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-/**
- * Whole calendar days from `from` to `to` in local time. Compares the local
- * y/m/d fields, so a DST shift (a 23- or 25-hour day) can't skew the count.
- */
-export function calendarDaysBetween(from: Date, to: Date): number {
-  const a = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())
-  const b = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate())
-  return Math.round((b - a) / 86_400_000)
-}
+export { localISODate, calendarDaysBetween }
 
 /**
  * The loan's next unpaid payment relative to `now`, built from the same
