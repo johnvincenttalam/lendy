@@ -14,7 +14,6 @@ import type { OllieDb } from './db'
 import { createDexieBackend, upgradeDexieData } from './dexieBackend'
 import { fingerprintLegacy } from './fingerprint'
 import { createLocalStorageBackend } from './localStorageBackend'
-import { planMove, runMove } from './move'
 import type { MoveReport } from './move'
 import { dexieSafetyStore, localSafetyStore } from './safetyCopyStore'
 import type { DataSnapshot } from './snapshot'
@@ -121,6 +120,8 @@ export async function bootstrap(env: BootEnv): Promise<BootOutcome> {
   }
 
   if (flag === null && env.hasIndexedDb) {
+    // Loaded only while a move may be needed: it brings in the validation library.
+    const { planMove, runMove } = await import('./move')
     // Checking is cheap and changes nothing, so it runs every start until the owner decides.
     const plan = planMove(storage)
     if (plan.quarantine.length > 0) return onSimpleStorage(storage, { ...baseStatus('localstorage'), blocked: plan.quarantine })

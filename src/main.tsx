@@ -9,7 +9,7 @@ import App from './App'
 import { requestPersistentStorage } from './features/backup/persistStorage'
 import { setActiveStorage } from './features/storage/activeStorage'
 import { bootstrap } from './features/storage/bootstrap'
-import { createOllieDb } from './features/storage/db'
+import { openOllieDb } from './features/storage/db'
 import { useStorageStatusStore } from './features/storage/storageStatusStore'
 import StorageErrorScreen from './features/storage/StorageErrorScreen'
 import RecoveryScreen from './features/storage/RecoveryScreen'
@@ -23,11 +23,7 @@ async function start() {
   const outcome = await bootstrap({
     storage: localStorage,
     hasIndexedDb: typeof indexedDB !== 'undefined',
-    openDb: async () => {
-      const db = createOllieDb()
-      await db.open()
-      return db
-    },
+    openDb: openOllieDb,
     now: new Date(),
   })
 
@@ -39,8 +35,23 @@ async function start() {
     root.render(
       <RecoveryScreen
         movedAt={outcome.movedAt}
-        onRestoreFile={async () => 'Not available yet'}
-        onUseOlderCopy={async () => 'Not available yet'}
+        onRestoreFile={async (json) => {
+          const { restoreIntoEmptyDatabase } = await import('./features/storage/storageActions')
+          try {
+            const r = await restoreIntoEmptyDatabase(outcome.db, localStorage, json, new Date())
+            if (r.ok) return null
+            return r.reason === 'newer'
+              ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'
+              : 'That file isn’t an Ollie backup.'
+          } catch {
+            return 'Couldn’t restore that file. Nothing was changed.'
+          }
+        }}
+        onUseOlderCopy={async () => {
+          const { refillFromOlderCopy } = await import('./features/storage/storageActions')
+          const r = await refillFromOlderCopy(outcome.db, localStorage, new Date())
+          return r.ok ? null : 'Couldn’t bring back the older copy. Try a backup file instead.'
+        }}
       />,
     )
     return

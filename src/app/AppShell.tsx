@@ -9,6 +9,7 @@ import { usePrivateFolderStore } from '../features/privateFolder/privateFolderSt
 import { isPrivatePath } from '../features/privateFolder/privateFolderUtils'
 import { useSettingsStore } from '../core/settings/settingsStore'
 import { useStorageStatusStore } from '../features/storage/storageStatusStore'
+import SaveFailedBanner from '../features/storage/SaveFailedBanner'
 import { showToast } from '../components/toastEvents'
 import Sidebar from './Sidebar'
 import QuickAddSheet from './QuickAddSheet'
@@ -72,6 +73,7 @@ export default function AppShell() {
       <InstallPrompt />
       <Sidebar onAdd={() => setAdding(true)} />
       <main className={collapsed ? 'lg:pl-[72px]' : 'lg:pl-60'}>
+        <SaveFailedBanner />
         <PageErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<PageFallback />}>
             <Outlet />

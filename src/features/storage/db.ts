@@ -46,6 +46,13 @@ export function createOllieDb(name: string = DB_NAME): OllieDb {
   return new OllieDb(name)
 }
 
+/** Ollie's database, opened (waits for other tabs to let go). */
+export async function openOllieDb(): Promise<OllieDb> {
+  const db = createOllieDb()
+  await db.open()
+  return db
+}
+
 export async function getKv<T>(db: OllieDb, key: KvKey): Promise<T | undefined> {
   return (await db.kv.get(key))?.value as T | undefined
 }
