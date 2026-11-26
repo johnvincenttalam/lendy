@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronUp } from 'lucide-react'
 import { useLoanStore } from '../loans/loanStore'
-import { useToday } from '../../core/time/useToday'
-import { useDeadlines } from '../../core/deadlines/DeadlinesContext'
+import { useDeadlines, useDeadlinesNow } from '../../core/deadlines/DeadlinesContext'
 import { useIncomeStore } from '../finance/incomeStore'
 import { useNotificationStore } from '../notifications/notificationStore'
 import { useLastBackupStore } from '../backup/lastBackupStore'
@@ -39,7 +38,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
     markCelebrated, dismiss, restore, markInsightSeen, markGreeted, setVisit,
   } = useOllieStore()
 
-  const now = useToday()
+  const now = useDeadlinesNow()
   const today = localISODate(now)
 
   // Captured once per visit: which message variation to use, and whether
