@@ -1,0 +1,43 @@
+# Progress
+
+Newest first. Each entry says what was done, how it was verified, and what's
+known to be left. Branch: `feature/phase-1-foundation` (not merged or pushed).
+
+## 2026-11-26 — Phase 1a: data-safety fixes (done)
+
+Decisions applied (owner said "go with your recommendations"): safety fixes
+first; nav = Home / Planner / [+] / Ollie / More; the loan calculator becomes
+"What-if"; AI endpoint gets a passphrase + required Upstash (Phase 4);
+centavos conversion in Phase 2; zod/date-fns/Playwright/dexie approved.
+
+| Finding | Change | Verified |
+|---|---|---|
+| D1 month-end dates | `core/time/addMonthsClamped`, used by the schedule, end date, debt-free date, mark-as-paid, notifications, planner, loan form | Unit tests (Jan 31 → Feb 28 → Mar 31, leap year, year rollover); real app shows Feb 28 / Mar 31 |
+| D2 partial replace, non-atomic | `writeRestore`: safety copy first, writes every section, puts everything back on any failure; missing sections become empty | Unit tests incl. simulated quota failure; real app: loan-only file replaced loans, bills, goals and income |
+| D3 no way back | `undoRestore` + Settings "Undo last restore" (with confirmation) + UNDO on the toast | Unit tests; real app: undo restored all sections and removed the copy |
+| D4 weak validation | zod schemas per feature (`loanSchema`, `billSchema`, `savingsSchema`); bad and duplicate records skipped and counted in the confirmation | Unit tests; real app showed "1 record … will be left out" |
+| D6 two monthly figures | `monthlyLoanPayments()` everywhere; the health score now uses the billed amount, as the app already told users | Unit tests incl. off-schedule loan |
+| Dependency advisory | react-router 7.18.7; prod `npm audit` clean | Full suite + build |
+| Bundle | Restore validation lazy-loaded (`prepareRestore.ts`, 25 kB gzip chunk) | Main bundle 497 kB (baseline 493 kB) |
+
+Checks at the end: `tsc -b` clean, eslint clean, 222/222 tests, build OK, no
+console errors.
+
+**Behaviour changes the owner will notice**
+- Loans starting on the 29th–31st show different (correct) due dates; past
+  payment records keep their stored dates.
+- The financial health score changes for any loan whose billed monthly
+  differs from its amount/rate/tenure (it now uses the billed figure).
+- Restoring an old loan-only backup now clears bills and savings goals (it's a
+  full replace), but can be undone.
+
+**Known, not done**
+- Dev-only tooling advisories remain in `npm audit` (not shipped to users).
+- date-fns not added yet: one clamped month helper covered every need so far.
+- Remaining Phase 1: 1b core layer (money, settings, module registry),
+  1c app shell + nav, 1d dashboard v2, 1e unified reminders, Playwright smoke tests.
+
+## 2026-11-26 — Phase 0: audit (done)
+
+`docs/ARCHITECTURE.md`, `docs/ROADMAP.md`. Baseline: lint clean, 190/190
+tests, build OK (493 kB).

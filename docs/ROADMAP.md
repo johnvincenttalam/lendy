@@ -1,7 +1,7 @@
 # Ollie — Roadmap to a Personal Life OS
 
-Status: **Phase 0 complete (audit only), 2026-11-26.** Phase 1 has not started
-and waits for the owner's approval of the decisions at the end of this file.
+Status: **Phase 1a (data-safety fixes) done, 2026-11-26.** 1b–1e next; see `PROGRESS.md`.
+The owner approved every recommendation below on 2026-11-26.
 Findings referenced as D#/S#/A# are in `ARCHITECTURE.md` §2.
 
 Rules for every phase: the app stays usable after each merge; small branches;

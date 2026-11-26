@@ -14,6 +14,17 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.13.1',
+    date: '2026-11-26',
+    title: 'Safer restores, steadier dates',
+    highlights: [
+      'Restoring a backup can now be undone: Ollie keeps a copy of what was there first, and Settings has "Undo last restore".',
+      'Ollie checks a backup before restoring and tells you if anything in it couldn’t be read, instead of saving it half-broken.',
+      'Loans that start on the 29th, 30th or 31st are now due on the last day of shorter months (Feb 28, not Mar 3).',
+      'Your monthly loan total is now the same everywhere, including the financial health score.',
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-11-25',
     title: 'Planner',
