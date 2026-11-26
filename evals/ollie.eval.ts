@@ -68,7 +68,7 @@ const CASES: Case[] = [
   {
     id: 'specific-loan-points-to-planner', ...owner('roomy'),
     question: "I'm thinking of borrowing ₱20,000 at 3% a month for 12 months. Can I?",
-    checks: [has(/Planner/, 'points to the Planner'), manageable],
+    checks: [has(/What-if/, 'points to What-if'), manageable],
   },
   {
     id: 'when-payments-drop', ...owner('stretched'),

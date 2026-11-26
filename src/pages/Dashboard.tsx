@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Settings, MessageCircle, SlidersHorizontal } from 'lucide-react'
 import OllieCompanion from '../features/ollie/OllieCompanion'
 import { HeaderIconButton } from '../components/PageHeader'
-import AskOllieSheet from '../features/askOllie/AskOllieSheet'
 import CustomizeHomeSheet from '../features/home/CustomizeHomeSheet'
 import { resolveHomeWidgets } from '../core/modules/registry'
 import { useSettingsStore } from '../core/settings/settingsStore'
@@ -15,7 +14,6 @@ import NotificationBell from '../app/NotificationBell'
  * Widgets with nothing to show render nothing.
  */
 export default function Dashboard() {
-  const [asking, setAsking] = useState(false)
   const [customizing, setCustomizing] = useState(false)
   const home = useSettingsStore((s) => s.home)
   const navigate = useNavigate()
@@ -34,7 +32,7 @@ export default function Dashboard() {
           <p className="flex-1 text-[26px] font-extrabold text-primary tracking-tight leading-none">Ollie</p>
           {/* On desktop the bell lives in the sidebar. */}
           <div className="lg:hidden"><NotificationBell /></div>
-          <HeaderIconButton label="Ask Ollie" onClick={() => setAsking(true)}>
+          <HeaderIconButton label="Ask Ollie" onClick={() => navigate('/ollie')}>
             <MessageCircle className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
           </HeaderIconButton>
           <HeaderIconButton label="Settings" onClick={() => navigate('/settings')}>
@@ -43,8 +41,7 @@ export default function Dashboard() {
         </div>
 
         {/* Ollie is the page header */}
-        <OllieCompanion className="mb-4" hero onAsk={() => setAsking(true)} />
-        {asking && <AskOllieSheet includePrivate={false} onClose={() => setAsking(false)} />}
+        <OllieCompanion className="mb-4" hero onAsk={() => navigate('/ollie')} />
 
         <div className="space-y-3">
           {widgets.map(({ widget }) => <widget.Component key={widget.id} />)}

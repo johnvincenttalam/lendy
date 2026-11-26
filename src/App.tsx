@@ -19,6 +19,7 @@ const MorePage = lazy(() => import('./pages/MorePage'))
 const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
 const PrivateFolderPage = lazy(() => import('./pages/PrivateFolderPage'))
 const WhatIfPage = lazy(() => import('./pages/WhatIfPage'))
+const OlliePage = lazy(() => import('./pages/OlliePage'))
 
 export default function App() {
   useNotificationCheck()
@@ -31,7 +32,7 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/planner" element={<PlannerPage />} />
-              <Route path="/ollie" element={<Navigate to="/" replace />} />
+              <Route path="/ollie" element={<OlliePage />} />
               <Route path="/more" element={<MorePage />} />
               <Route path="/what-if" element={<WhatIfPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
