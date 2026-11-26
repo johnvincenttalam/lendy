@@ -1,6 +1,6 @@
 # Ollie — Roadmap to a Personal Life OS
 
-Status: **Phase 1 done and merged locally. Phase 2 piece 1 (IndexedDB, centavos, start-up loading) done on branch `feature/phase-2-storage`, 2026-11-26.** Next: Backup v2, then snooze/dismiss and the activity log; see `PROGRESS.md`.
+Status: **Phase 1 and Phase 2 piece 1 (IndexedDB) merged locally. Phase 2 piece 2 (Backup v2: preview, merge or replace) done on branch `feature/phase-2-backup-v2`, 2026-11-27.** Next: snooze/dismiss and the activity log; see `PROGRESS.md`.
 The owner approved every recommendation below on 2026-11-26.
 Findings referenced as D#/S#/A# are in `ARCHITECTURE.md` §2.
 
@@ -59,6 +59,7 @@ before the shell, because they protect the records every later phase depends on.
 
 ### Phase 2 — Repositories, IndexedDB, Backup v2 (≈ 4–6 sessions)
 
+- **Done (piece 2):** backup file v2 (sections, app version, SHA-256 check value), preview, merge (add what's missing, keep this phone's version, hold back likely doubles) or replace, both undoable. Design: `docs/superpowers/specs/2026-11-27-backup-v2-design.md`.
 - **Done (piece 1):** storage backends (localStorage first, then Dexie), start-up loading (A2), the automatic move with checks, centavos, Settings Storage card, move back. See `ARCHITECTURE.md` §4a.
 - Repository interface; localStorage adapter first (no behaviour change, ship).
 - Dexie schema + boot hydration step (A2).

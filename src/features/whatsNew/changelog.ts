@@ -14,6 +14,17 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.16.0',
+    date: '2026-11-27',
+    title: 'Merge or replace backups',
+    highlights: [
+      'Before restoring, Ollie now shows what’s in the file: what’s new, what you already have, and what’s different.',
+      'Choose Merge to add what’s missing and keep everything on this phone, or Replace to make this phone match the file. Both can be undone for 7 days.',
+      'Possible double entries are held back so nothing lands twice.',
+      'Backups now record which version of Ollie made them and carry a check value, so Ollie can warn you if a file was damaged.',
+    ],
+  },
+  {
     version: '1.15.0',
     date: '2026-11-26',
     title: 'Sturdier storage',

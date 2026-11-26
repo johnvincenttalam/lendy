@@ -36,6 +36,9 @@ async function openRestore(page: Page, path: string) {
   return preview
 }
 
+// Each test drives one or two browsers through adding, exporting and restoring.
+test.describe.configure({ timeout: 90_000 })
+
 test.beforeEach(async ({ page }) => {
   // Use the download path: headless browsers can't share files.
   await page.addInitScript(() => {
@@ -68,4 +71,32 @@ test("restoring a file shows a preview, and merge keeps what's here",async ({ pa
   await expect(loans.getByText('Test Phone')).toBeVisible()
   await expect(loans.getByText('Test Laptop')).toBeVisible()
   await other.context().close()
+})
+
+test('replace makes this phone match the file', async ({ page, browser }, testInfo) => {
+  await addLoan(page, 'Test Phone')
+  const file = await exportBackup(page, testInfo)
+
+  const other = await otherPhone(browser, testInfo)
+  await addLoan(other, 'Test Laptop')
+  const preview = await openRestore(other, file)
+  await preview.getByRole('radio', { name: /Replace/ }).check()
+  await expect(preview.getByText('(removes 1 loan)', { exact: false })).toBeVisible()
+  await preview.getByRole('button', { name: 'Replace', exact: true }).click()
+
+  await other.goto('/#/')
+  const loans = other.getByRole('region', { name: 'Your loans' })
+  await expect(loans.getByText('Test Phone')).toBeVisible()
+  await expect(loans.getByText('Test Laptop')).toHaveCount(0)
+  await other.context().close()
+})
+
+test('a file this phone just made has nothing new', async ({ page }, testInfo) => {
+  await addLoan(page, 'Test Phone')
+  const file = await exportBackup(page, testInfo)
+  const preview = await openRestore(page, file)
+  await expect(preview.getByText('Nothing new in this file.')).toBeVisible()
+  await expect(preview.getByRole('button', { name: 'Merge', exact: true })).toHaveCount(0)
+  await preview.getByRole('button', { name: 'Close', exact: true }).last().click()
+  await expect(preview).toHaveCount(0)
 })
