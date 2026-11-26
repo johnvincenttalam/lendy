@@ -3,7 +3,23 @@
 Newest first. Each entry says what was done, how it was verified, and what's
 known to be left. Branch: `feature/phase-1-foundation` (not merged or pushed).
 
-## 2026-11-26 — Phase 1b–1e: Life OS shell (done, pending final review)
+## 2026-11-26 — Final review of the branch (done)
+
+A fresh reviewer read the whole branch (Phase 1a + 1b–1e): "ready with fixes".
+Fixed, each with a test that failed first:
+- **Offline / blank screen:** pages load on demand, but the service worker
+  only cached what had been fetched, and there was no error boundary. Now the
+  build pre-caches every file (`build/precache.ts`), the worker's cache
+  fallback ignores `Vary` (module scripts never matched before), a page error
+  boundary offers Reload, and an old tab after an update reloads once by itself.
+  New Playwright `offline` project opens every page offline against the build.
+- **Restore safety copy:** kept unless the old data is fully back (storage
+  full mid-undo used to delete it); versioned; offered for 7 days, then deleted.
+
+Checks: 272 unit tests, 15 Playwright tests (phone, desktop, offline), lint,
+typecheck, build. Deferred minor findings are listed in the branch summary.
+
+## 2026-11-26 — Phase 1b–1e: Life OS shell (done)
 
 Spec `docs/superpowers/specs/2026-11-26-life-os-shell-design.md`, plan
 `docs/superpowers/plans/2026-11-26-life-os-shell.md`. Owner decisions: loan
@@ -22,7 +38,7 @@ list stays on Home (option A); Ollie reminds about bills too.
   tab; old `#/calendar` redirects. **What-if** replaces the old loan Planner at `/what-if`.
 - **Ollie:** own page with the chat; due reminders now include bills; prompt
   names the new screens and points to What-if.
-- **Tests:** 264 unit tests; 12 Playwright smoke tests (phone 390px and desktop
+- **Tests (before review fixes):** 264 unit tests; 12 Playwright smoke tests (phone 390px and desktop
   1280px); new `e2e.yml` workflow (no deploy). Main bundle 304 kB (was 497 kB).
 
 Verified manually on desktop with synthetic data on a fresh port: Home

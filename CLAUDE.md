@@ -12,7 +12,8 @@ Start with `docs/ARCHITECTURE.md` (current state, findings, target design),
 - `npm run dev` — Vite dev server
 - `npm run verify` — eslint + vitest (the deploy gate on Vercel and GitHub Pages)
 - `npm run build` — `tsc -b` + production build
-- `npm run test:e2e` — Playwright smoke tests at phone and desktop sizes (starts its own dev server on port 47614, fresh storage)
+- `npm run test:e2e` — Playwright: smoke tests at phone and desktop sizes (dev server, port 47614) and an offline test against the production build (port 47615); fresh storage each test
+- `public/sw.js` has `__BUILD__`/`__PRECACHE__` placeholders that `build/precache.ts` fills in at build time; keep them
 - `npm run eval:ollie` — Ask Ollie evals against the real Groq model (needs `GROQ_API_KEY`; opt-in, costs tokens)
 
 Before calling a change done: `npx tsc -b && npm run verify && npm run build && npm run test:e2e`.
