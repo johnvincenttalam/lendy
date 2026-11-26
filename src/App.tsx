@@ -13,6 +13,7 @@ import MorePage from './pages/MorePage'
 import WhatsNewPage from './pages/WhatsNewPage'
 import PrivateFolderPage from './pages/PrivateFolderPage'
 import PlannerPage from './pages/PlannerPage'
+import DeadlinesProvider from './app/DeadlinesProvider'
 import ToastContainer from './components/Toast'
 import ConfettiContainer from './components/Confetti'
 import InstallPrompt from './components/InstallPrompt'
@@ -141,7 +142,9 @@ export default function App() {
     <>
       <PinScreen />
       <HashRouter>
-        <AppContent />
+        <DeadlinesProvider>
+          <AppContent />
+        </DeadlinesProvider>
       </HashRouter>
     </>
   )
