@@ -1,6 +1,8 @@
 import { formatCurrency } from '../loans/loanUtils'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
-import type { DuePayment, OllieInsight, OllieSituation } from './ollieTypes'
+import type { OllieInsight, OllieSituation } from './ollieTypes'
+import type { Deadline } from '../../core/deadlines/deadlines'
+import { parseLocalISODate } from '../../core/time/localDate'
 
 export type OllieMessageContent = {
   /** Short chip label, e.g. "Due today". */
@@ -46,7 +48,7 @@ function timeOfDayGreeting(now: Date): string {
 
 // --- Variations per situation ---
 
-type DueCtx = { p: DuePayment; date: string; amount: string; name: string }
+type DueCtx = { p: Deadline; date: string; amount: string; name: string }
 type GroupCtx = { count: number; total: string; first: DueCtx }
 
 const OVERDUE_ONE: Template<DueCtx & { days: number }>[] = [
@@ -162,11 +164,11 @@ const RELAXED_GENERIC: Template<null>[] = [
   () => `Everything looks good. Keep up the great work!`,
 ]
 
-function dueCtx(p: DuePayment, now: Date): DueCtx {
-  return { p, name: p.loan.name, amount: money(p.amount), date: friendlyDate(p.dueDate, now) }
+function dueCtx(p: Deadline, now: Date): DueCtx {
+  return { p, name: p.title, amount: money(p.amount), date: friendlyDate(parseLocalISODate(p.dueDate), now) }
 }
 
-function groupCtx(payments: DuePayment[], total: number, now: Date): GroupCtx {
+function groupCtx(payments: Deadline[], total: number, now: Date): GroupCtx {
   return { count: payments.length, total: money(total), first: dueCtx(payments[0], now) }
 }
 
@@ -246,11 +248,11 @@ export function buildOllieMessage(situation: OllieSituation, rotation: number, n
 }
 
 /** One-line description of a due payment for the details list. */
-export function describeDue(p: DuePayment, now: Date): string {
+export function describeDue(p: Deadline, now: Date): string {
   if (p.daysUntil < 0) {
     const days = plural(-p.daysUntil, 'day')
     return p.installments > 1 ? `${p.installments} payments · ${days} overdue` : `${days} overdue`
   }
   if (p.daysUntil === 0) return 'Due today'
-  return `Due ${relativeDue(p.daysUntil)} · ${friendlyDate(p.dueDate, now)}`
+  return `Due ${relativeDue(p.daysUntil)} · ${friendlyDate(parseLocalISODate(p.dueDate), now)}`
 }

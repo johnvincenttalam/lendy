@@ -48,7 +48,8 @@ type BillStore = {
   archiveBill: (id: string) => void
   unarchiveBill: (id: string) => void
   getPaymentsForBill: (billId: string) => BillPaymentRecord[]
-  importBackup: (json: string) => void
+  /** Re-reads bills and their payments after a restore wrote them to the device. */
+  reloadFromStorage: () => void
 }
 
 export const useBillStore = create<BillStore>((set, get) => ({
@@ -161,26 +162,5 @@ export const useBillStore = create<BillStore>((set, get) => ({
       .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())
   },
 
-  importBackup: (json) => {
-    try {
-      const data = JSON.parse(json)
-      if (!Array.isArray(data.bills)) return
-      const bills: Bill[] = data.bills.filter(
-        (b: unknown): b is Bill =>
-          !!b && typeof b === 'object' && typeof (b as Bill).id === 'string' && typeof (b as Bill).name === 'string'
-      )
-      const billPayments: BillPaymentRecord[] = Array.isArray(data.billPayments)
-        ? data.billPayments.filter(
-            (p: unknown): p is BillPaymentRecord =>
-              !!p && typeof p === 'object' && typeof (p as BillPaymentRecord).id === 'string' && typeof (p as BillPaymentRecord).billId === 'string'
-          )
-        : []
-      saveBills(bills)
-      saveBillPayments(billPayments)
-      set({ bills, billPayments })
-    } catch {
-      // Swallow — importAllData (Task 19) already validated the JSON parses
-      // before calling any store's importBackup.
-    }
-  },
+  reloadFromStorage: () => set({ bills: loadBills(), billPayments: loadBillPayments() }),
 }))

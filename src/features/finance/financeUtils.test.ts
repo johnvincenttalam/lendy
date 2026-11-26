@@ -36,14 +36,7 @@ function makeLoan(overrides: Partial<Loan> = {}): Loan {
   }
 }
 
-/**
- * A 0%-interest loan whose *derived* scheduled payment is exactly `monthly`.
- *
- * buildOverview uses scheduledMonthlyPayment(), which recomputes from
- * totalAmount/interestRate/durationMonths and ignores the stored
- * monthlyPayment field entirely. Setting monthlyPayment in a fixture and
- * expecting commitments to reflect it is the trap this helper exists to avoid.
- */
+/** A 0%-interest loan that bills `monthly`, on schedule. */
 function makeLoanPaying(monthly: number, overrides: Partial<Loan> = {}): Loan {
   const durationMonths = overrides.durationMonths ?? 9
   return makeLoan({
@@ -123,6 +116,13 @@ describe('buildOverview', () => {
     expect(overview.loanCommitments).toBeCloseTo(1105, 2)
     expect(overview.billCommitments).toBe(1500)
     expect(overview.totalSavings).toBe(500)
+  })
+
+  it('counts what an off-schedule loan bills, like the rest of the app', () => {
+    // ₱12,000 at 2%/month over 12 months schedules ₱1,240, but the lender bills ₱1,300.
+    const offSchedule = makeLoan({ totalAmount: 12000, interestRate: 2, durationMonths: 12, monthlyPayment: 1300 })
+    const overview = buildOverview({ loans: [offSchedule], bills: [], goals: [], monthlyIncome: 20000 })
+    expect(overview.loanCommitments).toBe(1300)
   })
 
   it('excludes private loans from commitments', () => {

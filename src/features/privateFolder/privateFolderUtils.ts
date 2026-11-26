@@ -4,6 +4,16 @@ import { hashPin } from '../lock/pinHash'
 export const DEFAULT_FOLDER_LABEL = 'Private folder'
 export const MAX_FOLDER_NAME = 24
 
+/** Where the folder's settings live on the device. */
+export const FOLDER_KEYS = {
+  name: 'loan-tracker-private-name',
+  pinHash: 'loan-tracker-private-pin-hash',
+  recoveryHash: 'loan-tracker-private-recovery',
+} as const
+
+/** The folder name as saved: trimmed and capped at MAX_FOLDER_NAME. */
+export const cleanFolderName = (name: string) => name.trim().slice(0, MAX_FOLDER_NAME).trim()
+
 /** The name shown for the folder: the owner's choice, or the default. */
 export function folderLabel(name: string | null): string {
   const trimmed = (name ?? '').trim().slice(0, MAX_FOLDER_NAME).trim()

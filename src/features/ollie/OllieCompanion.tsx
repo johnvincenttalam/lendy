@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronUp } from 'lucide-react'
 import { useLoanStore } from '../loans/loanStore'
+import { useDeadlines, useDeadlinesNow } from '../../core/deadlines/DeadlinesContext'
 import { useIncomeStore } from '../finance/incomeStore'
 import { useNotificationStore } from '../notifications/notificationStore'
 import { useLastBackupStore } from '../backup/lastBackupStore'
@@ -11,24 +12,6 @@ import { buildOllieMessage } from './ollieMessages'
 import { OLLIE_TONES, isCritical, moodFor, ollieView } from './ollieStates'
 import OllieCharacter from './OllieCharacter'
 import OllieMessage from './OllieMessage'
-
-/**
- * Keep "today" current if the dashboard stays open past midnight, without
- * re-rendering every minute for nothing.
- */
-function useToday(): Date {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow((prev) => {
-        const next = new Date()
-        return localISODate(next) === localISODate(prev) ? prev : next
-      })
-    }, 60_000)
-    return () => window.clearInterval(id)
-  }, [])
-  return now
-}
 
 type Props = {
   className?: string
@@ -46,6 +29,7 @@ type Props = {
 export default function OllieCompanion({ className = '', hero = false, onAsk }: Props) {
   const loans = useLoanStore((s) => s.loans)
   const payments = useLoanStore((s) => s.payments)
+  const deadlines = useDeadlines(366)
   const monthlyIncome = useIncomeStore((s) => s.monthlyIncome)
   const reminderDays = useNotificationStore((s) => s.reminderDays)
   const lastBackupAt = useLastBackupStore((s) => s.lastBackupAt)
@@ -54,7 +38,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
     markCelebrated, dismiss, restore, markInsightSeen, markGreeted, setVisit,
   } = useOllieStore()
 
-  const now = useToday()
+  const now = useDeadlinesNow()
   const today = localISODate(now)
 
   // Captured once per visit: which message variation to use, and whether
@@ -79,6 +63,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
     const seen = new Set(celebratedIds)
     if (celebrating) seen.delete(celebrating)
     return selectOllieSituation({
+      deadlines,
       loans,
       payments,
       now,
@@ -89,7 +74,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
       greetingEligible,
       lastBackupAt,
     })
-  }, [loans, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible, lastBackupAt])
+  }, [deadlines, loans, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible, lastBackupAt])
 
   // Record what Ollie actually showed.
   useEffect(() => {
@@ -130,7 +115,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
   if (view === 'reminder-bar' && (situation.kind === 'overdue' || situation.kind === 'due-today')) {
     const count = situation.payments.length
     const summary = situation.kind === 'overdue'
-      ? (count === 1 ? `${situation.payments[0].loan.name} is overdue` : `${count} loans overdue`)
+      ? (count === 1 ? `${situation.payments[0].title} is overdue` : `${count} payments overdue`)
       : `${count} ${count === 1 ? 'payment' : 'payments'} due today`
     return (
       <section aria-label="Ollie, your financial companion" className={className}>

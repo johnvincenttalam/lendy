@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-
-const LAST_BACKUP_KEY = 'loan-tracker-last-backup'
+import { LAST_BACKUP_KEY } from './backupStatus'
 
 type LastBackupStore = {
   /** ISO timestamp of the last backup made or restored on this device. */
   lastBackupAt: string | null
   markBackedUp: () => void
+  /** Re-reads the date after an undo put back an older one. */
+  reloadFromStorage: () => void
 }
 
 function load(): string | null {
@@ -27,4 +28,5 @@ export const useLastBackupStore = create<LastBackupStore>((set) => ({
     }
     set({ lastBackupAt: at })
   },
+  reloadFromStorage: () => set({ lastBackupAt: load() }),
 }))

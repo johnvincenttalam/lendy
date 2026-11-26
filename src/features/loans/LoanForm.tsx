@@ -6,6 +6,7 @@ import { offScheduleAmount, suggestedMonthlyPayment } from './loanUtils'
 import ColorPicker from '../../components/ColorPicker'
 import CurrencyAmount from '../../components/CurrencyAmount'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { addMonthsClamped } from '../../core/time/months'
 
 type Props = {
   onSubmit: (data: LoanFormData) => void
@@ -399,8 +400,7 @@ export default function LoanForm({ onSubmit, onClose, initial }: Props) {
                 <Row label="End date">
                   <span className="font-semibold text-[13px]" style={{ color }}>
                     {(() => {
-                      const d = new Date(startDate)
-                      d.setMonth(d.getMonth() + months)
+                      const d = addMonthsClamped(new Date(startDate), months)
                       return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
                     })()}
                   </span>

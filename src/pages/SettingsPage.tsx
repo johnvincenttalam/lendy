@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download, Upload, HardDrive, Eye, EyeOff, Sparkles, ChevronRight } from 'lucide-react'
+import { Download, Upload, HardDrive, Eye, EyeOff, Sparkles, ChevronRight, Undo2 } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
 import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
-import { debtToIncomeRatio, isTracked } from '../features/loans/loanUtils'
+import { debtToIncomeRatio, monthlyLoanPayments } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
 import PinSetup from '../features/lock/PinSetup'
@@ -16,13 +16,14 @@ import { showToast } from '../components/toastEvents'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
-import { exportAllData, importAllData, checkBackup } from '../utils/backup'
+import { exportAllData, applyRestore, checkBackup, undoLastRestore } from '../utils/backup'
+import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { describeLastBackup, isBackupDue } from '../features/backup/backupStatus'
-import type { BackupCounts } from '../utils/backup'
+import type { RestoreCounts, RestoreData } from '../features/backup/restore'
 import ProgressBar from '../components/ProgressBar'
 
-type PendingImport = { json: string; counts: BackupCounts }
+type PendingImport = { data: RestoreData; counts: RestoreCounts; skipped: number }
 
 export default function SettingsPage() {
   const { loans, exportCSV } = useLoanStore()
@@ -38,13 +39,13 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+  // Set while the last restore can still be undone.
+  const restoredAt = useLastRestoreStore((s) => s.restoredAt)
+  const [confirmUndo, setConfirmUndo] = useState(false)
 
-  useBodyScrollLock(pendingImport !== null)
+  useBodyScrollLock(pendingImport !== null || confirmUndo)
 
-  const totalMonthly = loans.reduce((sum, l) => {
-    if (!isTracked(l) || l.monthsPaid >= l.durationMonths) return sum
-    return sum + l.monthlyPayment
-  }, 0)
+  const totalMonthly = monthlyLoanPayments(loans)
 
   function handleExportCSV() {
     const csv = exportCSV()
@@ -77,16 +78,23 @@ export default function SettingsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       const json = reader.result as string
-      const check = checkBackup(json)
+      let check: Awaited<ReturnType<typeof checkBackup>>
+      try {
+        check = await checkBackup(json)
+      } catch {
+        // The file reader's code couldn't be fetched (offline before it was cached).
+        showToast('Couldn’t open the backup reader. Check your connection and try again.')
+        return
+      }
       if (!check.ok) {
         showToast(check.reason === 'newer'
           ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'
           : 'Invalid backup file')
         return
       }
-      setPendingImport({ json, counts: check.counts })
+      setPendingImport({ data: check.data, counts: check.counts, skipped: check.skipped })
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -94,9 +102,13 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    const ok = importAllData(pendingImport.json)
-    if (!ok) showToast('Failed to restore backup')
+    applyRestore(pendingImport.data)
     setPendingImport(null)
+  }
+
+  function handleUndoRestore() {
+    undoLastRestore()
+    setConfirmUndo(false)
   }
 
   return (
@@ -213,6 +225,15 @@ export default function SettingsPage() {
               {backupDue && ' · Your data lives only on this device, so keep a copy somewhere safe.'}
             </p>
           )}
+          {restoredAt && (
+            <button
+              onClick={() => setConfirmUndo(true)}
+              className="mt-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-secondary hover:text-primary transition-colors"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              Undo last restore ({formatRestoreDate(restoredAt)})
+            </button>
+          )}
         </div>
       </div>
 
@@ -229,7 +250,7 @@ export default function SettingsPage() {
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
             <p className="text-[13px] text-secondary mb-6">
-              {describeBackupImport(pendingImport.counts, existing)}
+              {describeBackupImport(pendingImport.counts, existing, pendingImport.skipped)}
             </p>
             <div className="flex gap-2.5">
               <button
@@ -251,8 +272,38 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {confirmUndo && restoredAt && (
+        <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
+          <div role="alertdialog" aria-labelledby="undo-restore-title" className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
+            <h3 id="undo-restore-title" className="font-bold text-primary text-[18px] tracking-tight mb-2">Undo the restore?</h3>
+            <p className="text-[13px] text-secondary mb-6">
+              This puts back the data you had before restoring on {formatRestoreDate(restoredAt)}. Anything added or changed since then will be lost.
+            </p>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setConfirmUndo(false)}
+                className="flex-1 py-3 rounded-xl bg-subtle text-secondary font-semibold text-[14px] hover:opacity-80 transition-opacity"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUndoRestore}
+                className="flex-1 py-3 rounded-xl font-bold text-[14px] hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: '#EF4444', color: '#FFFFFF' }}
+              >
+                Undo restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function formatRestoreDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function downloadFile(content: string, filename: string, type: string) {

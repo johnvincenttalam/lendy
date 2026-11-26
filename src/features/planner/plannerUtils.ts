@@ -1,8 +1,9 @@
 import type { Loan } from '../loans/loanTypes'
 import type { Bill } from '../bills/billTypes'
-import { endDate, isFullyPaid, isTracked, monthsLeft, nextDueDate, suggestedMonthlyPayment } from '../loans/loanUtils'
+import { endDate, isFullyPaid, isTracked, monthlyLoanPayments, monthsLeft, nextDueDate, suggestedMonthlyPayment } from '../loans/loanUtils'
 import { HIGH_DTI, localISODate } from '../ollie/ollieUtils'
 import { startOfDay } from '../../utils/dateUtils'
+import { addMonthsClamped } from '../../core/time/months'
 
 /**
  * The planner works with the app's flat-interest model (as most Philippine
@@ -21,22 +22,12 @@ function activeLoans(loans: Loan[]): Loan[] {
 }
 
 export function currentMonthlyPayments(loans: Loan[]): number {
-  return round2(activeLoans(loans).reduce((sum, l) => sum + l.monthlyPayment, 0))
-}
-
-/** `months` calendar months after `date`, keeping the day but never spilling into the next month (Jan 31 → Feb 28). */
-function addMonths(date: Date, months: number): Date {
-  const target = new Date(date.getFullYear(), date.getMonth() + months, 1)
-  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
-  target.setDate(Math.min(date.getDate(), lastDay))
-  return target
+  return monthlyLoanPayments(loans)
 }
 
 /** The loan's last scheduled payment date (YYYY-MM-DD), one month before endDate. */
 export function lastPaymentDate(loan: Loan): string {
-  const d = new Date(loan.startDate)
-  d.setMonth(d.getMonth() + loan.durationMonths - 1)
-  return d.toISOString().split('T')[0]
+  return addMonthsClamped(new Date(loan.startDate), loan.durationMonths - 1).toISOString().split('T')[0]
 }
 
 export type Finish = {
@@ -57,8 +48,8 @@ export function projectedFinish(loan: Loan, now: Date): Finish {
   const next = nextDueDate(loan)
   const today = startOfDay(now)
   if (!next || startOfDay(next) >= today) return { lastPayment: lastPaymentDate(loan), from: endDate(loan), estimated: false }
-  const last = addMonths(today, monthsLeft(loan) - 1)
-  return { lastPayment: localISODate(last), from: localISODate(addMonths(last, 1)), estimated: true }
+  const last = addMonthsClamped(today, monthsLeft(loan) - 1)
+  return { lastPayment: localISODate(last), from: localISODate(addMonthsClamped(today, monthsLeft(loan))), estimated: true }
 }
 
 export type PaymentStep = Finish & {

@@ -11,6 +11,7 @@ import {
   isFullyPaid, totalInterestOverLife, totalCostOfLoan,
   interestPaidSoFar, remainingBalance, debtFreeDate, monthsLeft,
   interestRemaining, debtToIncomeRatio, isTracked,
+  monthlyLoanPayments,
 } from '../features/loans/loanUtils'
 import type { Loan, PaymentRecord } from '../features/loans/loanTypes'
 import { DEFAULT_COLOR, LOAN_COLORS, LOAN_TAGS } from '../features/loans/loanTypes'
@@ -195,7 +196,7 @@ export default function AnalyticsPage() {
   // 7. Debt-to-income health
   const dtiRatio = useMemo(() => debtToIncomeRatio(activeLoans, monthlyIncome), [activeLoans, monthlyIncome])
   const dtiPercent = Math.round(dtiRatio * 100)
-  const dtiMonthly = useMemo(() => activeLoans.reduce((sum, l) => sum + l.monthlyPayment, 0), [activeLoans])
+  const dtiMonthly = useMemo(() => monthlyLoanPayments(activeLoans), [activeLoans])
   const dtiBand = dtiPercent > 50 ? 'high' : dtiPercent > 30 ? 'moderate' : 'healthy'
 
   // 8. Payoff priority advisor

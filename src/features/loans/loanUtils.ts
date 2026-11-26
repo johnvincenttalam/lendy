@@ -1,4 +1,5 @@
 import type { Loan, PaymentBreakdown } from './loanTypes'
+import { addMonthsClamped } from '../../core/time/months'
 
 // --- Flat/Simple Interest (Philippine lending model) ---
 
@@ -26,8 +27,7 @@ export function paymentSchedule(loan: Loan): PaymentBreakdown[] {
   const schedule: PaymentBreakdown[] = []
 
   for (let i = 0; i < loan.durationMonths; i++) {
-    const payDate = new Date(loan.startDate)
-    payDate.setMonth(payDate.getMonth() + i)
+    const payDate = addMonthsClamped(new Date(loan.startDate), i)
 
     const isLast = i === loan.durationMonths - 1
     const payment = isLast
@@ -93,37 +93,10 @@ export function statusClasses(loan: Loan) {
   }
 }
 
-const currencyFormatter = new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-export function formatCurrency(amount: number): string {
-  return currencyFormatter.format(amount)
-}
-
-/**
- * Split a formatted currency value into its symbol and numeric portion.
- * Lets callers render the ₱ symbol with a font that actually has the glyph
- * (the tabular font used for financial values doesn't) without touching
- * the numeric formatting itself.
- */
-export function formatCurrencyParts(amount: number): { symbol: string; amount: string } {
-  let symbol = ''
-  let rest = ''
-  for (const part of currencyFormatter.formatToParts(amount)) {
-    if (part.type === 'currency') symbol += part.value
-    else rest += part.value
-  }
-  return { symbol, amount: rest }
-}
+export { formatCurrency, formatCurrencyParts } from '../../core/money/format'
 
 export function endDate(loan: Loan): string {
-  const start = new Date(loan.startDate)
-  start.setMonth(start.getMonth() + loan.durationMonths)
-  return start.toISOString().split('T')[0]
+  return addMonthsClamped(new Date(loan.startDate), loan.durationMonths).toISOString().split('T')[0]
 }
 
 export function isFullyPaid(loan: Loan): boolean {
@@ -179,8 +152,7 @@ export function debtFreeDate(loans: Loan[]): Date | null {
 
   let latest = new Date(0)
   for (const loan of active) {
-    const end = new Date(loan.startDate)
-    end.setMonth(end.getMonth() + loan.durationMonths)
+    const end = addMonthsClamped(new Date(loan.startDate), loan.durationMonths)
     if (end > latest) latest = end
   }
   return latest
@@ -232,12 +204,23 @@ export function debtPayoffTimeline(loans: Loan[]): Array<{ date: Date; balance: 
   return timeline
 }
 
-export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
-  if (monthlyIncome <= 0) return 0
-  const totalMonthly = loans
+/**
+ * What the active regular loans bill each month, to the centavo. The one
+ * definition every screen, the health score and Ollie use. It's the billed
+ * `monthlyPayment`, not the figure recomputed from amount/rate/tenure: that's
+ * what markAsPaid records and what actually leaves the owner's pocket (a loan
+ * whose two disagree shows an "off schedule" warning with a recalc button).
+ */
+export function monthlyLoanPayments(loans: Loan[]): number {
+  const total = loans
     .filter((l) => isTracked(l) && !isFullyPaid(l))
     .reduce((sum, l) => sum + l.monthlyPayment, 0)
-  return totalMonthly / monthlyIncome
+  return Math.round(total * 100) / 100
+}
+
+export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
+  if (monthlyIncome <= 0) return 0
+  return monthlyLoanPayments(loans) / monthlyIncome
 }
 
 // --- Overdue detection ---
@@ -297,53 +280,4 @@ export function getOverdueLoans(loans: Loan[]): Loan[] {
  */
 export function totalOverdueAmount(loans: Loan[]): number {
   return getOverdueLoans(loans).reduce((sum, l) => sum + l.monthlyPayment, 0)
-}
-
-// --- Upcoming payments ---
-
-export type UpcomingPayments = {
-  count: number
-  amount: number
-  from: Date
-  to: Date
-}
-
-/**
- * The half-month bucket (1–15 / 16–end) a date falls into, as its start date —
- * matches the grouping used by the Calendar page's schedule view.
- */
-function halfMonthStart(date: Date): Date {
-  const half = date.getDate() <= 15 ? 1 : 16
-  return new Date(date.getFullYear(), date.getMonth(), half)
-}
-
-/**
- * Summarize payments due (not yet overdue) in the nearest half-month bucket
- * that has any — today's bucket if something's due there, otherwise the
- * next one with payments — for the homepage "what's coming up" hint.
- */
-export function upcomingPayments(loans: Loan[]): UpcomingPayments | null {
-  const entries: { date: Date; amount: number }[] = []
-
-  for (const loan of loans) {
-    if (!isTracked(loan) || isFullyPaid(loan) || isOverdue(loan)) continue
-    const due = nextDueDate(loan)
-    if (!due) continue
-    due.setHours(0, 0, 0, 0)
-    entries.push({ date: due, amount: loan.monthlyPayment })
-  }
-
-  if (entries.length === 0) return null
-
-  const nearestBucket = Math.min(...entries.map((e) => halfMonthStart(e.date).getTime()))
-  const inBucket = entries.filter((e) => halfMonthStart(e.date).getTime() === nearestBucket)
-  const amount = inBucket.reduce((sum, e) => sum + e.amount, 0)
-  const times = inBucket.map((e) => e.date.getTime())
-
-  return {
-    count: inBucket.length,
-    amount,
-    from: new Date(Math.min(...times)),
-    to: new Date(Math.max(...times)),
-  }
 }
