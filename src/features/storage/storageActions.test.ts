@@ -119,9 +119,9 @@ describe('recovery', () => {
     expect(out.snapshot.loans.map((l) => l.id)).toEqual(['L1', 'L2'])
   })
 
-  it('the old copy saves as a backup file that restores', () => {
+  it('the old copy saves as a backup file that restores', async () => {
     const storage = legacy()
-    const r = prepareRestore(legacyBackupJson(storage, undefined, now))
+    const r = prepareRestore(await legacyBackupJson(storage, undefined, now))
     if (!r.ok) throw new Error(r.reason)
     expect(r.data.loans.map((l) => l.id)).toEqual(['L1', 'L2'])
     expect(r.data.monthlyIncome).toBe(30000)
@@ -159,11 +159,11 @@ describe('final review fixes: moving back keeps everything', () => {
     expect(JSON.parse(storage.getItem(STORAGE_FIELDS.loans)!)[0].id).toBe('OLDTAB')
   })
 
-  it('the old-copy backup file also carries the set-aside records', () => {
+  it('the old-copy backup file also carries the set-aside records', async () => {
     const storage = legacy()
     const setAside = [{ field: 'loans' as const, id: 'L2', name: 'Bad', reason: 'totalAmount: bad', raw: { id: 'L2' } }]
-    const file = JSON.parse(legacyBackupJson(storage, undefined, now, setAside))
-    expect(file.setAside).toEqual(setAside)
+    const file = JSON.parse(await legacyBackupJson(storage, undefined, now, setAside))
+    expect(file.data.setAside).toEqual(setAside)
   })
 
   it('a used undo does not come back after moving back and forth', async () => {

@@ -35,6 +35,7 @@ import type { ActiveStorage } from '../storage/activeStorage'
 import { emptySnapshot } from '../storage/snapshot'
 import { readLegacySnapshot } from '../storage/localStorageBackend'
 import type { DataSnapshot } from '../storage/snapshot'
+import type { FileInfo } from './envelope'
 
 export { SAFETY_COPY_KEY }
 
@@ -54,7 +55,15 @@ export type RestoreData = {
 export type RestoreCounts = { loans: number; bills: number; savingsGoals: number }
 
 export type PreparedRestore =
-  | { ok: true; data: RestoreData; counts: RestoreCounts; skipped: number }
+  | {
+      ok: true
+      data: RestoreData
+      counts: RestoreCounts
+      skipped: number
+      info: FileInfo
+      /** The file had no payment history, so it was rebuilt from the loans (with new ids). */
+      rebuiltPayments: boolean
+    }
   | { ok: false; reason: 'invalid' | 'newer' }
 
 /** Preferences a restore can change. The last-backup date rides along so an undo also brings back the backup reminder. */

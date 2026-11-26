@@ -55,7 +55,7 @@ export default function SettingsPage() {
   }
 
   async function handleExportBackup() {
-    const json = exportAllData()
+    const json = await exportAllData()
     const filename = `ollie-backup-${dateSuffix()}.json`
     const file = new File([json], filename, { type: 'application/json' })
 

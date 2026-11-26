@@ -10,7 +10,7 @@ import { savingsGoalSchema, savingsTransactionSchema } from '../savings/savingsS
 import { backfillPayments } from '../loans/paymentBackfill'
 import { parseFolderBackup } from '../privateFolder/privateFolderUtils'
 import { SCHEMA_VERSION, backupVersion, migrateSnapshot } from './schema'
-import type { Snapshot } from './schema'
+import { unwrapBackup } from './envelope'
 import type { PreparedRestore, RestoreData } from './restore'
 
 /** Valid records with unique ids, in file order; everything else adds to `skipped`. */
@@ -45,19 +45,22 @@ export function prepareRestore(json: string): PreparedRestore {
   } catch {
     return { ok: false, reason: 'invalid' }
   }
-  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as Snapshot).loans)) return { ok: false, reason: 'invalid' }
+  // v2 files are unwrapped into the flat shape older files already have.
+  const unwrapped = unwrapBackup(raw)
+  if (!unwrapped.ok) return unwrapped
 
   // A file from a newer version could hold data this one would misread.
-  const version = backupVersion(raw as Snapshot)
+  const version = backupVersion(unwrapped.flat)
   if (version > SCHEMA_VERSION) return { ok: false, reason: 'newer' }
-  const file = migrateSnapshot(raw as Snapshot, version)
+  const file = migrateSnapshot(unwrapped.flat, version)
 
   const tally = { skipped: 0 }
   const loans = readList(file.loans, loanSchema, tally)
   // Files from before payment history was kept get it rebuilt from the loans.
-  const payments = Array.isArray(file.payments)
-    ? readList(file.payments, paymentSchema, tally)
-    : backfillPayments(loans, [])
+  const rebuiltPayments = !Array.isArray(file.payments)
+  const payments = rebuiltPayments
+    ? backfillPayments(loans, [])
+    : readList(file.payments, paymentSchema, tally)
   const income = file.monthlyIncome
 
   const bills = readList(file.bills, billSchema, tally)
@@ -80,5 +83,7 @@ export function prepareRestore(json: string): PreparedRestore {
     data,
     counts: { loans: data.loans.length, bills: data.bills.length, savingsGoals: data.savingsGoals.length },
     skipped: tally.skipped,
+    info: unwrapped.info,
+    rebuiltPayments,
   }
 }
