@@ -19,8 +19,23 @@ Design `docs/superpowers/specs/2026-11-26-storage-move-design.md`, plan
 - Error screen if the database won't open; recovery screen if the browser
   emptied it.
 
-Checks: see the final review entry for this branch. Known left: Backup v2
-(merge, duplicates) and snooze/dismiss + activity log are pieces 2 and 3.
+A fresh reviewer read the whole branch ("with fixes"). Fixed, each with a test
+that failed first: a second tab starting during the move no longer wipes
+changes saved in the first; Move back saves the old copy (and set-aside
+records) as a file first when it holds something the database doesn't; the
+undo-restore copy follows the data exactly; earlier-format safety copies are
+converted, not deleted; a start-up failure shows the error screen, never a
+blank page.
+
+Deferred minors: Ollie may celebrate one old payment on a first run; typed
+amounts aren't rounded in memory until reload; the move stores the checked
+record (defaults filled in); no view of set-aside records after Move anyway;
+the old-window notice can't be dismissed; raw browser error text on a failed
+move; a database that opens after the timeout stays open.
+
+Checks: 367 unit tests, 27 Playwright runs (phone, desktop, offline), lint,
+typecheck, build. Known left: Backup v2 (merge, duplicates) and
+snooze/dismiss + activity log are pieces 2 and 3.
 
 ## 2026-11-26 — Final review of the branch (done)
 
