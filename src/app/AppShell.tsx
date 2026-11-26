@@ -68,7 +68,7 @@ export default function AppShell() {
         </PageErrorBoundary>
       </main>
       <BottomNav onAdd={() => setAdding(true)} />
-      {adding && <QuickAddSheet pathname={location.pathname} onClose={() => setAdding(false)} />}
+      {adding && <QuickAddSheet pathname={location.pathname} privateContext={onPrivatePath} onClose={() => setAdding(false)} />}
     </>
   )
 }

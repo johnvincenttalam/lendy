@@ -48,10 +48,18 @@ export function quickAddActions(defs: ModuleDef[]): QuickAddAction[] {
   return defs.flatMap((d) => d.quickAdd ?? [])
 }
 
-/** On a module's own page [+] opens its form directly; everywhere else, the menu. */
-export function quickAddTarget(pathname: string, defs: ModuleDef[]): { action: QuickAddAction; privateLoan: boolean } | 'menu' {
+/**
+ * On a module's own page [+] opens its form directly; everywhere else, the
+ * menu. Inside the private folder (`privateContext`: the folder or one of its
+ * loans) it opens the private loan form, so what's added stays in the folder.
+ */
+export function quickAddTarget(
+  pathname: string,
+  defs: ModuleDef[],
+  opts: { privateContext?: boolean } = {},
+): { action: QuickAddAction; privateLoan: boolean } | 'menu' {
   for (const d of defs) {
-    const ctx = d.contextAdd?.find((c) => c.path === pathname)
+    const ctx = d.contextAdd?.find((c) => c.path === pathname || (opts.privateContext === true && c.privateLoan === true))
     if (!ctx) continue
     const action = quickAddActions(defs).find((a) => a.id === ctx.actionId)
     if (action) return { action, privateLoan: ctx.privateLoan === true }

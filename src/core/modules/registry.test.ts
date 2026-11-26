@@ -56,6 +56,9 @@ describe('quick add', () => {
   it('saves loans added in the private folder as private', () => {
     expect(quickAddTarget('/private', defs)).toEqual({ action: defs[0].quickAdd![0], privateLoan: true })
   })
+  it('saves loans added from a private loan’s page as private too', () => {
+    expect(quickAddTarget('/loan/secret', defs, { privateContext: true })).toEqual({ action: defs[0].quickAdd![0], privateLoan: true })
+  })
   it('shows the menu everywhere else', () => {
     for (const path of ['/', '/planner', '/loan/x', '/bills/x']) expect(quickAddTarget(path, defs)).toBe('menu')
   })

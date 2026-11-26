@@ -11,9 +11,9 @@ type Choice = { action: QuickAddAction; privateLoan: boolean }
  * What [+] opens: on a module's own page, that module's form straight away;
  * everywhere else, a short menu of things to add.
  */
-export default function QuickAddSheet({ pathname, onClose }: { pathname: string; onClose: () => void }) {
+export default function QuickAddSheet({ pathname, privateContext, onClose }: { pathname: string; privateContext: boolean; onClose: () => void }) {
   const [choice, setChoice] = useState<Choice | null>(() => {
-    const target = quickAddTarget(pathname, MODULES)
+    const target = quickAddTarget(pathname, MODULES, { privateContext })
     return target === 'menu' ? null : target
   })
 
