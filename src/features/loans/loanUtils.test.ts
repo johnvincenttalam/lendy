@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Loan } from './loanTypes'
-import { isTracked, debtFreeDate, getOverdueLoans, upcomingPayments, isOverdue, paymentSchedule, nextDueDate, endDate, monthlyLoanPayments } from './loanUtils'
+import { isTracked, debtFreeDate, getOverdueLoans, isOverdue, paymentSchedule, nextDueDate, endDate, monthlyLoanPayments } from './loanUtils'
+import { loanDeadlines } from './loanDeadlines'
 
 const NOW = new Date()
 
@@ -36,7 +37,8 @@ describe('private loans in aggregates', () => {
   it('are never reported as overdue or upcoming', () => {
     const overdue = makeLoan({ startDate: isoOffset(-5), private: true })
     expect(getOverdueLoans([overdue])).toEqual([])
-    expect(upcomingPayments([makeLoan({ startDate: isoOffset(1), private: true })])).toBeNull()
+    // What's coming up now comes from the shared deadlines list.
+    expect(loanDeadlines({ loans: [makeLoan({ startDate: isoOffset(1), private: true })], bills: [], billPayments: [] }, NOW)).toEqual([])
   })
 
   it('still show as overdue on their own, inside the folder', () => {
