@@ -131,7 +131,7 @@ export default function StorageCard() {
     } catch {
       // The old copy still holds them.
     }
-    downloadFile(legacyBackupJson(localStorage, folder, new Date(), setAside), `ollie-old-copy-${dateSuffix()}.json`, 'application/json')
+    downloadFile(await legacyBackupJson(localStorage, folder, new Date(), setAside), `ollie-old-copy-${dateSuffix()}.json`, 'application/json')
     showToast('Old copy saved')
   }
 

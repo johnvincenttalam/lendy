@@ -1,6 +1,9 @@
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 import { showToast } from '../components/toastEvents'
 import { SCHEMA_VERSION } from '../features/backup/schema'
+import { buildBackup, checkChecksum } from '../features/backup/envelope'
+import type { ChecksumStatus } from '../features/backup/envelope'
+import { CURRENT_VERSION } from '../features/whatsNew/changelog'
 import { writeRestore, undoRestore, readSafetyCopy } from '../features/backup/restore'
 import type { PreparedRestore, RestoreData } from '../features/backup/restore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
@@ -9,30 +12,30 @@ import { getActiveStorage } from '../features/storage/activeStorage'
 import { whenSaved } from '../features/storage/persist'
 import { hydrateStores, readStoresSnapshot } from './storeSnapshot'
 
-export function exportAllData(): string {
-  const { loans, payments, monthlyIncome, bills, billPayments, savingsGoals, savingsTransactions } = readStoresSnapshot()
+/** A backup file (format v2) of everything in the stores. */
+export async function exportAllData(): Promise<string> {
   // Private loans travel with their folder's name and PIN, so a restore
   // brings them back locked rather than open.
   const { name, pinHash, recoveryHash } = usePrivateFolderStore.getState()
   const privateFolder = name !== null ? { name, pinHash, recoveryHash } : undefined
-  return JSON.stringify({
+  return buildBackup({
+    snapshot: readStoresSnapshot(),
     schemaVersion: SCHEMA_VERSION,
-    loans,
-    payments,
-    monthlyIncome,
-    bills,
-    billPayments,
-    savingsGoals,
-    savingsTransactions,
-    privateFolder,
+    appVersion: CURRENT_VERSION,
     exportedAt: new Date().toISOString(),
-  }, null, 2)
+    privateFolder,
+  })
 }
 
+/** A backup file that passed its checks, plus whether its check value matched. */
+export type CheckedBackup = Extract<PreparedRestore, { ok: true }> & { checksum: ChecksumStatus }
+
 /** Reads and checks a backup file without changing anything. */
-export async function checkBackup(json: string): Promise<PreparedRestore> {
+export async function checkBackup(json: string): Promise<CheckedBackup | Extract<PreparedRestore, { ok: false }>> {
   const { prepareRestore } = await import('../features/backup/prepareRestore')
-  return prepareRestore(json)
+  const prepared = prepareRestore(json)
+  if (!prepared.ok) return prepared
+  return { ...prepared, checksum: await checkChecksum(JSON.parse(json)) }
 }
 
 /** Every store re-reads storage, so what's on screen matches what was written. */
@@ -48,10 +51,12 @@ async function reloadStores() {
 }
 
 /**
- * Replaces the stored data with a checked backup. A safety copy of the
- * old data is kept first, and nothing changes if any part fails to save.
+ * Writes a checked backup: 'replace' makes this phone match the file;
+ * 'merge' writes the merge plan's full next state (`planMerge`). Either way a
+ * safety copy of the old data is kept first, nothing changes if any part
+ * fails to save, and it can be undone for 7 days.
  */
-export async function applyRestore(data: RestoreData): Promise<boolean> {
+export async function applyRestore(data: RestoreData, mode: 'replace' | 'merge', toast?: string): Promise<boolean> {
   // A change made a moment ago belongs in the safety copy.
   await whenSaved()
   const active = getActiveStorage()
@@ -64,9 +69,11 @@ export async function applyRestore(data: RestoreData): Promise<boolean> {
     return false
   }
   await reloadStores()
-  // What's stored now matches a file the user has.
-  useLastBackupStore.getState().markBackedUp()
-  showToast(describeRestoredCounts(data), { label: 'UNDO', onClick: () => { void undoLastRestore() } })
+  // After a replace, what's stored matches a file the user has. After a merge
+  // it holds more than the file, so it doesn't count as backed up.
+  if (mode === 'replace') useLastBackupStore.getState().markBackedUp()
+  const message = toast ?? (mode === 'replace' ? describeRestoredCounts(data) : 'Merged')
+  showToast(message, { label: 'UNDO', onClick: () => { void undoLastRestore() } })
   return true
 }
 

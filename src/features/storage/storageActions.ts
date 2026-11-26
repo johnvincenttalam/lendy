@@ -5,6 +5,8 @@
  */
 import { SCHEMA_KEY, SCHEMA_VERSION } from '../backup/schema'
 import { prepareRestore } from '../backup/prepareRestore'
+import { buildBackup } from '../backup/envelope'
+import { CURRENT_VERSION } from '../whatsNew/changelog'
 import { writeFolderPrefs } from '../backup/restore'
 import type { PreparedRestore } from '../backup/restore'
 import type { FolderBackup } from '../privateFolder/privateFolderUtils'
@@ -114,16 +116,17 @@ export function refillFromOlderCopy(db: OllieDb, storage: KeyValueStorage, now: 
  * The old copy as a backup file, in the same shape as a normal backup. Records
  * the move set aside ride along under `setAside`, exactly as they were.
  */
-export function legacyBackupJson(storage: KeyValueStorage, privateFolder: FolderBackup | undefined, now: Date, setAside?: (QuarantineItem | QuarantineRow)[]): string {
-  const snapshot = readLegacySnapshot(storage)
+export function legacyBackupJson(storage: KeyValueStorage, privateFolder: FolderBackup | undefined, now: Date, setAside?: (QuarantineItem | QuarantineRow)[]): Promise<string> {
   const version = Number(storage.getItem(SCHEMA_KEY))
-  return JSON.stringify({
+  return buildBackup({
+    snapshot: readLegacySnapshot(storage),
+    // The old copy's own data version, so a restore upgrades it if needed.
     schemaVersion: Number.isInteger(version) && version >= 0 ? version : 0,
-    ...snapshot,
-    privateFolder,
-    setAside: setAside && setAside.length > 0 ? setAside : undefined,
+    appVersion: CURRENT_VERSION,
     exportedAt: now.toISOString(),
-  }, null, 2)
+    privateFolder,
+    setAside,
+  })
 }
 
 /** Set-aside records, exactly as they were, for copying somewhere safe. */

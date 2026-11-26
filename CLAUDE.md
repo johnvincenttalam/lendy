@@ -27,7 +27,7 @@ Before calling a change done: `npx tsc -b && npm run verify && npm run build && 
 - `src/pages/` — one file per route; `src/components/` — shared UI
 - `src/features/storage/` — where the money data lives: the localStorage and IndexedDB (Dexie) backends, the one-time move, start-up loading (`bootstrap.ts`), the save queue (`persist.ts`), the Storage card
 - `src/utils/backup.ts` — export / restore orchestration (talks to stores)
-- `src/features/backup/` — schema version + migrations, restore (`prepareRestore.ts` validates, `restore.ts` writes/undoes)
+- `src/features/backup/` — schema version + migrations; the v2 backup file (`envelope.ts`: sections + SHA-256 check value; v0/v1 files still read); restore (`prepareRestore.ts` validates, `planMerge.ts` plans merge/replace, `RestorePreview.tsx` shows it, `restore.ts` writes/undoes)
 - `api/ask.ts` — the Vercel function for Ask Ollie. **Must stay self-contained** (Vercel runs it unbundled; relative imports break production).
 
 ## Rules that protect the owner's data

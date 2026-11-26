@@ -20,6 +20,10 @@ import { readSafetyCopy } from '../features/backup/restore'
 import { getActiveStorage } from '../features/storage/activeStorage'
 import { persist } from '../features/storage/persist'
 import type { Loan } from '../features/loans/loanTypes'
+import { hydrateStores, readStoresSnapshot } from './storeSnapshot'
+import { emptySnapshot } from '../features/storage/snapshot'
+import { useLastBackupStore } from '../features/backup/lastBackupStore'
+import { planMerge } from '../features/backup/planMerge'
 
 // Synthetic records only — never real data.
 const phone: Loan = { id: 'L1', name: 'Phone', color: '#000', totalAmount: 6000, monthlyPayment: 1000, interestRate: 0, durationMonths: 6, startDate: '2026-01-15', monthsPaid: 0, totalPaid: 0, totalInterestPaid: 0, createdAt: '2026-01-01T00:00:00.000Z' }
@@ -34,7 +38,7 @@ function prepared() {
 describe('the Undo last restore offer', () => {
   it('appears after a restore and goes away after an undo, wherever the undo came from', async () => {
     expect(useLastRestoreStore.getState().restoredAt).toBeNull()
-    expect(await applyRestore(prepared())).toBe(true)
+    expect(await applyRestore(prepared(), 'replace')).toBe(true)
     expect(useLastRestoreStore.getState().restoredAt).not.toBeNull()
     // e.g. the UNDO button on the restore toast, while Settings is open
     expect(await undoLastRestore()).toBe(true)
@@ -44,8 +48,21 @@ describe('the Undo last restore offer', () => {
   it('a change saved just before the restore is in the safety copy', async () => {
     const added = { ...phone, id: 'NEW', name: 'Just added' }
     void persist({ loans: { next: [added], prev: [] } })
-    expect(await applyRestore(prepared())).toBe(true)
+    expect(await applyRestore(prepared(), 'replace')).toBe(true)
     const copy = await readSafetyCopy(getActiveStorage().safety)
     expect(copy?.snapshot.loans.map((l) => l.id)).toContain('NEW')
+  })
+
+  it("a merge can be undone and doesn't count as backed up", async () => {
+    await getActiveStorage().backend.replaceAll({ ...emptySnapshot(), loans: [{ ...phone, id: 'D1', name: 'On this phone' }] })
+    hydrateStores(await getActiveStorage().backend.readAll())
+    const before = useLastBackupStore.getState().lastBackupAt
+    const file = prepared()
+    const plan = planMerge({ snapshot: readStoresSnapshot(), folder: null }, file, { useFileForDifferent: false, addPossibleDuplicates: false, rebuiltPayments: false })
+    expect(await applyRestore(plan.next, 'merge', 'Merged: 1 loan added')).toBe(true)
+    expect(readStoresSnapshot().loans.map((l) => l.id)).toEqual(['D1', 'L1'])
+    expect(useLastBackupStore.getState().lastBackupAt).toBe(before)
+    expect(await undoLastRestore()).toBe(true)
+    expect(readStoresSnapshot().loans.map((l) => l.id)).toEqual(['D1'])
   })
 })

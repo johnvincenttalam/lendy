@@ -1,7 +1,40 @@
 # Progress
 
 Newest first. Each entry says what was done, how it was verified, and what's
-known to be left. Branch: `feature/phase-2-storage` (not merged or pushed; Phase 1 is merged into local `main`, not pushed).
+known to be left. Branch: `feature/phase-2-backup-v2` (not merged or pushed; Phase 1 and Phase 2 piece 1 are merged into local `main`, not pushed).
+
+## 2026-11-27 — Phase 2, piece 2: Backup v2 (done)
+
+Design `docs/superpowers/specs/2026-11-27-backup-v2-design.md`, plan
+`docs/superpowers/plans/2026-11-27-backup-v2.md`.
+- Backups are written as v2 files: format, app version, a section per module
+  (loans, bills, savings, finance), and a SHA-256 check value. v0/v1 files
+  still restore through the same upgrade-and-check path.
+- Restoring opens a preview: who made the file, a damaged-file warning, per
+  area new / already here / different, what each different record would
+  leave out, held-back possible double entries, and merge (default) or
+  replace with what it would remove. Private loans are counted, never named.
+- Merge adds what's missing and keeps this phone's version; a record's
+  children always come from the same place as the record. Both modes are
+  undoable for 7 days; a merge doesn't count as backed up.
+- Piece 1's old-copy file is now a v2 file carrying set-aside records.
+
+A fresh reviewer read the branch ("with fixes"). Fixed, each with a test that
+failed first: "use the file's version" never moves a loan out of the private
+folder; a held-back line never names a private loan on this phone; replace now
+lists what it changes on records in both and the income; a look-alike the file
+itself shows is separate is added, not held back; the file's folder comes only
+with private loans.
+
+Deferred minors: older-shape records on simple storage read as "different"
+when merging the phone's own export; the plan is read once when the preview
+opens; small preview wording gaps (New column counts held-back records, toast
+ignores replaced records, no "including 1 private loan" counts, an edited
+payment reads as added + missing); checksum doesn't survive key sorting;
+unknown fields inside known sections are dropped quietly; ARCHITECTURE.md
+line 65 still describes the v1 export.
+
+Checks: 402 unit tests, 33 Playwright runs, lint, typecheck, build.
 
 ## 2026-11-26 — Phase 2, piece 1: IndexedDB, centavos, start-up loading (done)
 
