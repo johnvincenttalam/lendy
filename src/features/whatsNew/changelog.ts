@@ -14,6 +14,19 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.14.0',
+    date: '2026-11-26',
+    title: 'A new home for everything',
+    highlights: [
+      'New navigation: Home, Planner, Ollie and More, with the + button in the middle. On a computer, a sidebar takes over.',
+      'The + button opens a menu to add a loan, bill or savings goal (on the Bills and Savings pages it goes straight to that form).',
+      'Planner shows everything that’s due across your loans and bills, from overdue to later this month, with the calendar one tap away.',
+      'Ollie has its own page for chatting, and now reminds you about bills too, not just loans.',
+      'Customize Home lets you reorder and hide sections. A new Due soon section and a bell show what needs paying.',
+      'The loan planner is now called What-if, under More.',
+    ],
+  },
+  {
     version: '1.13.1',
     date: '2026-11-26',
     title: 'Safer restores, steadier dates',

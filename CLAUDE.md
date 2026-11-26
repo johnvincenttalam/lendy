@@ -12,14 +12,17 @@ Start with `docs/ARCHITECTURE.md` (current state, findings, target design),
 - `npm run dev` — Vite dev server
 - `npm run verify` — eslint + vitest (the deploy gate on Vercel and GitHub Pages)
 - `npm run build` — `tsc -b` + production build
+- `npm run test:e2e` — Playwright smoke tests at phone and desktop sizes (starts its own dev server on port 47614, fresh storage)
 - `npm run eval:ollie` — Ask Ollie evals against the real Groq model (needs `GROQ_API_KEY`; opt-in, costs tokens)
 
-Before calling a change done: `npx tsc -b && npm run verify && npm run build`.
+Before calling a change done: `npx tsc -b && npm run verify && npm run build && npm run test:e2e`.
 
 ## Layout
 
-- `src/core/` — shared, store-free building blocks (`time/`, `validation/`; more arrive in Phase 1b)
-- `src/features/<feature>/` — one folder per module: types, store (Zustand), utils, schema (zod), components, tests
+- `src/app/` — the shell: `AppShell` (layout route), `Sidebar`, `QuickAddSheet`, `NotificationBell`, `DeadlinesProvider`, and `modules.ts`, **the list of every module**
+- `src/core/` — shared building blocks that never import feature code (types only): `time/`, `money/`, `locale.ts`, `settings/` (layout prefs, key `loan-tracker-settings`), `deadlines/` (one due list + context), `modules/` (ModuleDef types, registry helpers), `validation/`
+- `src/features/<feature>/` — one folder per module: types, store (Zustand), utils, schema (zod), components, tests, and `module.ts`
+- **Adding a module:** write `features/<x>/module.ts` (nav entries, quick-add actions, Home widgets, deadline collector) and add it to `src/app/modules.ts`. Nav, More, [+], Home, Planner and the bell pick it up. Module files are `.ts` and import components from their own files.
 - `src/pages/` — one file per route; `src/components/` — shared UI
 - `src/utils/backup.ts` — export / restore orchestration (talks to stores)
 - `src/features/backup/` — schema version + migrations, restore (`prepareRestore.ts` validates, `restore.ts` writes/undoes)
@@ -40,6 +43,7 @@ Before calling a change done: `npx tsc -b && npm run verify && npm run build`.
 - Add months with `addMonthsClamped` (`src/core/time/months.ts`), never `Date#setMonth` (Jan 31 + 1 month must be Feb 28).
 - Loans are flat-interest (PH model); formulas are documented in `docs/ARCHITECTURE.md` §1. Don't change them without a verified defect.
 - "Tracked" = not archived and not private (`isTracked`). Private-folder loans stay out of totals, reminders, CSV and Ollie unless asked from inside the folder.
+- What's due comes from `collectDeadlines` (loans + bills). Read it with `useDeadlines(days)`; don't recompute due dates in components.
 
 ## AI
 

@@ -1,6 +1,6 @@
 # Ollie — Roadmap to a Personal Life OS
 
-Status: **Phase 1a (data-safety fixes) done, 2026-11-26.** 1b–1e next; see `PROGRESS.md`.
+Status: **Phase 1 done on branch `feature/phase-1-foundation`, 2026-11-26 (not merged).** Phase 2 next; see `PROGRESS.md`.
 The owner approved every recommendation below on 2026-11-26.
 Findings referenced as D#/S#/A# are in `ARCHITECTURE.md` §2.
 

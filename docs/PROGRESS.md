@@ -3,6 +3,39 @@
 Newest first. Each entry says what was done, how it was verified, and what's
 known to be left. Branch: `feature/phase-1-foundation` (not merged or pushed).
 
+## 2026-11-26 — Phase 1b–1e: Life OS shell (done, pending final review)
+
+Spec `docs/superpowers/specs/2026-11-26-life-os-shell-design.md`, plan
+`docs/superpowers/plans/2026-11-26-life-os-shell.md`. Owner decisions: loan
+list stays on Home (option A); Ollie reminds about bills too.
+
+- **Core:** `core/time` (local dates, `useToday`), `core/money` + `core/locale`
+  (fixed PHP / en-PH), `core/settings` (Home layout, sidebar), `core/deadlines`
+  (loans + bills in one list, via a React context), `core/modules` (ModuleDef + registry).
+- **Shell:** `AppShell` layout route; phones get Home / Planner / [+] / Ollie /
+  More, desktop (lg) a collapsible sidebar; [+] opens an Add menu or the page's
+  own form on Bills, Savings and the private folder; reminders bell (overdue +
+  today); Sheets close on Escape and manage focus; pages load on demand.
+- **Home:** widgets (Due soon, Money summary, Financial health, Savings, Your
+  loans) in the owner's order; Customize Home; empty widgets hide themselves.
+- **Planner:** agenda (Overdue / Today / This week / Later, 30 days) + Calendar
+  tab; old `#/calendar` redirects. **What-if** replaces the old loan Planner at `/what-if`.
+- **Ollie:** own page with the chat; due reminders now include bills; prompt
+  names the new screens and points to What-if.
+- **Tests:** 264 unit tests; 12 Playwright smoke tests (phone 390px and desktop
+  1280px); new `e2e.yml` workflow (no deploy). Main bundle 304 kB (was 497 kB).
+
+Verified manually on desktop with synthetic data on a fresh port: Home
+widgets, Customize persistence, Add menu + Escape + focus return, Bills
+context add, sidebar collapse, Planner agenda/calendar, Ollie page offline
+message. Phone layout verified by Playwright only (no real-phone pass yet).
+
+**Known, not done**
+- A real-phone pass (safe areas, thumb reach) before merging.
+- Ollie's chat suggests "How much did I spend this month?", though spending
+  isn't tracked since the Money page was removed (pre-existing).
+- `loanUtils.upcomingPayments` is no longer used by the app (kept; tested).
+
 ## 2026-11-26 — Phase 1a: data-safety fixes (done)
 
 Decisions applied (owner said "go with your recommendations"): safety fixes
