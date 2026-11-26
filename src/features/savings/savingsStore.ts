@@ -45,7 +45,8 @@ type SavingsStore = {
   archiveGoal: (id: string) => void
   unarchiveGoal: (id: string) => void
   getTransactionsForGoal: (goalId: string) => SavingsTransaction[]
-  importBackup: (json: string) => void
+  /** Re-reads goals and transactions after a restore wrote them to the device. */
+  reloadFromStorage: () => void
 }
 
 export const useSavingsStore = create<SavingsStore>((set, get) => ({
@@ -165,25 +166,5 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   },
 
-  importBackup: (json) => {
-    try {
-      const data = JSON.parse(json)
-      if (!Array.isArray(data.savingsGoals)) return
-      const goals: SavingsGoal[] = data.savingsGoals.filter(
-        (g: unknown): g is SavingsGoal =>
-          !!g && typeof g === 'object' && typeof (g as SavingsGoal).id === 'string' && typeof (g as SavingsGoal).name === 'string'
-      )
-      const transactions: SavingsTransaction[] = Array.isArray(data.savingsTransactions)
-        ? data.savingsTransactions.filter(
-            (t: unknown): t is SavingsTransaction =>
-              !!t && typeof t === 'object' && typeof (t as SavingsTransaction).id === 'string' && typeof (t as SavingsTransaction).goalId === 'string'
-          )
-        : []
-      saveGoals(goals)
-      saveTransactions(transactions)
-      set({ goals, transactions })
-    } catch {
-      // Swallow — importAllData (Task 19) already validated the JSON parses.
-    }
-  },
+  reloadFromStorage: () => set({ goals: loadGoals(), transactions: loadTransactions() }),
 }))

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Loan } from './loanTypes'
-import { isTracked, debtFreeDate, getOverdueLoans, upcomingPayments, isOverdue, paymentSchedule, nextDueDate, endDate } from './loanUtils'
+import { isTracked, debtFreeDate, getOverdueLoans, upcomingPayments, isOverdue, paymentSchedule, nextDueDate, endDate, monthlyLoanPayments } from './loanUtils'
 
 const NOW = new Date()
 
@@ -61,5 +61,24 @@ describe('month-end start dates', () => {
 
   it('ends the loan in the right month', () => {
     expect(endDate(makeLoan({ startDate: '2026-01-31', durationMonths: 1 }))).toBe('2026-02-28')
+  })
+})
+
+describe('monthlyLoanPayments', () => {
+  it('adds up what each active loan bills, skipping paid, archived and private loans', () => {
+    const loans = [
+      makeLoan({ id: 'a', monthlyPayment: 1000 }),
+      makeLoan({ id: 'b', monthlyPayment: 2500.5 }),
+      makeLoan({ id: 'paid', monthlyPayment: 900, monthsPaid: 12 }),
+      makeLoan({ id: 'arch', monthlyPayment: 800, archived: true }),
+      makeLoan({ id: 'priv', monthlyPayment: 700, private: true }),
+    ]
+    expect(monthlyLoanPayments(loans)).toBe(3500.5)
+  })
+
+  it('uses the billed figure even when it is off schedule', () => {
+    // ₱12,000 at 2%/month over 12 months schedules ₱1,240, but the lender bills ₱1,300.
+    const offSchedule = makeLoan({ totalAmount: 12000, interestRate: 2, monthlyPayment: 1300 })
+    expect(monthlyLoanPayments([offSchedule])).toBe(1300)
   })
 })

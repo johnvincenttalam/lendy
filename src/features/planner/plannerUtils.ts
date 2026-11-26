@@ -1,6 +1,6 @@
 import type { Loan } from '../loans/loanTypes'
 import type { Bill } from '../bills/billTypes'
-import { endDate, isFullyPaid, isTracked, monthsLeft, nextDueDate, suggestedMonthlyPayment } from '../loans/loanUtils'
+import { endDate, isFullyPaid, isTracked, monthlyLoanPayments, monthsLeft, nextDueDate, suggestedMonthlyPayment } from '../loans/loanUtils'
 import { HIGH_DTI, localISODate } from '../ollie/ollieUtils'
 import { startOfDay } from '../../utils/dateUtils'
 import { addMonthsClamped } from '../../core/time/months'
@@ -22,7 +22,7 @@ function activeLoans(loans: Loan[]): Loan[] {
 }
 
 export function currentMonthlyPayments(loans: Loan[]): number {
-  return round2(activeLoans(loans).reduce((sum, l) => sum + l.monthlyPayment, 0))
+  return monthlyLoanPayments(loans)
 }
 
 /** The loan's last scheduled payment date (YYYY-MM-DD), one month before endDate. */

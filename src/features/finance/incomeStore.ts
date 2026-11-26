@@ -3,25 +3,22 @@ import { STORAGE_FIELDS } from '../backup/schema'
 
 const INCOME_KEY = STORAGE_FIELDS.monthlyIncome
 
+const loadIncome = () => Number(localStorage.getItem(INCOME_KEY)) || 0
+
 type IncomeStore = {
   monthlyIncome: number
   setMonthlyIncome: (income: number) => void
+  /** Re-reads the income after a restore wrote it to the device. */
+  reloadFromStorage: () => void
 }
 
 export const useIncomeStore = create<IncomeStore>((set) => ({
-  monthlyIncome: Number(localStorage.getItem(INCOME_KEY)) || 0,
+  monthlyIncome: loadIncome(),
 
   setMonthlyIncome: (income) => {
     localStorage.setItem(INCOME_KEY, String(income))
     set({ monthlyIncome: income })
   },
-}))
 
-/**
- * Restore path: writes localStorage and store state directly. Used by backup
- * import, which runs outside React and must not depend on a mounted component.
- */
-export function setMonthlyIncomeFromBackup(income: number) {
-  localStorage.setItem(INCOME_KEY, String(income))
-  useIncomeStore.setState({ monthlyIncome: income })
-}
+  reloadFromStorage: () => set({ monthlyIncome: loadIncome() }),
+}))

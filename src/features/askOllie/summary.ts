@@ -3,7 +3,7 @@ import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import {
   formatCurrency, remainingBalance, totalCostOfLoan, monthsLeft, nextDueDate, daysOverdue,
-  isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio,
+  isFullyPaid, isTracked, debtFreeDate, debtToIncomeRatio, monthlyLoanPayments,
 } from '../loans/loanUtils'
 import { isBillOverdue, billDaysOverdue, paidForCycle } from '../bills/billUtils'
 import { progressPercent } from '../savings/savingsUtils'
@@ -64,7 +64,7 @@ function loanSections(input: SummaryInput, now: Date): string[] {
   lines.push(...regular.map((l) => loanLine(l, now)))
 
   const leftToPay = tracked.reduce((sum, l) => sum + remainingBalance(l), 0)
-  const monthly = tracked.filter((l) => !isFullyPaid(l)).reduce((sum, l) => sum + l.monthlyPayment, 0)
+  const monthly = monthlyLoanPayments(input.loans)
   const freeOn = debtFreeDate(input.loans)
   lines.push(
     `Total left to pay (regular loans): ${money(leftToPay)}`,
@@ -110,8 +110,7 @@ function loanSections(input: SummaryInput, now: Date): string[] {
  */
 function quickReadSection(input: SummaryInput, now: Date): string[] {
   const lines = ['QUICK READ (worked out by the app)']
-  const active = input.loans.filter((l) => isTracked(l) && !isFullyPaid(l))
-  const monthly = active.reduce((sum, l) => sum + l.monthlyPayment, 0)
+  const monthly = monthlyLoanPayments(input.loans)
   const income = input.monthlyIncome
   const limitPercent = Math.round(HIGH_DTI * 100)
 

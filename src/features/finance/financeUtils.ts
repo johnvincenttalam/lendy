@@ -2,7 +2,7 @@ import type { Loan, PaymentRecord } from '../loans/loanTypes'
 import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal } from '../savings/savingsTypes'
 import type { FinancialOverview, MetricScore, HealthScore, ScoreBandName } from './financeTypes'
-import { scheduledMonthlyPayment, remainingBalance, isFullyPaid, paymentSchedule, isTracked } from '../loans/loanUtils'
+import { monthlyLoanPayments, remainingBalance, isFullyPaid, paymentSchedule, isTracked } from '../loans/loanUtils'
 import { daysBetween } from '../../utils/dateUtils'
 
 export type OverviewInput = {
@@ -15,9 +15,8 @@ export type OverviewInput = {
 export function buildOverview({ loans, bills, goals, monthlyIncome }: OverviewInput): FinancialOverview {
   const activeLoans = loans.filter((l) => isTracked(l) && !isFullyPaid(l))
 
-  // scheduledMonthlyPayment, not loan.monthlyPayment: the stored field is
-  // hand-entered and drifts from the amount/rate/tenure beside it.
-  const loanCommitments = activeLoans.reduce((sum, l) => sum + scheduledMonthlyPayment(l), 0)
+  // The billed figure, the same one every other screen and Ollie use.
+  const loanCommitments = monthlyLoanPayments(loans)
 
   // Gross amount, not remainingForCycle: a commitment is what recurs every
   // month. A part-paid electricity bill still costs its full amount next month.

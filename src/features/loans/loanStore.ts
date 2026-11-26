@@ -2,9 +2,9 @@ import { create } from 'zustand'
 import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
 import { monthlyInterestPortion, monthlyPrincipalPortion, offScheduleAmount, paymentSchedule } from './loanUtils'
+import { backfillPayments } from './paymentBackfill'
 import { showToast } from '../../components/toastEvents'
 import { triggerConfetti } from '../../components/confettiEvents'
-import { useIncomeStore, setMonthlyIncomeFromBackup } from '../finance/incomeStore'
 import { STORAGE_FIELDS } from '../backup/schema'
 import { addMonthsClamped } from '../../core/time/months'
 
@@ -49,36 +49,6 @@ function savePayments(payments: PaymentRecord[]) {
   localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments))
 }
 
-// Backfill payment records for existing loans that have monthsPaid > 0 but no records
-function migrateExistingPayments(loans: Loan[], existingPayments: PaymentRecord[]): PaymentRecord[] {
-  const loanIdsWithRecords = new Set(existingPayments.map((p) => p.loanId))
-  const newRecords: PaymentRecord[] = []
-
-  for (const loan of loans) {
-    if (loan.monthsPaid <= 0 || loanIdsWithRecords.has(loan.id)) continue
-
-    const schedule = paymentSchedule(loan)
-    const principal = monthlyPrincipalPortion(loan)
-    const interest = monthlyInterestPortion(loan)
-
-    for (let i = 0; i < loan.monthsPaid; i++) {
-      const scheduledDate = schedule[i]?.date ?? new Date(loan.startDate)
-      newRecords.push({
-        id: crypto.randomUUID(),
-        loanId: loan.id,
-        amount: loan.monthlyPayment,
-        principal: Math.round(principal * 100) / 100,
-        interest: Math.round(interest * 100) / 100,
-        paidAt: scheduledDate.toISOString(),
-        dueDate: scheduledDate.toISOString().split('T')[0],
-        month: i + 1,
-      })
-    }
-  }
-
-  return [...existingPayments, ...newRecords]
-}
-
 type LoanStore = {
   loans: Loan[]
   payments: PaymentRecord[]
@@ -98,13 +68,13 @@ type LoanStore = {
   setSortBy: (sort: SortOption) => void
   setViewMode: (mode: ViewMode) => void
   exportCSV: () => string
-  exportBackup: () => string
-  importBackup: (json: string) => boolean
+  /** Re-reads loans and payments after a restore wrote them to the device. */
+  reloadFromStorage: () => void
 }
 
 const initialLoans = loadLoans()
 const existingPayments = loadPayments()
-const initialPayments = migrateExistingPayments(initialLoans, existingPayments)
+const initialPayments = backfillPayments(initialLoans, existingPayments)
 if (initialPayments.length > existingPayments.length) savePayments(initialPayments)
 
 export const useLoanStore = create<LoanStore>((set, get) => ({
@@ -353,37 +323,5 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
     return [headers, ...rows].map((r) => r.join(',')).join('\n')
   },
 
-  exportBackup: () => {
-    const { loans, payments } = get()
-    const { monthlyIncome } = useIncomeStore.getState()
-    return JSON.stringify({ loans, payments, monthlyIncome, exportedAt: new Date().toISOString() }, null, 2)
-  },
-
-  importBackup: (json) => {
-    try {
-      const data = JSON.parse(json)
-      if (!Array.isArray(data.loans)) return false
-      const loans = data.loans.map((loan: Loan) => ({
-        ...loan,
-        color: loan.color || DEFAULT_COLOR,
-        interestRate: loan.interestRate ?? 0,
-        totalInterestPaid: loan.totalInterestPaid ?? 0,
-      }))
-      // Import payments if present, otherwise backfill from loan data
-      const payments = Array.isArray(data.payments)
-        ? data.payments
-        : migrateExistingPayments(loans, [])
-      saveLoans(loans)
-      savePayments(payments)
-      if (data.monthlyIncome) {
-        setMonthlyIncomeFromBackup(data.monthlyIncome)
-      }
-      set({ loans, payments })
-      showToast(`${loans.length} loans restored`)
-      return true
-    } catch {
-      showToast('Invalid backup file')
-      return false
-    }
-  },
+  reloadFromStorage: () => set({ loans: loadLoans(), payments: loadPayments() }),
 }))

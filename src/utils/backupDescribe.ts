@@ -11,14 +11,17 @@ function describeCount(n: number, singular: string, plural = `${singular}s`): st
   return `${n} ${n === 1 ? singular : plural}`
 }
 
-export function describeBackupImport(incoming: IncomingCounts, existing: ExistingCounts): string {
+export function describeBackupImport(incoming: IncomingCounts, existing: ExistingCounts, skipped = 0): string {
   const parts: string[] = []
   if (incoming.loans > 0) parts.push(describeCount(incoming.loans, 'loan'))
   if (incoming.bills > 0) parts.push(describeCount(incoming.bills, 'bill'))
   if (incoming.savingsGoals > 0) parts.push(describeCount(incoming.savingsGoals, 'savings goal'))
   const incomingText = parts.length > 0 ? parts.join(', ') : 'no data'
 
-  return hasExistingData(existing)
-    ? `This will replace your existing data with ${incomingText} from the backup. This cannot be undone.`
+  const main = hasExistingData(existing)
+    ? `This replaces everything on this device with ${incomingText} from the backup. You can undo it from Settings afterwards.`
     : `Import ${incomingText} from the backup?`
+  return skipped > 0
+    ? `${main} ${describeCount(skipped, 'record')} in the file couldn’t be read and will be left out.`
+    : main
 }

@@ -229,12 +229,23 @@ export function debtPayoffTimeline(loans: Loan[]): Array<{ date: Date; balance: 
   return timeline
 }
 
-export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
-  if (monthlyIncome <= 0) return 0
-  const totalMonthly = loans
+/**
+ * What the active regular loans bill each month, to the centavo. The one
+ * definition every screen, the health score and Ollie use. It's the billed
+ * `monthlyPayment`, not the figure recomputed from amount/rate/tenure: that's
+ * what markAsPaid records and what actually leaves the owner's pocket (a loan
+ * whose two disagree shows an "off schedule" warning with a recalc button).
+ */
+export function monthlyLoanPayments(loans: Loan[]): number {
+  const total = loans
     .filter((l) => isTracked(l) && !isFullyPaid(l))
     .reduce((sum, l) => sum + l.monthlyPayment, 0)
-  return totalMonthly / monthlyIncome
+  return Math.round(total * 100) / 100
+}
+
+export function debtToIncomeRatio(loans: Loan[], monthlyIncome: number): number {
+  if (monthlyIncome <= 0) return 0
+  return monthlyLoanPayments(loans) / monthlyIncome
 }
 
 // --- Overdue detection ---

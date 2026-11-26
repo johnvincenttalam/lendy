@@ -9,6 +9,7 @@ import { useFinancialOverview } from '../features/finance/useFinancialOverview'
 import {
   remainingBalance, isFullyPaid, progress, debtFreeDate,
   totalInterestAllLoans, debtToIncomeRatio, upcomingPayments, totalCostOfLoan,
+  monthlyLoanPayments,
 } from '../features/loans/loanUtils'
 import SummaryHeader from '../components/SummaryHeader'
 import EmptyState from '../components/EmptyState'
@@ -86,10 +87,7 @@ export default function Dashboard() {
     const totalPaid = activeLoans.reduce((sum, l) => sum + progress(l) * totalCostOfLoan(l), 0)
     return {
       totalDebt: activeLoans.reduce((sum, l) => sum + remainingBalance(l), 0),
-      totalMonthly: activeLoans.reduce((sum, l) => {
-        if (l.monthsPaid >= l.durationMonths) return sum
-        return sum + l.monthlyPayment
-      }, 0),
+      totalMonthly: monthlyLoanPayments(activeLoans),
       paidRatio: totalCost > 0 ? totalPaid / totalCost : 0,
     }
   }, [activeLoans])

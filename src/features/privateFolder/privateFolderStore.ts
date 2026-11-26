@@ -1,12 +1,11 @@
 import { create } from 'zustand'
 import { hashPin } from '../lock/pinHash'
 import { useLockStore } from '../lock/lockStore'
-import { MAX_FOLDER_NAME } from './privateFolderUtils'
-import type { FolderBackup } from './privateFolderUtils'
+import { FOLDER_KEYS, cleanFolderName } from './privateFolderUtils'
 
-const NAME_KEY = 'loan-tracker-private-name'
-const PIN_HASH_KEY = 'loan-tracker-private-pin-hash'
-const RECOVERY_KEY = 'loan-tracker-private-recovery'
+const NAME_KEY = FOLDER_KEYS.name
+const PIN_HASH_KEY = FOLDER_KEYS.pinHash
+const RECOVERY_KEY = FOLDER_KEYS.recoveryHash
 
 /** The app PIN's hash right now, if the app lock is on — saved as the folder's recovery key. */
 function currentAppPinHash(): string | null {
@@ -43,7 +42,7 @@ function write(key: string, value: string) {
   }
 }
 
-const cleanName = (name: string) => name.trim().slice(0, MAX_FOLDER_NAME).trim()
+const cleanName = cleanFolderName
 
 type PrivateFolderStore = {
   /** The owner's name for the folder; null until set up ("" = default label). */
@@ -61,8 +60,8 @@ type PrivateFolderStore = {
   changePin: (pin: string) => Promise<void>
   /** Turns the PIN off. Callers check the current PIN first. */
   removePin: () => void
-  /** Replaces the folder with one from a backup; it opens locked. */
-  restoreBackup: (folder: FolderBackup) => void
+  /** Re-reads the folder settings after a restore wrote them; it opens locked. */
+  reloadFromStorage: () => void
 }
 
 export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
@@ -113,14 +112,8 @@ export const usePrivateFolderStore = create<PrivateFolderStore>((set, get) => ({
     set({ pinHash: null, recoveryHash: null })
   },
 
-  restoreBackup: ({ name, pinHash, recoveryHash }) => {
-    const clean = cleanName(name)
-    write(NAME_KEY, clean)
-    if (pinHash) write(PIN_HASH_KEY, pinHash)
-    else remove(PIN_HASH_KEY)
-    saveRecovery(pinHash ? recoveryHash : null)
-    set({ name: clean, pinHash, recoveryHash: pinHash ? recoveryHash : null, unlocked: false })
-  },
+  reloadFromStorage: () =>
+    set({ name: read(NAME_KEY), pinHash: read(PIN_HASH_KEY), recoveryHash: read(RECOVERY_KEY), unlocked: false }),
 }))
 
 /** Set up once named (even with an empty name), whether or not a PIN is on. */
