@@ -24,7 +24,8 @@ import type { FolderBackup } from '../privateFolder/privateFolderUtils'
 import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
 import { LAST_BACKUP_KEY } from './backupStatus'
 
-export const SAFETY_COPY_KEY = 'loan-tracker-pre-restore'
+import { SAFETY_COPY_KEY } from '../storage/safetyCopyStore'
+export { SAFETY_COPY_KEY }
 
 type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
