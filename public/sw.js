@@ -1,4 +1,12 @@
-const CACHE_NAME = 'ollie-v3'
+// Filled in at build time (build/precache.ts): a version per build, and every
+// built file, so pages open offline even if they were never visited online.
+const BUILD = 'dev' /*__BUILD__*/
+const PRECACHE = [] /*__PRECACHE__*/
+const CACHE_NAME = `ollie-${BUILD}`
+
+// Page code is fetched as module scripts, which send an Origin header the
+// precache requests didn't; a `Vary: Origin` response would then never match.
+const MATCH = { ignoreVary: true }
 
 const APP_SHELL = [
   './',
@@ -14,7 +22,7 @@ const APP_SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll([...APP_SHELL, ...PRECACHE]))
   )
   self.skipWaiting()
 })
@@ -50,7 +58,7 @@ self.addEventListener('fetch', (event) => {
           return res
         })
         .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match('./index.html'))
+          caches.match(request, MATCH).then((cached) => cached || caches.match('./index.html', MATCH))
         )
     )
     return
@@ -66,6 +74,6 @@ self.addEventListener('fetch', (event) => {
         }
         return res
       })
-      .catch(() => caches.match(request))
+      .catch(() => caches.match(request, MATCH))
   )
 })

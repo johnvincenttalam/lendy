@@ -11,6 +11,7 @@ import { useSettingsStore } from '../core/settings/settingsStore'
 import Sidebar from './Sidebar'
 import QuickAddSheet from './QuickAddSheet'
 import PageFallback from './PageFallback'
+import PageErrorBoundary from './PageErrorBoundary'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -60,9 +61,11 @@ export default function AppShell() {
       <InstallPrompt />
       <Sidebar onAdd={() => setAdding(true)} />
       <main className={collapsed ? 'lg:pl-[72px]' : 'lg:pl-60'}>
-        <Suspense fallback={<PageFallback />}>
-          <Outlet />
-        </Suspense>
+        <PageErrorBoundary resetKey={location.pathname}>
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
+        </PageErrorBoundary>
       </main>
       <BottomNav onAdd={() => setAdding(true)} />
       {adding && <QuickAddSheet pathname={location.pathname} onClose={() => setAdding(false)} />}

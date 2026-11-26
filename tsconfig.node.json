@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts", "vitest.eval.config.ts", "api", "evals"]
+  "include": ["vite.config.ts", "vitest.eval.config.ts", "api", "evals", "build"]
 }

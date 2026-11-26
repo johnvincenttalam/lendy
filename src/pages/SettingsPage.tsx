@@ -79,7 +79,14 @@ export default function SettingsPage() {
     const reader = new FileReader()
     reader.onload = async () => {
       const json = reader.result as string
-      const check = await checkBackup(json)
+      let check: Awaited<ReturnType<typeof checkBackup>>
+      try {
+        check = await checkBackup(json)
+      } catch {
+        // The file reader's code couldn't be fetched (offline before it was cached).
+        showToast('Couldn’t open the backup reader. Check your connection and try again.')
+        return
+      }
       if (!check.ok) {
         showToast(check.reason === 'newer'
           ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'

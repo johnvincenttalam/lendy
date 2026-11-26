@@ -95,3 +95,21 @@ test('old links land in the right place', async ({ page }) => {
   await page.goto('/#/what-if')
   await expect(page.getByRole('heading', { level: 1, name: 'What-if' })).toBeVisible()
 })
+
+test.describe('when a page’s code can’t be fetched', () => {
+  // Requests a service worker makes can't be intercepted, so take it out of the picture.
+  test.use({ serviceWorkers: 'block' })
+
+  test('a page that can’t load shows a way to recover, not a blank screen', async ({ page }) => {
+  await page.goto('/#/')
+  // Simulate being offline (or a stale tab after a deploy) for the Planner's code.
+  await page.route('**/src/pages/PlannerPage.tsx*', (route) => route.abort())
+  await page.getByRole('navigation', { name: 'Main' }).locator('visible=true').getByRole('button', { name: 'Planner', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('couldn’t load')
+  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible()
+  // The rest of the app still works.
+  await page.unroute('**/src/pages/PlannerPage.tsx*')
+  await page.getByRole('navigation', { name: 'Main' }).locator('visible=true').getByRole('button', { name: 'Home', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Customize Home' })).toBeVisible()
+})
+})

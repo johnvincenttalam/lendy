@@ -17,6 +17,22 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+// A tab left open across an update asks for page files the new version
+// replaced. Reload once to pick up the new version; the page error boundary
+// covers the case where that can't help (offline).
+window.addEventListener('vite:preloadError', (event) => {
+  const KEY = 'ollie-preload-reload'
+  try {
+    const last = Number(sessionStorage.getItem(KEY))
+    if (Date.now() - last < 10_000) return
+    sessionStorage.setItem(KEY, String(Date.now()))
+  } catch {
+    return
+  }
+  event.preventDefault()
+  window.location.reload()
+})
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})

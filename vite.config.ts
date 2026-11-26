@@ -1,9 +1,10 @@
 import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { precacheServiceWorker } from './build/precache'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), precacheServiceWorker()],
   base: process.env.VITE_BASE ?? '/',
   test: {
     // Dates are device-local; pin tests to the owner's zone so midnight cases mean the same everywhere.
