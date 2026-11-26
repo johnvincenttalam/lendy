@@ -8,6 +8,8 @@ import { useLoanStore } from '../features/loans/loanStore'
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 import { isPrivatePath } from '../features/privateFolder/privateFolderUtils'
 import { useSettingsStore } from '../core/settings/settingsStore'
+import { useStorageStatusStore } from '../features/storage/storageStatusStore'
+import { showToast } from '../components/toastEvents'
 import Sidebar from './Sidebar'
 import QuickAddSheet from './QuickAddSheet'
 import PageFallback from './PageFallback'
@@ -27,6 +29,15 @@ export default function AppShell() {
   const loans = useLoanStore((s) => s.loans)
   const lockPrivate = usePrivateFolderStore((s) => s.lock)
   const privateUnlocked = usePrivateFolderStore((s) => s.unlocked)
+  const justMoved = useStorageStatusStore((s) => s.justMoved)
+
+  // Said once, after the toast area is listening (child effects run first).
+  useEffect(() => {
+    // Read live, not from the closure: StrictMode runs effects twice in development.
+    if (!justMoved || !useStorageStatusStore.getState().justMoved) return
+    useStorageStatusStore.getState().update({ justMoved: false })
+    showToast('Moved your data to sturdier storage. Your old copy is kept.')
+  }, [justMoved])
 
   // The private folder stays open only while you're inside it (the folder or
   // one of its loans). Leaving it, or putting the app in the background,

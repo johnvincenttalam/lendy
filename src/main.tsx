@@ -1,4 +1,4 @@
-// Must stay first: upgrades saved data before any store reads it.
+// Must stay first: upgrades data in the browser's simple storage before anything reads it.
 import './features/backup/runMigrations'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -7,28 +7,56 @@ import './index.css'
 import './features/theme/themeStore'
 import App from './App'
 import { requestPersistentStorage } from './features/backup/persistStorage'
-import { getActiveStorage } from './features/storage/activeStorage'
-import { persist } from './features/storage/persist'
-import { backfillPayments } from './features/loans/paymentBackfill'
+import { setActiveStorage } from './features/storage/activeStorage'
+import { bootstrap } from './features/storage/bootstrap'
+import { createOllieDb } from './features/storage/db'
+import { useStorageStatusStore } from './features/storage/storageStatusStore'
+import StorageErrorScreen from './features/storage/StorageErrorScreen'
+import RecoveryScreen from './features/storage/RecoveryScreen'
 import { hydrateStores } from './utils/storeSnapshot'
 import { useLastRestoreStore } from './features/backup/lastRestoreStore'
 
 const root = createRoot(document.getElementById('root')!)
 
-// Data loads once, before the first screen.
+// Data loads once, before the first screen. Until then the page shows its plain background.
 async function start() {
-  const snapshot = await getActiveStorage().backend.readAll()
-  const payments = backfillPayments(snapshot.loans, snapshot.payments)
-  if (payments.length > snapshot.payments.length) void persist({ payments: { next: payments, prev: snapshot.payments } })
-  hydrateStores({ ...snapshot, payments })
+  const outcome = await bootstrap({
+    storage: localStorage,
+    hasIndexedDb: typeof indexedDB !== 'undefined',
+    openDb: async () => {
+      const db = createOllieDb()
+      await db.open()
+      return db
+    },
+    now: new Date(),
+  })
+
+  if (outcome.kind === 'error') {
+    root.render(<StorageErrorScreen />)
+    return
+  }
+  if (outcome.kind === 'recovery') {
+    root.render(
+      <RecoveryScreen
+        movedAt={outcome.movedAt}
+        onRestoreFile={async () => 'Not available yet'}
+        onUseOlderCopy={async () => 'Not available yet'}
+      />,
+    )
+    return
+  }
+
+  setActiveStorage(outcome.active)
+  hydrateStores(outcome.snapshot)
+  useStorageStatusStore.getState().update(outcome.status)
   await useLastRestoreStore.getState().refresh()
   root.render(
     <StrictMode>
       <App />
     </StrictMode>,
   )
-  const hasData = snapshot.loans.length > 0 || snapshot.bills.length > 0 || snapshot.savingsGoals.length > 0
-  void requestPersistentStorage(hasData)
+  const { loans, bills, savingsGoals } = outcome.snapshot
+  void requestPersistentStorage(loans.length > 0 || bills.length > 0 || savingsGoals.length > 0)
 }
 void start()
 
