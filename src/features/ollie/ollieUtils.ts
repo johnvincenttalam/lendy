@@ -8,6 +8,7 @@ import { startOfDay } from '../../utils/dateUtils'
 import { localISODate, calendarDaysBetween } from '../../core/time/localDate'
 import { daysSinceBackup, isBackupDue } from '../backup/backupStatus'
 import type { DuePayment, OllieInput, OllieInsight, OllieSituation } from './ollieTypes'
+import type { Deadline } from '../../core/deadlines/deadlines'
 
 /** Payments due within this many days count as "soon" (priority 3). */
 export const SOON_DAYS = 3
@@ -47,10 +48,10 @@ export function duePaymentFor(loan: Loan, now: Date): DuePayment | null {
   return { loan, dueDate, amount, daysUntil, installments: missed.length }
 }
 
-const sumAmounts = (payments: DuePayment[]) =>
+const sumAmounts = (payments: Deadline[]) =>
   Math.round(payments.reduce((sum, p) => sum + p.amount, 0) * 100) / 100
 
-const idsOf = (payments: DuePayment[]) => payments.map((p) => p.loan.id).sort().join(',')
+const idsOf = (payments: Deadline[]) => payments.map((p) => p.id).sort().join(',')
 
 /**
  * The most recent payment recorded through markAsPaid in the last day that
@@ -163,10 +164,8 @@ export function selectOllieSituation(input: OllieInput): OllieSituation {
   const windowDays = Math.max(MIN_WINDOW_DAYS, reminderDays)
 
   const tracked = loans.filter(isTracked)
-  const due = tracked
-    .map((l) => duePaymentFor(l, now))
-    .filter((p): p is DuePayment => p !== null)
-    .sort((a, b) => a.daysUntil - b.daysUntil || b.amount - a.amount)
+  // Loans and bills alike, most pressing first (collectDeadlines' order).
+  const due = input.deadlines
 
   const overdue = due.filter((p) => p.daysUntil < 0)
   if (overdue.length > 0) {

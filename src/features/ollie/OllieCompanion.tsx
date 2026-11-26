@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronUp } from 'lucide-react'
 import { useLoanStore } from '../loans/loanStore'
+import { useBillStore } from '../bills/billStore'
+import { collectDeadlines } from '../../core/deadlines/deadlines'
+import { loanDeadlines } from '../loans/loanDeadlines'
+import { billDeadlines } from '../bills/billDeadlines'
 import { useIncomeStore } from '../finance/incomeStore'
 import { useNotificationStore } from '../notifications/notificationStore'
 import { useLastBackupStore } from '../backup/lastBackupStore'
@@ -46,6 +50,8 @@ type Props = {
 export default function OllieCompanion({ className = '', hero = false, onAsk }: Props) {
   const loans = useLoanStore((s) => s.loans)
   const payments = useLoanStore((s) => s.payments)
+  const bills = useBillStore((s) => s.bills)
+  const billPayments = useBillStore((s) => s.billPayments)
   const monthlyIncome = useIncomeStore((s) => s.monthlyIncome)
   const reminderDays = useNotificationStore((s) => s.reminderDays)
   const lastBackupAt = useLastBackupStore((s) => s.lastBackupAt)
@@ -79,6 +85,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
     const seen = new Set(celebratedIds)
     if (celebrating) seen.delete(celebrating)
     return selectOllieSituation({
+      deadlines: collectDeadlines([loanDeadlines, billDeadlines], { loans, bills, billPayments }, now, 366),
       loans,
       payments,
       now,
@@ -89,7 +96,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
       greetingEligible,
       lastBackupAt,
     })
-  }, [loans, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible, lastBackupAt])
+  }, [loans, bills, billPayments, payments, now, reminderDays, monthlyIncome, celebratedIds, celebrating, seenInsights, greetingEligible, lastBackupAt])
 
   // Record what Ollie actually showed.
   useEffect(() => {
@@ -130,7 +137,7 @@ export default function OllieCompanion({ className = '', hero = false, onAsk }: 
   if (view === 'reminder-bar' && (situation.kind === 'overdue' || situation.kind === 'due-today')) {
     const count = situation.payments.length
     const summary = situation.kind === 'overdue'
-      ? (count === 1 ? `${situation.payments[0].loan.name} is overdue` : `${count} loans overdue`)
+      ? (count === 1 ? `${situation.payments[0].title} is overdue` : `${count} payments overdue`)
       : `${count} ${count === 1 ? 'payment' : 'payments'} due today`
     return (
       <section aria-label="Ollie, your financial companion" className={className}>

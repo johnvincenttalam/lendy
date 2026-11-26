@@ -5,6 +5,10 @@ import {
   selectOllieSituation, duePaymentFor, findCelebratablePayment, collectInsights,
   calendarDaysBetween, localISODate,
 } from './ollieUtils'
+import type { Bill } from '../bills/billTypes'
+import { collectDeadlines } from '../../core/deadlines/deadlines'
+import { loanDeadlines } from '../loans/loanDeadlines'
+import { billDeadlines } from '../bills/billDeadlines'
 import type { OllieInput } from './ollieTypes'
 
 // Mid-morning local time, well clear of midnight in any direction.
@@ -49,7 +53,15 @@ function makePayment(overrides: Partial<PaymentRecord> = {}): PaymentRecord {
   }
 }
 
-function input(overrides: Partial<OllieInput> = {}): OllieInput {
+/**
+ * Ollie's due reminders come from the shared deadlines list, which the app
+ * builds from loans and bills. Tests pass `bills` here and get it built the
+ * same way, unless they pass `deadlines` themselves.
+ */
+function input(overrides: Partial<OllieInput> & { bills?: Bill[] } = {}): OllieInput {
+  const { bills = [], ...rest } = overrides
+  const loans = rest.loans ?? []
+  const now = rest.now ?? NOW
   return {
     loans: [],
     payments: [],
@@ -59,7 +71,8 @@ function input(overrides: Partial<OllieInput> = {}): OllieInput {
     celebratedIds: new Set(),
     seenInsights: {},
     greetingEligible: false,
-    ...overrides,
+    deadlines: collectDeadlines([loanDeadlines, billDeadlines], { loans, bills, billPayments: [] }, now, 366),
+    ...rest,
   }
 }
 
@@ -113,7 +126,7 @@ describe('selectOllieSituation — priority', () => {
     }))
     expect(s.kind).toBe('overdue')
     if (s.kind !== 'overdue') return
-    expect(s.payments.map((p) => p.loan.id)).toEqual(['late'])
+    expect(s.payments.map((p) => p.recordId)).toEqual(['late'])
     expect(s.payments[0].daysUntil).toBe(-5)
   })
 
@@ -123,7 +136,7 @@ describe('selectOllieSituation — priority', () => {
     }))
     expect(s.kind).toBe('due-today')
     if (s.kind !== 'due-today') return
-    expect(s.payments.map((p) => p.loan.id)).toEqual(['today'])
+    expect(s.payments.map((p) => p.recordId)).toEqual(['today'])
     expect(s.total).toBe(1000)
   })
 
@@ -153,7 +166,7 @@ describe('selectOllieSituation — priority', () => {
       seenInsights: { 'milestone:50': '2026-11-01' },
     }))
     expect(s.kind).toBe('relaxed')
-    expect(s.kind === 'relaxed' && s.next?.loan.id).toBe('later')
+    expect(s.kind === 'relaxed' && s.next?.recordId).toBe('later')
   })
 
   it('celebrates a fresh payment only when nothing is due', () => {
@@ -261,5 +274,47 @@ describe('private loans', () => {
     }))
     expect(s.kind).toBe('greeting')
     expect(s.kind === 'greeting' && s.hasLoans).toBe(false)
+  })
+})
+
+
+describe('selectOllieSituation — bills', () => {
+  const bill = (over: Partial<Bill> = {}): Bill => ({
+    id: 'water', name: 'Water', color: '#10B981', category: 'Utilities', amount: 500,
+    nextDueDate: dayOffset(0), createdAt: '2026-01-01T00:00:00.000Z', ...over,
+  })
+
+  it('reminds about a bill due today when no loan is due', () => {
+    const s = selectOllieSituation(input({ bills: [bill()] }))
+    expect(s.kind).toBe('due-today')
+    if (s.kind !== 'due-today') return
+    expect(s.payments.map((p) => [p.module, p.title])).toEqual([['bills', 'Water']])
+    expect(s.total).toBe(500)
+  })
+
+  it('counts an overdue bill alongside an overdue loan', () => {
+    const s = selectOllieSituation(input({
+      loans: [makeLoan({ startDate: dayOffset(-2) })],
+      bills: [bill({ nextDueDate: dayOffset(-5) })],
+    }))
+    expect(s.kind).toBe('overdue')
+    if (s.kind !== 'overdue') return
+    expect(s.payments.map((p) => p.module)).toEqual(['bills', 'loans'])
+    expect(s.total).toBe(500 + s.payments[1].amount)
+  })
+
+  it('never reminds about an overdue private loan', () => {
+    const s = selectOllieSituation(input({ loans: [makeLoan({ startDate: dayOffset(-2), private: true })] }))
+    expect(s.kind).not.toBe('overdue')
+  })
+
+  it('can name a bill as the next thing due when all is calm', () => {
+    const s = selectOllieSituation(input({
+      loans: [makeLoan({ startDate: dayOffset(-40), monthsPaid: 2 })],
+      bills: [bill({ nextDueDate: dayOffset(12) })],
+    }))
+    expect(s.kind).toBe('relaxed')
+    if (s.kind !== 'relaxed') return
+    expect(s.next?.title).toBe('Water')
   })
 })

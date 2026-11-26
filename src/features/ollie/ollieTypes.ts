@@ -1,4 +1,5 @@
 import type { Loan, PaymentRecord } from '../loans/loanTypes'
+import type { Deadline } from '../../core/deadlines/deadlines'
 
 /** One expression per artwork file in public/assets/ollie/. */
 export type OllieMood = 'happy' | 'thinking' | 'upcoming' | 'alert' | 'celebrating' | 'relaxed'
@@ -30,13 +31,13 @@ export type OllieInsight =
  * (a new due date, a new payment, a new day) brings Ollie back.
  */
 export type OllieSituation =
-  | { kind: 'overdue'; key: string; payments: DuePayment[]; total: number }
-  | { kind: 'due-today'; key: string; payments: DuePayment[]; total: number }
-  | { kind: 'upcoming'; key: string; tier: 'soon' | 'week'; payments: DuePayment[]; total: number; windowDays: number }
+  | { kind: 'overdue'; key: string; payments: Deadline[]; total: number }
+  | { kind: 'due-today'; key: string; payments: Deadline[]; total: number }
+  | { kind: 'upcoming'; key: string; tier: 'soon' | 'week'; payments: Deadline[]; total: number; windowDays: number }
   | { kind: 'celebrating'; key: string; payment: PaymentRecord; loan: Loan; fullyPaid: boolean; remaining: number; paymentsLeft: number }
   | { kind: 'insight'; key: string; insightKey: string; insight: OllieInsight }
   | { kind: 'greeting'; key: string; hasLoans: boolean }
-  | { kind: 'relaxed'; key: string; next: DuePayment | null; allPaidOff: boolean }
+  | { kind: 'relaxed'; key: string; next: Deadline | null; allPaidOff: boolean }
 
 export type OllieSituationKind = OllieSituation['kind']
 
@@ -55,4 +56,6 @@ export type OllieInput = {
   greetingEligible: boolean
   /** ISO time of the last backup (null: never). Left out, Ollie doesn't bring up backups. */
   lastBackupAt?: string | null
+  /** Loans and bills that are due, from collectDeadlines (overdue plus at least the next year). */
+  deadlines: Deadline[]
 }
