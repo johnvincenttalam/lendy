@@ -8,6 +8,7 @@ import CustomizeHomeSheet from '../features/home/CustomizeHomeSheet'
 import { resolveHomeWidgets } from '../core/modules/registry'
 import { useSettingsStore } from '../core/settings/settingsStore'
 import { MODULES } from '../app/modules'
+import NotificationBell from '../app/NotificationBell'
 
 /**
  * Home: Ollie first, then each module's widgets in the owner's order.
@@ -31,6 +32,8 @@ export default function Dashboard() {
             className="w-11 h-11 rounded-2xl"
           />
           <p className="flex-1 text-[26px] font-extrabold text-primary tracking-tight leading-none">Ollie</p>
+          {/* On desktop the bell lives in the sidebar. */}
+          <div className="lg:hidden"><NotificationBell /></div>
           <HeaderIconButton label="Ask Ollie" onClick={() => setAsking(true)}>
             <MessageCircle className="w-[18px] h-[18px] text-primary" strokeWidth={2.5} />
           </HeaderIconButton>

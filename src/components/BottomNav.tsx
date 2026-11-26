@@ -1,21 +1,20 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, CalendarDays, MoreHorizontal, BarChart3, Plus } from 'lucide-react'
+import { Home, CalendarDays, MoreHorizontal, MessageCircle, Plus } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { path: '/planner', icon: CalendarDays, label: 'Planner' },
   { path: '__add__', icon: Plus, label: 'Add' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/ollie', icon: MessageCircle, label: 'Ollie' },
   { path: '/more', icon: MoreHorizontal, label: 'More' },
 ] as const
 
-// Sub-pages that should keep their parent tab lit even though the path
-// isn't the tab's own. Home is absent on purpose: '/' prefixes everything.
-// Analytics has its own tab now, so it is no longer one of More's children.
+// Sub-pages that keep their parent tab lit. Home is absent on purpose: '/' prefixes everything.
 const TAB_PREFIXES: Record<string, string[]> = {
-  '/more': ['/more', '/planner', '/bills', '/savings', '/settings', '/whats-new'],
+  '/more': ['/more', '/what-if', '/analytics', '/bills', '/savings', '/settings', '/whats-new', '/private'],
 }
 
+/** Phone and tablet navigation; the desktop sidebar takes over at lg. */
 export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -25,7 +24,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
+    <nav aria-label="Main" className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none lg:hidden">
       <div className="bg-header backdrop-blur-header transition-colors pointer-events-auto">
       <div className="max-w-2xl mx-auto grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
         {NAV_ITEMS.map((item) => {
@@ -35,7 +34,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
                 <button
                   onClick={onAdd}
                   aria-label="Add"
-                  className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light"
+                  className="w-14 h-14 rounded-full bg-brand flex items-center justify-center hover:bg-brand-light focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                 >
                   <Plus className="w-7 h-7 text-on-brand" strokeWidth={3} />
                 </button>
@@ -54,7 +53,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
               key={item.path}
               onClick={() => navigate(item.path)}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center gap-0.5 pt-2 pb-2 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 pt-2 pb-2 transition-colors focus-visible:outline-none focus-visible:[&>span:first-child]:ring-2 focus-visible:[&>span:first-child]:ring-brand ${
                 isActive ? 'text-primary' : 'text-muted hover:text-secondary'
               }`}
             >
@@ -70,6 +69,6 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
         })}
       </div>
       </div>
-    </div>
+    </nav>
   )
 }
