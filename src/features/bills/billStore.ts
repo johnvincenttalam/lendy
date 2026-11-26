@@ -2,39 +2,11 @@ import { create } from 'zustand'
 import type { Bill, BillFormData, BillPaymentRecord } from './billTypes'
 import { advanceDueDate, paidForCycle, remainingForCycle } from './billUtils'
 import { showToast } from '../../components/toastEvents'
-import { STORAGE_FIELDS } from '../backup/schema'
+import { persist } from '../storage/persist'
 
-const BILLS_KEY = STORAGE_FIELDS.bills
-const BILL_PAYMENTS_KEY = STORAGE_FIELDS.billPayments
 
 function formatDue(amount: number): string {
   return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function loadBills(): Bill[] {
-  try {
-    const data = localStorage.getItem(BILLS_KEY)
-    return data ? JSON.parse(data) : []
-  } catch {
-    return []
-  }
-}
-
-function saveBills(bills: Bill[]) {
-  localStorage.setItem(BILLS_KEY, JSON.stringify(bills))
-}
-
-function loadBillPayments(): BillPaymentRecord[] {
-  try {
-    const data = localStorage.getItem(BILL_PAYMENTS_KEY)
-    return data ? JSON.parse(data) : []
-  } catch {
-    return []
-  }
-}
-
-function saveBillPayments(payments: BillPaymentRecord[]) {
-  localStorage.setItem(BILL_PAYMENTS_KEY, JSON.stringify(payments))
 }
 
 type BillStore = {
@@ -48,13 +20,13 @@ type BillStore = {
   archiveBill: (id: string) => void
   unarchiveBill: (id: string) => void
   getPaymentsForBill: (billId: string) => BillPaymentRecord[]
-  /** Re-reads bills and their payments after a restore wrote them to the device. */
-  reloadFromStorage: () => void
+  /** Fills the store from storage: at start-up, and after a restore or undo. */
+  hydrate: (data: { bills: Bill[]; billPayments: BillPaymentRecord[] }) => void
 }
 
 export const useBillStore = create<BillStore>((set, get) => ({
-  bills: loadBills(),
-  billPayments: loadBillPayments(),
+  bills: [],
+  billPayments: [],
 
   addBill: (data) =>
     set((state) => {
@@ -64,7 +36,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
         createdAt: new Date().toISOString(),
       }
       const bills = [...state.bills, newBill]
-      saveBills(bills)
+      persist({ bills: { next: bills, prev: state.bills } })
       showToast(`"${data.name}" added`)
       return { bills }
     }),
@@ -72,7 +44,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
   updateBill: (id, data) =>
     set((state) => {
       const bills = state.bills.map((bill) => (bill.id === id ? { ...bill, ...data } : bill))
-      saveBills(bills)
+      persist({ bills: { next: bills, prev: state.bills } })
       return { bills }
     }),
 
@@ -106,8 +78,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
         )
       }, 0)
 
-      saveBills(bills)
-      saveBillPayments(billPayments)
+      persist({ bills: { next: bills, prev: state.bills }, billPayments: { next: billPayments, prev: state.billPayments } })
       return { bills, billPayments }
     }),
 
@@ -121,8 +92,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
         bill.id === id ? { ...bill, nextDueDate: lastPayment.dueDate } : bill
       )
       const billPayments = state.billPayments.filter((p) => p.id !== lastPayment.id)
-      saveBills(bills)
-      saveBillPayments(billPayments)
+      persist({ bills: { next: bills, prev: state.bills }, billPayments: { next: billPayments, prev: state.billPayments } })
       showToast('Payment undone')
       return { bills, billPayments }
     }),
@@ -132,8 +102,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
       const bill = state.bills.find((b) => b.id === id)
       const bills = state.bills.filter((b) => b.id !== id)
       const billPayments = state.billPayments.filter((p) => p.billId !== id)
-      saveBills(bills)
-      saveBillPayments(billPayments)
+      persist({ bills: { next: bills, prev: state.bills }, billPayments: { next: billPayments, prev: state.billPayments } })
       if (bill) showToast(`"${bill.name}" deleted`)
       return { bills, billPayments }
     }),
@@ -141,7 +110,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
   archiveBill: (id) =>
     set((state) => {
       const bills = state.bills.map((b) => (b.id === id ? { ...b, archived: true } : b))
-      saveBills(bills)
+      persist({ bills: { next: bills, prev: state.bills } })
       const bill = bills.find((b) => b.id === id)
       if (bill) showToast(`"${bill.name}" archived`)
       return { bills }
@@ -150,7 +119,7 @@ export const useBillStore = create<BillStore>((set, get) => ({
   unarchiveBill: (id) =>
     set((state) => {
       const bills = state.bills.map((b) => (b.id === id ? { ...b, archived: false } : b))
-      saveBills(bills)
+      persist({ bills: { next: bills, prev: state.bills } })
       const bill = bills.find((b) => b.id === id)
       if (bill) showToast(`"${bill.name}" restored`)
       return { bills }
@@ -162,5 +131,5 @@ export const useBillStore = create<BillStore>((set, get) => ({
       .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())
   },
 
-  reloadFromStorage: () => set({ bills: loadBills(), billPayments: loadBillPayments() }),
+  hydrate: ({ bills, billPayments }) => set({ bills, billPayments }),
 }))

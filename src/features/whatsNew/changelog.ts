@@ -14,6 +14,17 @@ export type Release = {
  */
 export const CHANGELOG: Release[] = [
   {
+    version: '1.15.0',
+    date: '2026-11-26',
+    title: 'Sturdier storage',
+    highlights: [
+      'Ollie now keeps your loans, bills and savings in your browser’s own database, which holds much more and saves each change safely.',
+      'The move happens by itself the first time you open this version. Ollie checks every record before switching, and keeps your old copy.',
+      'Settings has a new Storage card: where your data lives, whether your browser has promised to keep it, and how much space it uses.',
+      'Your data still lives only on this device, so keep making backups.',
+    ],
+  },
+  {
     version: '1.14.0',
     date: '2026-11-26',
     title: 'A new home for everything',

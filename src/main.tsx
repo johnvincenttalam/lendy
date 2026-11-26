@@ -1,4 +1,4 @@
-// Must stay first: upgrades saved data before any store reads it.
+// Must stay first: upgrades data in the browser's simple storage before anything reads it.
 import './features/backup/runMigrations'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -7,15 +7,73 @@ import './index.css'
 import './features/theme/themeStore'
 import App from './App'
 import { requestPersistentStorage } from './features/backup/persistStorage'
-import { useLoanStore } from './features/loans/loanStore'
-import { useBillStore } from './features/bills/billStore'
-import { useSavingsStore } from './features/savings/savingsStore'
+import { setActiveStorage } from './features/storage/activeStorage'
+import { bootstrap } from './features/storage/bootstrap'
+import { openOllieDb } from './features/storage/db'
+import { useStorageStatusStore } from './features/storage/storageStatusStore'
+import StorageErrorScreen from './features/storage/StorageErrorScreen'
+import RecoveryScreen from './features/storage/RecoveryScreen'
+import { hydrateStores } from './utils/storeSnapshot'
+import { useLastRestoreStore } from './features/backup/lastRestoreStore'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const root = createRoot(document.getElementById('root')!)
+
+// Data loads once, before the first screen. Until then the page shows its plain background.
+async function start() {
+  const outcome = await bootstrap({
+    storage: localStorage,
+    hasIndexedDb: typeof indexedDB !== 'undefined',
+    openDb: openOllieDb,
+    now: new Date(),
+  })
+
+  if (outcome.kind === 'error') {
+    root.render(<StorageErrorScreen />)
+    return
+  }
+  if (outcome.kind === 'recovery') {
+    root.render(
+      <RecoveryScreen
+        movedAt={outcome.movedAt}
+        onRestoreFile={async (json) => {
+          const { restoreIntoEmptyDatabase } = await import('./features/storage/storageActions')
+          try {
+            const r = await restoreIntoEmptyDatabase(outcome.db, localStorage, json, new Date())
+            if (r.ok) return null
+            return r.reason === 'newer'
+              ? 'This backup is from a newer version of Ollie. Close and reopen the app to update, then try again.'
+              : 'That file isn’t an Ollie backup.'
+          } catch {
+            return 'Couldn’t restore that file. Nothing was changed.'
+          }
+        }}
+        onUseOlderCopy={async () => {
+          const { refillFromOlderCopy } = await import('./features/storage/storageActions')
+          const r = await refillFromOlderCopy(outcome.db, localStorage, new Date())
+          return r.ok ? null : 'Couldn’t bring back the older copy. Try a backup file instead.'
+        }}
+      />,
+    )
+    return
+  }
+
+  setActiveStorage(outcome.active)
+  hydrateStores(outcome.snapshot)
+  useStorageStatusStore.getState().update(outcome.status)
+  await useLastRestoreStore.getState().refresh()
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+  const { loans, bills, savingsGoals } = outcome.snapshot
+  void requestPersistentStorage(loans.length > 0 || bills.length > 0 || savingsGoals.length > 0)
+}
+// Anything unexpected shows the error screen rather than a blank page.
+start().catch((err: unknown) => {
+  console.error('Starting Ollie failed', err)
+  root.render(<StorageErrorScreen />)
+})
 
 // A tab left open across an update asks for page files the new version
 // replaced. Reload once to pick up the new version; the page error boundary
@@ -38,8 +96,3 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
   })
 }
-
-const hasData = useLoanStore.getState().loans.length > 0
-  || useBillStore.getState().bills.length > 0
-  || useSavingsStore.getState().goals.length > 0
-void requestPersistentStorage(hasData)

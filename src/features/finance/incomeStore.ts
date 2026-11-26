@@ -1,24 +1,20 @@
 import { create } from 'zustand'
-import { STORAGE_FIELDS } from '../backup/schema'
-
-const INCOME_KEY = STORAGE_FIELDS.monthlyIncome
-
-const loadIncome = () => Number(localStorage.getItem(INCOME_KEY)) || 0
+import { persist } from '../storage/persist'
 
 type IncomeStore = {
   monthlyIncome: number
   setMonthlyIncome: (income: number) => void
-  /** Re-reads the income after a restore wrote it to the device. */
-  reloadFromStorage: () => void
+  /** Fills the store from storage: at start-up, and after a restore or undo. */
+  hydrate: (monthlyIncome: number) => void
 }
 
-export const useIncomeStore = create<IncomeStore>((set) => ({
-  monthlyIncome: loadIncome(),
+export const useIncomeStore = create<IncomeStore>((set, get) => ({
+  monthlyIncome: 0,
 
   setMonthlyIncome: (income) => {
-    localStorage.setItem(INCOME_KEY, String(income))
+    void persist({ monthlyIncome: { next: income, prev: get().monthlyIncome } })
     set({ monthlyIncome: income })
   },
 
-  reloadFromStorage: () => set({ monthlyIncome: loadIncome() }),
+  hydrate: (monthlyIncome) => set({ monthlyIncome }),
 }))

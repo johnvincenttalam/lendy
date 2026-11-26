@@ -1,7 +1,41 @@
 # Progress
 
 Newest first. Each entry says what was done, how it was verified, and what's
-known to be left. Branch: `feature/phase-1-foundation` (not merged or pushed).
+known to be left. Branch: `feature/phase-2-storage` (not merged or pushed; Phase 1 is merged into local `main`, not pushed).
+
+## 2026-11-26 — Phase 2, piece 1: IndexedDB, centavos, start-up loading (done)
+
+Design `docs/superpowers/specs/2026-11-26-storage-move-design.md`, plan
+`docs/superpowers/plans/2026-11-26-storage-move.md`, summary in
+`ARCHITECTURE.md` §4a.
+- Money data moves by itself into the browser's database on the next start:
+  checked record by record, written in one transaction, read back and compared
+  to the centavo, then switched. The old keys are never written.
+- Anything that would be set aside stops the automatic move; Settings lists it.
+- Stores load once before the first screen and save each change through an
+  ordered queue; a failed save shows a lasting banner.
+- Restore and undo work on either storage. Settings has a Storage card (where,
+  kept or not, space, not-sync note, move back / move forward, old-copy backup).
+- Error screen if the database won't open; recovery screen if the browser
+  emptied it.
+
+A fresh reviewer read the whole branch ("with fixes"). Fixed, each with a test
+that failed first: a second tab starting during the move no longer wipes
+changes saved in the first; Move back saves the old copy (and set-aside
+records) as a file first when it holds something the database doesn't; the
+undo-restore copy follows the data exactly; earlier-format safety copies are
+converted, not deleted; a start-up failure shows the error screen, never a
+blank page.
+
+Deferred minors: Ollie may celebrate one old payment on a first run; typed
+amounts aren't rounded in memory until reload; the move stores the checked
+record (defaults filled in); no view of set-aside records after Move anyway;
+the old-window notice can't be dismissed; raw browser error text on a failed
+move; a database that opens after the timeout stays open.
+
+Checks: 367 unit tests, 27 Playwright runs (phone, desktop, offline), lint,
+typecheck, build. Known left: Backup v2 (merge, duplicates) and
+snooze/dismiss + activity log are pieces 2 and 3.
 
 ## 2026-11-26 — Final review of the branch (done)
 

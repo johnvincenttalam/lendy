@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download, Upload, HardDrive, Eye, EyeOff, Sparkles, ChevronRight, Undo2 } from 'lucide-react'
+import { Download, Upload, Eye, EyeOff, Sparkles, ChevronRight, Undo2 } from 'lucide-react'
 import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
@@ -21,7 +21,8 @@ import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { describeLastBackup, isBackupDue } from '../features/backup/backupStatus'
 import type { RestoreCounts, RestoreData } from '../features/backup/restore'
-import ProgressBar from '../components/ProgressBar'
+import StorageCard from '../features/storage/StorageCard'
+import { downloadFile, dateSuffix } from '../utils/download'
 
 type PendingImport = { data: RestoreData; counts: RestoreCounts; skipped: number }
 
@@ -102,12 +103,12 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    applyRestore(pendingImport.data)
+    void applyRestore(pendingImport.data)
     setPendingImport(null)
   }
 
   function handleUndoRestore() {
-    undoLastRestore()
+    void undoLastRestore()
     setConfirmUndo(false)
   }
 
@@ -168,7 +169,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Storage */}
-        <StorageUsage />
+        <StorageCard />
 
         {/* What's New */}
         <button
@@ -304,61 +305,4 @@ export default function SettingsPage() {
 
 function formatRestoreDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function downloadFile(content: string, filename: string, type: string) {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function dateSuffix() {
-  return new Date().toISOString().split('T')[0]
-}
-
-function calculateStorageUsage() {
-  let total = 0
-  for (const key in localStorage) {
-    if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
-      total += localStorage.getItem(key)?.length || 0
-      total += key.length
-    }
-  }
-  // Characters are stored as UTF-16 (2 bytes each)
-  return total * 2
-}
-
-function StorageUsage() {
-  const [storage] = useState(() => ({ used: calculateStorageUsage(), limit: 5 * 1024 * 1024 }))
-
-  const usedKB = (storage.used / 1024).toFixed(2)
-  const limitMB = (storage.limit / 1024 / 1024).toFixed(0)
-  const percentage = Math.min((storage.used / storage.limit) * 100, 100)
-
-  const barColor = percentage >= 90 ? '#EF4444' : percentage >= 70 ? '#EAB308' : 'var(--color-brand)'
-
-  return (
-    <div className="bg-card rounded-2xl border border-themed p-4 transition-colors">
-      <div className="flex items-center gap-2 mb-3">
-        <HardDrive className="w-4 h-4 text-muted" />
-        <p className="text-[11px] font-semibold text-muted">Storage</p>
-      </div>
-      <div className="space-y-2">
-        <ProgressBar value={percentage} label="Storage used" color={barColor} />
-        <div className="flex justify-between text-[11px] text-muted">
-          <span>{usedKB} KB used</span>
-          <span>{limitMB} MB limit</span>
-        </div>
-        {percentage >= 80 && (
-          <p className="text-[11px] text-yellow-600 dark:text-yellow-400">
-            Storage is getting full. Consider exporting and clearing old data.
-          </p>
-        )}
-      </div>
-    </div>
-  )
 }

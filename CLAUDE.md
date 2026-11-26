@@ -25,6 +25,7 @@ Before calling a change done: `npx tsc -b && npm run verify && npm run build && 
 - `src/features/<feature>/` — one folder per module: types, store (Zustand), utils, schema (zod), components, tests, and `module.ts`
 - **Adding a module:** write `features/<x>/module.ts` (nav entries, quick-add actions, Home widgets, deadline collector) and add it to `src/app/modules.ts`. Nav, More, [+], Home, Planner and the bell pick it up. Module files are `.ts` and import components from their own files.
 - `src/pages/` — one file per route; `src/components/` — shared UI
+- `src/features/storage/` — where the money data lives: the localStorage and IndexedDB (Dexie) backends, the one-time move, start-up loading (`bootstrap.ts`), the save queue (`persist.ts`), the Storage card
 - `src/utils/backup.ts` — export / restore orchestration (talks to stores)
 - `src/features/backup/` — schema version + migrations, restore (`prepareRestore.ts` validates, `restore.ts` writes/undoes)
 - `api/ask.ts` — the Vercel function for Ask Ollie. **Must stay self-contained** (Vercel runs it unbundled; relative imports break production).
@@ -32,14 +33,16 @@ Before calling a change done: `npx tsc -b && npm run verify && npm run build && 
 ## Rules that protect the owner's data
 
 - Saved data shape changes → bump `SCHEMA_VERSION` and add `MIGRATIONS[n]` in `src/features/backup/schema.ts`. Device storage and backup files share one migration chain.
-- Never delete or overwrite storage keys outside a migration or a confirmed user action. Restores must keep the safety copy (`loan-tracker-pre-restore`).
+- Never delete or overwrite storage keys outside a migration or a confirmed user action. Restores must keep the safety copy (`loan-tracker-pre-restore` on simple storage, `kv.safetyCopy` in the database).
+- Data stores save only through `persist(change)` (`features/storage/persist.ts`), never `localStorage` directly. The flag `loan-tracker-storage` picks the storage; the move never writes the old keys.
+- Database data changes shape through the same `MIGRATIONS` chain (`upgradeDexieData`); the Dexie schema version (`db.ts`) changes only for new tables or indexes.
 - New record types get a zod schema; unknown fields are kept (`z.looseObject`) so newer files lose nothing.
 - Tests use synthetic records only. Never paste or commit real financial data.
-- When checking the app in a browser, use a fresh, random dev-server port and confirm its `localStorage` is empty before seeding test data — other ports on this machine hold real data.
+- When checking the app in a browser, use a fresh, random dev-server port and confirm its `localStorage` and IndexedDB are empty before seeding test data — other ports on this machine hold real data.
 
 ## Money and dates
 
-- Money is currently 2-dp JS numbers; round to centavos (`Math.round(x * 100) / 100`). New tables move to integer centavos in Phase 2.
+- App code works in pesos as 2-dp JS numbers; round to centavos (`Math.round(x * 100) / 100`). The database stores integer centavos, converted only in `features/storage/centavos.ts`.
 - **Monthly loan payments have one definition:** `monthlyLoanPayments()` in `loanUtils.ts` (the billed `monthlyPayment` of active, regular loans). Don't sum `monthlyPayment` by hand.
 - Add months with `addMonthsClamped` (`src/core/time/months.ts`), never `Date#setMonth` (Jan 31 + 1 month must be Feb 28).
 - Loans are flat-interest (PH model); formulas are documented in `docs/ARCHITECTURE.md` §1. Don't change them without a verified defect.

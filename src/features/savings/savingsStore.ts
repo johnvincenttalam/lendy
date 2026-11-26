@@ -3,36 +3,8 @@ import type { SavingsGoal, SavingsGoalFormData, SavingsTransaction } from './sav
 import { isGoalReached } from './savingsUtils'
 import { showToast } from '../../components/toastEvents'
 import { triggerConfetti } from '../../components/confettiEvents'
-import { STORAGE_FIELDS } from '../backup/schema'
+import { persist } from '../storage/persist'
 
-const GOALS_KEY = STORAGE_FIELDS.savingsGoals
-const TRANSACTIONS_KEY = STORAGE_FIELDS.savingsTransactions
-
-function loadGoals(): SavingsGoal[] {
-  try {
-    const data = localStorage.getItem(GOALS_KEY)
-    return data ? JSON.parse(data) : []
-  } catch {
-    return []
-  }
-}
-
-function saveGoals(goals: SavingsGoal[]) {
-  localStorage.setItem(GOALS_KEY, JSON.stringify(goals))
-}
-
-function loadTransactions(): SavingsTransaction[] {
-  try {
-    const data = localStorage.getItem(TRANSACTIONS_KEY)
-    return data ? JSON.parse(data) : []
-  } catch {
-    return []
-  }
-}
-
-function saveTransactions(transactions: SavingsTransaction[]) {
-  localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions))
-}
 
 type SavingsStore = {
   goals: SavingsGoal[]
@@ -45,13 +17,13 @@ type SavingsStore = {
   archiveGoal: (id: string) => void
   unarchiveGoal: (id: string) => void
   getTransactionsForGoal: (goalId: string) => SavingsTransaction[]
-  /** Re-reads goals and transactions after a restore wrote them to the device. */
-  reloadFromStorage: () => void
+  /** Fills the store from storage: at start-up, and after a restore or undo. */
+  hydrate: (data: { goals: SavingsGoal[]; transactions: SavingsTransaction[] }) => void
 }
 
 export const useSavingsStore = create<SavingsStore>((set, get) => ({
-  goals: loadGoals(),
-  transactions: loadTransactions(),
+  goals: [],
+  transactions: [],
 
   addGoal: (data) =>
     set((state) => {
@@ -62,7 +34,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
         createdAt: new Date().toISOString(),
       }
       const goals = [...state.goals, newGoal]
-      saveGoals(goals)
+      persist({ savingsGoals: { next: goals, prev: state.goals } })
       showToast(`"${data.name}" added`)
       return { goals }
     }),
@@ -70,7 +42,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
   updateGoal: (id, data) =>
     set((state) => {
       const goals = state.goals.map((goal) => (goal.id === id ? { ...goal, ...data } : goal))
-      saveGoals(goals)
+      persist({ savingsGoals: { next: goals, prev: state.goals } })
       return { goals }
     }),
 
@@ -102,8 +74,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
             createdAt: new Date().toISOString(),
           }]
         : state.transactions
-      saveGoals(goals)
-      saveTransactions(transactions)
+      persist({ savingsGoals: { next: goals, prev: state.goals }, savingsTransactions: { next: transactions, prev: state.transactions } })
       return { goals, transactions }
     }),
 
@@ -125,8 +96,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
             createdAt: new Date().toISOString(),
           }]
         : state.transactions
-      saveGoals(goals)
-      saveTransactions(transactions)
+      persist({ savingsGoals: { next: goals, prev: state.goals }, savingsTransactions: { next: transactions, prev: state.transactions } })
       if (updated) showToast('Funds withdrawn')
       return { goals, transactions }
     }),
@@ -136,8 +106,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
       const goal = state.goals.find((g) => g.id === id)
       const goals = state.goals.filter((g) => g.id !== id)
       const transactions = state.transactions.filter((t) => t.goalId !== id)
-      saveGoals(goals)
-      saveTransactions(transactions)
+      persist({ savingsGoals: { next: goals, prev: state.goals }, savingsTransactions: { next: transactions, prev: state.transactions } })
       if (goal) showToast(`"${goal.name}" deleted`)
       return { goals, transactions }
     }),
@@ -145,7 +114,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
   archiveGoal: (id) =>
     set((state) => {
       const goals = state.goals.map((g) => (g.id === id ? { ...g, archived: true } : g))
-      saveGoals(goals)
+      persist({ savingsGoals: { next: goals, prev: state.goals } })
       const goal = goals.find((g) => g.id === id)
       if (goal) showToast(`"${goal.name}" archived`)
       return { goals }
@@ -154,7 +123,7 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
   unarchiveGoal: (id) =>
     set((state) => {
       const goals = state.goals.map((g) => (g.id === id ? { ...g, archived: false } : g))
-      saveGoals(goals)
+      persist({ savingsGoals: { next: goals, prev: state.goals } })
       const goal = goals.find((g) => g.id === id)
       if (goal) showToast(`"${goal.name}" restored`)
       return { goals }
@@ -166,5 +135,5 @@ export const useSavingsStore = create<SavingsStore>((set, get) => ({
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   },
 
-  reloadFromStorage: () => set({ goals: loadGoals(), transactions: loadTransactions() }),
+  hydrate: ({ goals, transactions }) => set({ goals, transactions }),
 }))

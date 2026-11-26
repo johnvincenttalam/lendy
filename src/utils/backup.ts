@@ -1,7 +1,3 @@
-import { useLoanStore } from '../features/loans/loanStore'
-import { useBillStore } from '../features/bills/billStore'
-import { useSavingsStore } from '../features/savings/savingsStore'
-import { useIncomeStore } from '../features/finance/incomeStore'
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 import { showToast } from '../components/toastEvents'
 import { SCHEMA_VERSION } from '../features/backup/schema'
@@ -9,12 +5,12 @@ import { writeRestore, undoRestore, readSafetyCopy } from '../features/backup/re
 import type { PreparedRestore, RestoreData } from '../features/backup/restore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
+import { getActiveStorage } from '../features/storage/activeStorage'
+import { whenSaved } from '../features/storage/persist'
+import { hydrateStores, readStoresSnapshot } from './storeSnapshot'
 
 export function exportAllData(): string {
-  const { loans, payments } = useLoanStore.getState()
-  const { monthlyIncome } = useIncomeStore.getState()
-  const { bills, billPayments } = useBillStore.getState()
-  const { goals, transactions } = useSavingsStore.getState()
+  const { loans, payments, monthlyIncome, bills, billPayments, savingsGoals, savingsTransactions } = readStoresSnapshot()
   // Private loans travel with their folder's name and PIN, so a restore
   // brings them back locked rather than open.
   const { name, pinHash, recoveryHash } = usePrivateFolderStore.getState()
@@ -26,8 +22,8 @@ export function exportAllData(): string {
     monthlyIncome,
     bills,
     billPayments,
-    savingsGoals: goals,
-    savingsTransactions: transactions,
+    savingsGoals,
+    savingsTransactions,
     privateFolder,
     exportedAt: new Date().toISOString(),
   }, null, 2)
@@ -39,51 +35,57 @@ export async function checkBackup(json: string): Promise<PreparedRestore> {
   return prepareRestore(json)
 }
 
-/** Every store re-reads the device, so what's on screen matches what was written. */
-function reloadStores() {
-  useLoanStore.getState().reloadFromStorage()
-  useIncomeStore.getState().reloadFromStorage()
-  useBillStore.getState().reloadFromStorage()
-  useSavingsStore.getState().reloadFromStorage()
+/** Every store re-reads storage, so what's on screen matches what was written. */
+async function reloadStores() {
+  try {
+    hydrateStores(await getActiveStorage().backend.readAll())
+  } catch {
+    // Keep what's on screen; the next start-up reads storage again.
+  }
   usePrivateFolderStore.getState().reloadFromStorage()
   useLastBackupStore.getState().reloadFromStorage()
-  useLastRestoreStore.getState().refresh()
+  await useLastRestoreStore.getState().refresh()
 }
 
 /**
- * Replaces the device's data with a checked backup. A safety copy of the
+ * Replaces the stored data with a checked backup. A safety copy of the
  * old data is kept first, and nothing changes if any part fails to save.
  */
-export function applyRestore(data: RestoreData): boolean {
-  if (!writeRestore(localStorage, data, new Date())) {
+export async function applyRestore(data: RestoreData): Promise<boolean> {
+  // A change made a moment ago belongs in the safety copy.
+  await whenSaved()
+  const active = getActiveStorage()
+  if (!(await writeRestore(active, data, new Date()))) {
     // A rollback that couldn't finish keeps the safety copy: say how to recover.
-    reloadStores()
-    showToast(readSafetyCopy(localStorage)
+    await reloadStores()
+    showToast((await readSafetyCopy(active.safety))
       ? 'Couldn’t finish restoring. Use Undo last restore in Settings to put your data back.'
       : 'Couldn’t restore. Nothing was changed.')
     return false
   }
-  reloadStores()
-  // What's on the device now matches a file the user has.
+  await reloadStores()
+  // What's stored now matches a file the user has.
   useLastBackupStore.getState().markBackedUp()
-  showToast(describeRestoredCounts(data), { label: 'UNDO', onClick: () => { undoLastRestore() } })
+  showToast(describeRestoredCounts(data), { label: 'UNDO', onClick: () => { void undoLastRestore() } })
   return true
 }
 
-/** Puts back what the device held before the last restore. */
-export function undoLastRestore(): boolean {
-  const hadCopy = readSafetyCopy(localStorage) !== null
-  if (!undoRestore(localStorage)) {
+/** Puts back what was stored before the last restore. */
+export async function undoLastRestore(): Promise<boolean> {
+  await whenSaved()
+  const active = getActiveStorage()
+  const hadCopy = (await readSafetyCopy(active.safety)) !== null
+  if (!(await undoRestore(active))) {
     if (hadCopy) {
       // Partly put back: show what's there now, and keep the copy for another try.
-      reloadStores()
+      await reloadStores()
       showToast('Couldn’t put everything back (storage may be full). Your safety copy is kept, so try again.')
     } else {
       showToast('Nothing to undo')
     }
     return false
   }
-  reloadStores()
+  await reloadStores()
   showToast('Restore undone')
   return true
 }

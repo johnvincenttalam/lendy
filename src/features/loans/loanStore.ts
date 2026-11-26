@@ -1,53 +1,16 @@
 import { create } from 'zustand'
-import { DEFAULT_COLOR } from './loanTypes'
 import type { Loan, LoanFormData, PaymentRecord } from './loanTypes'
 import { monthlyInterestPortion, monthlyPrincipalPortion, offScheduleAmount, paymentSchedule } from './loanUtils'
-import { backfillPayments } from './paymentBackfill'
 import { showToast } from '../../components/toastEvents'
 import { triggerConfetti } from '../../components/confettiEvents'
-import { STORAGE_FIELDS } from '../backup/schema'
+import { persist } from '../storage/persist'
 import { addMonthsClamped } from '../../core/time/months'
 
-const STORAGE_KEY = STORAGE_FIELDS.loans
-const PAYMENTS_KEY = STORAGE_FIELDS.payments
 const SORT_KEY = 'loan-tracker-sort'
 const VIEW_KEY = 'loan-tracker-view'
 
 export type SortOption = 'newest' | 'oldest' | 'balance-high' | 'balance-low' | 'progress' | 'payment'
 export type ViewMode = 'list' | 'grid'
-
-function loadLoans(): Loan[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY)
-    if (!data) return []
-    const loans: Loan[] = JSON.parse(data)
-    return loans.map((loan) => ({
-      ...loan,
-      color: loan.color || DEFAULT_COLOR,
-      interestRate: loan.interestRate ?? 0,
-      totalInterestPaid: loan.totalInterestPaid ?? 0,
-    }))
-  } catch {
-    return []
-  }
-}
-
-function saveLoans(loans: Loan[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(loans))
-}
-
-function loadPayments(): PaymentRecord[] {
-  try {
-    const data = localStorage.getItem(PAYMENTS_KEY)
-    return data ? JSON.parse(data) : []
-  } catch {
-    return []
-  }
-}
-
-function savePayments(payments: PaymentRecord[]) {
-  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments))
-}
 
 type LoanStore = {
   loans: Loan[]
@@ -68,18 +31,13 @@ type LoanStore = {
   setSortBy: (sort: SortOption) => void
   setViewMode: (mode: ViewMode) => void
   exportCSV: () => string
-  /** Re-reads loans and payments after a restore wrote them to the device. */
-  reloadFromStorage: () => void
+  /** Fills the store from storage: at start-up, and after a restore or undo. */
+  hydrate: (data: { loans: Loan[]; payments: PaymentRecord[] }) => void
 }
 
-const initialLoans = loadLoans()
-const existingPayments = loadPayments()
-const initialPayments = backfillPayments(initialLoans, existingPayments)
-if (initialPayments.length > existingPayments.length) savePayments(initialPayments)
-
 export const useLoanStore = create<LoanStore>((set, get) => ({
-  loans: initialLoans,
-  payments: initialPayments,
+  loans: [],
+  payments: [],
   sortBy: (localStorage.getItem(SORT_KEY) as SortOption) || 'newest',
   viewMode: (localStorage.getItem(VIEW_KEY) as ViewMode) || 'list',
 
@@ -94,7 +52,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         createdAt: new Date().toISOString(),
       }
       const loans = [...state.loans, newLoan]
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       showToast(`"${data.name}" added`)
       return { loans }
     }),
@@ -132,7 +90,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
 
         return updated
       })
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       return { loans }
     }),
 
@@ -201,8 +159,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         }
       })
       const payments = newRecord ? [...state.payments, newRecord] : state.payments
-      saveLoans(loans)
-      savePayments(payments)
+      persist({ loans: { next: loans, prev: state.loans }, payments: { next: payments, prev: state.payments } })
       return { loans, payments }
     }),
 
@@ -230,8 +187,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       const payments = lastPayment
         ? state.payments.filter((p) => p.id !== lastPayment.id)
         : state.payments
-      saveLoans(loans)
-      savePayments(payments)
+      persist({ loans: { next: loans, prev: state.loans }, payments: { next: payments, prev: state.payments } })
       showToast('Payment undone')
       return { loans, payments }
     }),
@@ -241,8 +197,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       const loan = state.loans.find((l) => l.id === id)
       const loans = state.loans.filter((l) => l.id !== id)
       const payments = state.payments.filter((p) => p.loanId !== id)
-      saveLoans(loans)
-      savePayments(payments)
+      persist({ loans: { next: loans, prev: state.loans }, payments: { next: payments, prev: state.payments } })
       if (loan) showToast(`"${loan.name}" deleted`)
       return { loans, payments }
     }),
@@ -252,7 +207,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       const loans = state.loans.map((l) =>
         l.id === id ? { ...l, archived: true } : l
       )
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       const loan = loans.find((l) => l.id === id)
       if (loan) showToast(`"${loan.name}" archived`)
       return { loans }
@@ -263,7 +218,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
       const loans = state.loans.map((l) =>
         l.id === id ? { ...l, archived: false } : l
       )
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       const loan = loans.find((l) => l.id === id)
       if (loan) showToast(`"${loan.name}" restored`)
       return { loans }
@@ -273,7 +228,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   makePrivate: (id) =>
     set((state) => {
       const loans = state.loans.map((l) => (l.id === id ? { ...l, private: true } : l))
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       const loan = loans.find((l) => l.id === id)
       if (loan) showToast(`"${loan.name}" moved`)
       return { loans }
@@ -282,7 +237,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
   makePublic: (id) =>
     set((state) => {
       const loans = state.loans.map((l) => (l.id === id ? { ...l, private: false } : l))
-      saveLoans(loans)
+      persist({ loans: { next: loans, prev: state.loans } })
       const loan = loans.find((l) => l.id === id)
       if (loan) showToast(`"${loan.name}" moved`)
       return { loans }
@@ -323,5 +278,5 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
     return [headers, ...rows].map((r) => r.join(',')).join('\n')
   },
 
-  reloadFromStorage: () => set({ loans: loadLoans(), payments: loadPayments() }),
+  hydrate: ({ loans, payments }) => set({ loans, payments }),
 }))
