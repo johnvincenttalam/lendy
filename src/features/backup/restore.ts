@@ -10,7 +10,7 @@
  *
  * A restore replaces every section: one the file doesn't have becomes empty.
  * The monthly income is a setting, so a file without one leaves it alone.
- * undoRestore brings back the safety copy once.
+ * undoRestore brings back the safety copy once, within 7 days.
  *
  * Step 1 lives in prepareRestore.ts: it pulls in the validation library,
  * so it's loaded only when a file is picked. Free of stores so both can be
@@ -21,7 +21,7 @@ import type { Bill, BillPaymentRecord } from '../bills/billTypes'
 import type { SavingsGoal, SavingsTransaction } from '../savings/savingsTypes'
 import { FOLDER_KEYS, cleanFolderName } from '../privateFolder/privateFolderUtils'
 import type { FolderBackup } from '../privateFolder/privateFolderUtils'
-import { STORAGE_FIELDS } from './schema'
+import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
 
 export const SAFETY_COPY_KEY = 'loan-tracker-pre-restore'
 
@@ -49,7 +49,10 @@ export type PreparedRestore =
 /** Every device key a restore can change. */
 const RESTORE_KEYS: string[] = [...Object.values(STORAGE_FIELDS), ...Object.values(FOLDER_KEYS)]
 
-export type SafetyCopy = { savedAt: string; values: Record<string, string | null> }
+export type SafetyCopy = { savedAt: string; schemaVersion: number; values: Record<string, string | null> }
+
+/** How long a restore can be undone. */
+export const SAFETY_COPY_DAYS = 7
 
 /** What each key should hold after the restore; null removes it, undefined leaves it alone. */
 function plannedValues(data: RestoreData): Record<string, string | null | undefined> {
@@ -77,24 +80,29 @@ function putValues(storage: KeyValueStorage, values: Record<string, string | nul
   }
 }
 
-/** Best effort: used to undo a half-done write, so one failure mustn't stop the rest. */
-function putBack(storage: KeyValueStorage, values: Record<string, string | null>) {
+/**
+ * Best effort: used to undo a half-done write, so one failure mustn't stop
+ * the rest. Returns false if any key couldn't be put back.
+ */
+function putBack(storage: KeyValueStorage, values: Record<string, string | null>): boolean {
+  let ok = true
   for (const [key, value] of Object.entries(values)) {
     try {
       if (value === null) storage.removeItem(key)
       else storage.setItem(key, value)
     } catch {
-      // Keep going with the other keys.
+      ok = false
     }
   }
+  return ok
 }
 
-/** Replaces the device's data with `data`. False means nothing was changed. */
+/** Replaces the device's data with `data`. False means it failed (see the safety copy). */
 export function writeRestore(storage: KeyValueStorage, data: RestoreData, now: Date): boolean {
   const before: Record<string, string | null> = {}
   for (const key of RESTORE_KEYS) before[key] = storage.getItem(key)
 
-  const copy: SafetyCopy = { savedAt: now.toISOString(), values: before }
+  const copy: SafetyCopy = { savedAt: now.toISOString(), schemaVersion: SCHEMA_VERSION, values: before }
   try {
     storage.setItem(SAFETY_COPY_KEY, JSON.stringify(copy))
   } catch {
@@ -106,30 +114,47 @@ export function writeRestore(storage: KeyValueStorage, data: RestoreData, now: D
     putValues(storage, plannedValues(data))
     return true
   } catch {
-    putBack(storage, before)
-    storage.removeItem(SAFETY_COPY_KEY)
+    // Only drop the copy once the old data is fully back; otherwise it's the way to recover.
+    if (putBack(storage, before)) storage.removeItem(SAFETY_COPY_KEY)
     return false
   }
 }
 
-export function readSafetyCopy(storage: KeyValueStorage): SafetyCopy | null {
+/**
+ * The copy kept by the last restore, while it can still be undone: for 7 days,
+ * and only by the data version that saved it. An expired or foreign copy is
+ * deleted, so it doesn't sit on the device's storage for good.
+ */
+export function readSafetyCopy(storage: KeyValueStorage, now: Date = new Date()): SafetyCopy | null {
+  let copy: SafetyCopy | null = null
   try {
     const raw = storage.getItem(SAFETY_COPY_KEY)
     if (!raw) return null
-    const copy = JSON.parse(raw) as SafetyCopy
-    return typeof copy?.savedAt === 'string' && copy.values && typeof copy.values === 'object' ? copy : null
+    const parsed = JSON.parse(raw) as SafetyCopy
+    if (typeof parsed?.savedAt === 'string' && parsed.values && typeof parsed.values === 'object') copy = parsed
   } catch {
-    return null
+    copy = null
   }
+  const savedAt = copy ? new Date(copy.savedAt).getTime() : NaN
+  const usable = copy !== null
+    && copy.schemaVersion === SCHEMA_VERSION
+    && Number.isFinite(savedAt)
+    && now.getTime() - savedAt <= SAFETY_COPY_DAYS * 86_400_000
+  if (usable) return copy
+  try { storage.removeItem(SAFETY_COPY_KEY) } catch { /* nothing to free */ }
+  return null
 }
 
-/** Puts back what the device held before the last restore. False if there's nothing to undo. */
-export function undoRestore(storage: KeyValueStorage): boolean {
-  const copy = readSafetyCopy(storage)
+/**
+ * Puts back what the device held before the last restore. False if there's
+ * nothing to undo, or if some of it couldn't be put back (the copy is then kept).
+ */
+export function undoRestore(storage: KeyValueStorage, now: Date = new Date()): boolean {
+  const copy = readSafetyCopy(storage, now)
   if (!copy) return false
   const values: Record<string, string | null> = {}
   for (const key of RESTORE_KEYS) values[key] = key in copy.values ? copy.values[key] : null
-  putBack(storage, values)
+  if (!putBack(storage, values)) return false
   storage.removeItem(SAFETY_COPY_KEY)
   return true
 }

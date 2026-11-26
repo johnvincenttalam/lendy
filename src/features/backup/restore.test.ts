@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { writeRestore, undoRestore, readSafetyCopy, SAFETY_COPY_KEY } from './restore'
 import { prepareRestore } from './prepareRestore'
 import type { RestoreData } from './restore'
-import { STORAGE_FIELDS } from './schema'
+import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
 
 // Synthetic records only — never real data.
 const loan = (over: Record<string, unknown> = {}) => ({
@@ -128,7 +128,7 @@ describe('writeRestore', () => {
   it('keeps a safety copy of what was there before', () => {
     const s = deviceWithData()
     writeRestore(s, incoming(), new Date('2026-11-26T10:00:00Z'))
-    const copy = readSafetyCopy(s)
+    const copy = readSafetyCopy(s, new Date('2026-11-26T10:05:00Z'))
     expect(copy?.savedAt).toBe('2026-11-26T10:00:00.000Z')
     expect(JSON.parse(copy!.values[STORAGE_FIELDS.loans]!)[0].id).toBe('OLD')
   })
@@ -156,11 +156,14 @@ describe('writeRestore', () => {
   })
 })
 
+const T0 = new Date('2026-11-26T10:00:00Z')
+const days = (n: number) => new Date(T0.getTime() + n * 86_400_000)
+
 describe('undoRestore', () => {
   it('puts back what was there before the restore', () => {
     const s = deviceWithData()
-    writeRestore(s, incoming(), new Date())
-    expect(undoRestore(s)).toBe(true)
+    writeRestore(s, incoming(), T0)
+    expect(undoRestore(s, T0)).toBe(true)
     expect(loansIn(s)).toEqual(['OLD'])
     expect(s.getItem(STORAGE_FIELDS.savingsGoals)).toBeNull()
     expect(s.getItem(STORAGE_FIELDS.monthlyIncome)).toBe('20000')
@@ -168,9 +171,50 @@ describe('undoRestore', () => {
 
   it('can only be used once', () => {
     const s = deviceWithData()
-    writeRestore(s, incoming(), new Date())
-    undoRestore(s)
-    expect(readSafetyCopy(s)).toBeNull()
-    expect(undoRestore(s)).toBe(false)
+    writeRestore(s, incoming(), T0)
+    undoRestore(s, T0)
+    expect(readSafetyCopy(s, T0)).toBeNull()
+    expect(undoRestore(s, T0)).toBe(false)
+  })
+})
+
+describe('safety copy limits', () => {
+  it('keeps the safety copy and says so when putting the old data back fails', () => {
+    const s = deviceWithData()
+    writeRestore(s, incoming(), T0)
+    s.failOnSet = (key) => key === STORAGE_FIELDS.loans
+    expect(undoRestore(s, T0)).toBe(false)
+    expect(readSafetyCopy(s, T0)).not.toBeNull()
+  })
+
+  it('keeps the safety copy if a failed restore can’t be fully rolled back', () => {
+    const s = deviceWithData()
+    // Bills fail both ways: the new value can't be written, nor the old one put back.
+    s.failOnSet = (key) => key === STORAGE_FIELDS.bills
+    expect(writeRestore(s, incoming(), T0)).toBe(false)
+    expect(readSafetyCopy(s, T0)).not.toBeNull()
+  })
+
+  it('records the data version it was saved with', () => {
+    const s = deviceWithData()
+    writeRestore(s, incoming(), T0)
+    expect(readSafetyCopy(s, T0)?.schemaVersion).toBe(SCHEMA_VERSION)
+  })
+
+  it('stops offering an undo after 7 days, and frees the space', () => {
+    const s = deviceWithData()
+    writeRestore(s, incoming(), T0)
+    expect(readSafetyCopy(s, days(7))).not.toBeNull()
+    expect(readSafetyCopy(s, days(8))).toBeNull()
+    expect(s.getItem(SAFETY_COPY_KEY)).toBeNull()
+    expect(undoRestore(s, days(8))).toBe(false)
+    expect(loansIn(s)).toEqual(['L1'])
+  })
+
+  it('won’t put back data saved by a different version of Ollie', () => {
+    const s = deviceWithData()
+    s.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION - 1, values: {} }))
+    expect(readSafetyCopy(s, T0)).toBeNull()
+    expect(undoRestore(s, T0)).toBe(false)
   })
 })

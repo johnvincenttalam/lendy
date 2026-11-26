@@ -94,14 +94,13 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    const ok = applyRestore(pendingImport.data)
-    if (!ok) showToast('Couldn’t restore. Nothing was changed.')
+    applyRestore(pendingImport.data)
     setPendingImport(null)
     setRestoredAt(lastRestoreAt())
   }
 
   function handleUndoRestore() {
-    if (!undoLastRestore()) showToast('Nothing to undo')
+    undoLastRestore()
     setConfirmUndo(false)
     setRestoredAt(lastRestoreAt())
   }

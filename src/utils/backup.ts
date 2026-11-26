@@ -52,7 +52,14 @@ function reloadStores() {
  * old data is kept first, and nothing changes if any part fails to save.
  */
 export function applyRestore(data: RestoreData): boolean {
-  if (!writeRestore(localStorage, data, new Date())) return false
+  if (!writeRestore(localStorage, data, new Date())) {
+    // A rollback that couldn't finish keeps the safety copy: say how to recover.
+    reloadStores()
+    showToast(readSafetyCopy(localStorage)
+      ? 'Couldn’t finish restoring. Use Undo last restore in Settings to put your data back.'
+      : 'Couldn’t restore. Nothing was changed.')
+    return false
+  }
   reloadStores()
   // What's on the device now matches a file the user has.
   useLastBackupStore.getState().markBackedUp()
@@ -62,7 +69,17 @@ export function applyRestore(data: RestoreData): boolean {
 
 /** Puts back what the device held before the last restore. */
 export function undoLastRestore(): boolean {
-  if (!undoRestore(localStorage)) return false
+  const hadCopy = readSafetyCopy(localStorage) !== null
+  if (!undoRestore(localStorage)) {
+    if (hadCopy) {
+      // Partly put back: show what's there now, and keep the copy for another try.
+      reloadStores()
+      showToast('Couldn’t put everything back (storage may be full). Your safety copy is kept, so try again.')
+    } else {
+      showToast('Nothing to undo')
+    }
+    return false
+  }
   reloadStores()
   showToast('Restore undone')
   return true
