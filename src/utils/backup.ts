@@ -1,7 +1,3 @@
-import { useLoanStore } from '../features/loans/loanStore'
-import { useBillStore } from '../features/bills/billStore'
-import { useSavingsStore } from '../features/savings/savingsStore'
-import { useIncomeStore } from '../features/finance/incomeStore'
 import { usePrivateFolderStore } from '../features/privateFolder/privateFolderStore'
 import { showToast } from '../components/toastEvents'
 import { SCHEMA_VERSION } from '../features/backup/schema'
@@ -9,12 +5,11 @@ import { writeRestore, undoRestore, readSafetyCopy } from '../features/backup/re
 import type { PreparedRestore, RestoreData } from '../features/backup/restore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
+import { getActiveStorage } from '../features/storage/activeStorage'
+import { hydrateStores, readStoresSnapshot } from './storeSnapshot'
 
 export function exportAllData(): string {
-  const { loans, payments } = useLoanStore.getState()
-  const { monthlyIncome } = useIncomeStore.getState()
-  const { bills, billPayments } = useBillStore.getState()
-  const { goals, transactions } = useSavingsStore.getState()
+  const { loans, payments, monthlyIncome, bills, billPayments, savingsGoals, savingsTransactions } = readStoresSnapshot()
   // Private loans travel with their folder's name and PIN, so a restore
   // brings them back locked rather than open.
   const { name, pinHash, recoveryHash } = usePrivateFolderStore.getState()
@@ -26,8 +21,8 @@ export function exportAllData(): string {
     monthlyIncome,
     bills,
     billPayments,
-    savingsGoals: goals,
-    savingsTransactions: transactions,
+    savingsGoals,
+    savingsTransactions,
     privateFolder,
     exportedAt: new Date().toISOString(),
   }, null, 2)
@@ -40,11 +35,8 @@ export async function checkBackup(json: string): Promise<PreparedRestore> {
 }
 
 /** Every store re-reads the device, so what's on screen matches what was written. */
-function reloadStores() {
-  useLoanStore.getState().reloadFromStorage()
-  useIncomeStore.getState().reloadFromStorage()
-  useBillStore.getState().reloadFromStorage()
-  useSavingsStore.getState().reloadFromStorage()
+async function reloadStores() {
+  hydrateStores(await getActiveStorage().backend.readAll())
   usePrivateFolderStore.getState().reloadFromStorage()
   useLastBackupStore.getState().reloadFromStorage()
   useLastRestoreStore.getState().refresh()
@@ -57,13 +49,13 @@ function reloadStores() {
 export function applyRestore(data: RestoreData): boolean {
   if (!writeRestore(localStorage, data, new Date())) {
     // A rollback that couldn't finish keeps the safety copy: say how to recover.
-    reloadStores()
+    void reloadStores()
     showToast(readSafetyCopy(localStorage)
       ? 'Couldn’t finish restoring. Use Undo last restore in Settings to put your data back.'
       : 'Couldn’t restore. Nothing was changed.')
     return false
   }
-  reloadStores()
+  void reloadStores()
   // What's on the device now matches a file the user has.
   useLastBackupStore.getState().markBackedUp()
   showToast(describeRestoredCounts(data), { label: 'UNDO', onClick: () => { undoLastRestore() } })
@@ -76,14 +68,14 @@ export function undoLastRestore(): boolean {
   if (!undoRestore(localStorage)) {
     if (hadCopy) {
       // Partly put back: show what's there now, and keep the copy for another try.
-      reloadStores()
+      void reloadStores()
       showToast('Couldn’t put everything back (storage may be full). Your safety copy is kept, so try again.')
     } else {
       showToast('Nothing to undo')
     }
     return false
   }
-  reloadStores()
+  void reloadStores()
   showToast('Restore undone')
   return true
 }

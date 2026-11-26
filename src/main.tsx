@@ -7,15 +7,28 @@ import './index.css'
 import './features/theme/themeStore'
 import App from './App'
 import { requestPersistentStorage } from './features/backup/persistStorage'
-import { useLoanStore } from './features/loans/loanStore'
-import { useBillStore } from './features/bills/billStore'
-import { useSavingsStore } from './features/savings/savingsStore'
+import { getActiveStorage } from './features/storage/activeStorage'
+import { persist } from './features/storage/persist'
+import { backfillPayments } from './features/loans/paymentBackfill'
+import { hydrateStores } from './utils/storeSnapshot'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const root = createRoot(document.getElementById('root')!)
+
+// Data loads once, before the first screen.
+async function start() {
+  const snapshot = await getActiveStorage().backend.readAll()
+  const payments = backfillPayments(snapshot.loans, snapshot.payments)
+  if (payments.length > snapshot.payments.length) void persist({ payments: { next: payments, prev: snapshot.payments } })
+  hydrateStores({ ...snapshot, payments })
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+  const hasData = snapshot.loans.length > 0 || snapshot.bills.length > 0 || snapshot.savingsGoals.length > 0
+  void requestPersistentStorage(hasData)
+}
+void start()
 
 // A tab left open across an update asks for page files the new version
 // replaced. Reload once to pick up the new version; the page error boundary
@@ -38,8 +51,3 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
   })
 }
-
-const hasData = useLoanStore.getState().loans.length > 0
-  || useBillStore.getState().bills.length > 0
-  || useSavingsStore.getState().goals.length > 0
-void requestPersistentStorage(hasData)
