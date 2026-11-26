@@ -25,7 +25,7 @@ Then the minor findings, each with a test first:
 - "Today" refreshes when the app comes back to the foreground; Ollie shares the due list's clock.
 - Dead `upcomingPayments` removed; the chat no longer suggests a spending question.
 
-Checks: 279 unit tests, 17 Playwright tests (phone, desktop, offline), lint,
+Checks: 279 unit tests, 19 Playwright runs (phone, desktop, offline), lint,
 typecheck, build.
 
 ## 2026-11-26 — Phase 1b–1e: Life OS shell (done)
