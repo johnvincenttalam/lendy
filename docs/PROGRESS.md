@@ -16,8 +16,17 @@ Fixed, each with a test that failed first:
 - **Restore safety copy:** kept unless the old data is fully back (storage
   full mid-undo used to delete it); versioned; offered for 7 days, then deleted.
 
-Checks: 272 unit tests, 15 Playwright tests (phone, desktop, offline), lint,
-typecheck, build. Deferred minor findings are listed in the branch summary.
+Then the minor findings, each with a test first:
+- Restore drops payments/transactions whose loan, bill or goal was left out.
+- Undo also puts back the last-backup date, so the 30-day reminder returns.
+- Settings' "Undo last restore" updates when undo happens from the toast.
+- Add from a private loan's page saves the new loan in the folder.
+- Old `#/calendar?y=&m=` links keep their month; Customize Home reorder has an e2e test.
+- "Today" refreshes when the app comes back to the foreground; Ollie shares the due list's clock.
+- Dead `upcomingPayments` removed; the chat no longer suggests a spending question.
+
+Checks: 279 unit tests, 17 Playwright tests (phone, desktop, offline), lint,
+typecheck, build.
 
 ## 2026-11-26 — Phase 1b–1e: Life OS shell (done)
 
@@ -47,10 +56,7 @@ context add, sidebar collapse, Planner agenda/calendar, Ollie page offline
 message. Phone layout verified by Playwright only (no real-phone pass yet).
 
 **Known, not done**
-- A real-phone pass (safe areas, thumb reach) before merging.
-- Ollie's chat suggests "How much did I spend this month?", though spending
-  isn't tracked since the Money page was removed (pre-existing).
-- `loanUtils.upcomingPayments` is no longer used by the app (kept; tested).
+- A real-phone pass (safe areas, thumb reach, airplane mode) before merging.
 
 ## 2026-11-26 — Phase 1a: data-safety fixes (done)
 
