@@ -88,6 +88,31 @@ function recentlyFailed(storage: KeyValueStorage, now: Date): boolean {
   }
 }
 
+/** Loads a database the data already moved into; an emptied one gets the recovery screen. */
+async function loadDatabase(
+  db: OllieDb,
+  storage: KeyValueStorage,
+  migrations: Record<number, Migration> = MIGRATIONS,
+  target: number = SCHEMA_VERSION,
+): Promise<BootOutcome> {
+  try {
+    const migration = await getKv<MoveReport>(db, 'migration')
+    if (!migration) return { kind: 'recovery', db, movedAt: storage.getItem(MOVED_AT_KEY) }
+    await upgradeDexieData(db, migrations, target)
+    const active = databaseStorage(db, storage)
+    const snapshot = await loadWithBackfill(active.backend)
+    const status: BootStatus = {
+      ...baseStatus('indexeddb'),
+      movedAt: storage.getItem(MOVED_AT_KEY) ?? migration.at ?? null,
+      oldCopyChanged: typeof migration.fingerprint === 'string' && fingerprintLegacy(storage) !== migration.fingerprint,
+    }
+    return { kind: 'ready', active, snapshot, status }
+  } catch (err) {
+    console.error('Loading from the database failed', err)
+    return { kind: 'error' }
+  }
+}
+
 export async function bootstrap(env: BootEnv): Promise<BootOutcome> {
   const { storage, now } = env
   const timeout = env.openTimeoutMs ?? OPEN_TIMEOUT_MS
@@ -101,29 +126,23 @@ export async function bootstrap(env: BootEnv): Promise<BootOutcome> {
     } catch {
       return { kind: 'error' }
     }
-    try {
-      const migration = await getKv<MoveReport>(db, 'migration')
-      if (!migration) return { kind: 'recovery', db, movedAt: storage.getItem(MOVED_AT_KEY) }
-      await upgradeDexieData(db, env.migrations ?? MIGRATIONS, env.target ?? SCHEMA_VERSION)
-      const active = databaseStorage(db, storage)
-      const snapshot = await loadWithBackfill(active.backend)
-      const status: BootStatus = {
-        ...baseStatus('indexeddb'),
-        movedAt: storage.getItem(MOVED_AT_KEY) ?? migration.at ?? null,
-        oldCopyChanged: typeof migration.fingerprint === 'string' && fingerprintLegacy(storage) !== migration.fingerprint,
-      }
-      return { kind: 'ready', active, snapshot, status }
-    } catch (err) {
-      console.error('Loading from the database failed', err)
-      return { kind: 'error' }
-    }
+    return loadDatabase(db, storage, env.migrations, env.target)
   }
 
   if (flag === null && env.hasIndexedDb) {
     // Loaded only while a move may be needed: it brings in the validation library.
-    const { planMove, runMove } = await import('./move')
-    // Checking is cheap and changes nothing, so it runs every start until the owner decides.
-    const plan = planMove(storage)
+    // If it can't load (flaky network after an update), simple storage is still right.
+    let move: typeof import('./move')
+    let plan: ReturnType<typeof import('./move').planMove>
+    try {
+      move = await import('./move')
+      // Checking is cheap and changes nothing, so it runs every start until the owner decides.
+      plan = move.planMove(storage)
+    } catch (err) {
+      console.error('Checking the data for the move failed', err)
+      return onSimpleStorage(storage, baseStatus('localstorage'))
+    }
+    const { runMove } = move
     if (plan.quarantine.length > 0) return onSimpleStorage(storage, { ...baseStatus('localstorage'), blocked: plan.quarantine })
     if (recentlyFailed(storage, now)) return onSimpleStorage(storage, baseStatus('localstorage'))
 
@@ -139,6 +158,13 @@ export async function bootstrap(env: BootEnv): Promise<BootOutcome> {
         const active = databaseStorage(db, storage)
         const status: BootStatus = { ...baseStatus('indexeddb'), movedAt: now.toISOString(), justMoved: moved }
         return { kind: 'ready', active, snapshot: await loadWithBackfill(active.backend), status }
+      }
+      if (result.outcome === 'already-moved') {
+        // Another tab moved the data while this one was starting: use its database.
+        storage.setItem(STORAGE_FLAG_KEY, 'indexeddb')
+        if (!storage.getItem(MOVED_AT_KEY)) storage.setItem(MOVED_AT_KEY, now.toISOString())
+        storage.removeItem(MOVE_STATUS_KEY)
+        return loadDatabase(db, storage)
       }
       if (result.outcome === 'blocked') {
         return onSimpleStorage(storage, { ...baseStatus('localstorage'), blocked: result.items })

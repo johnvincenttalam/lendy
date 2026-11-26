@@ -179,14 +179,14 @@ describe('runMove', () => {
     const db = freshDb()
     await runMove(s, db, { now })
     const first = await createDexieBackend(db).readAll()
-    await runMove(s, db, { now })
+    await runMove(s, db, { now, replaceExisting: true })
     expect(await createDexieBackend(db).readAll()).toEqual(first)
 
     const loans = JSON.parse(s.getItem(STORAGE_FIELDS.loans)!).filter((l: { id: string }) => l.id !== 'L2')
     const payments = JSON.parse(s.getItem(STORAGE_FIELDS.payments)!).filter((p: { loanId: string }) => p.loanId !== 'L2')
     s.setItem(STORAGE_FIELDS.loans, JSON.stringify(loans))
     s.setItem(STORAGE_FIELDS.payments, JSON.stringify(payments))
-    await runMove(s, db, { now })
+    await runMove(s, db, { now, replaceExisting: true })
     const after = await createDexieBackend(db).readAll()
     expect(after.loans.map((l) => l.id)).toEqual(['L1'])
     expect(after.bills).toEqual(first.bills)
@@ -225,5 +225,38 @@ describe('fingerprintLegacy', () => {
     }
     s.setItem('loan-tracker-theme', 'dark')
     expect(fingerprintLegacy(s)).toBe(a)
+  })
+})
+
+describe('final review fixes', () => {
+  it('a second move does not wipe what the first tab saved after moving', async () => {
+    const s = typical()
+    const db = freshDb()
+    expect((await runMove(s, db, { now })).ok).toBe(true)
+    const backend = createDexieBackend(db)
+    const before = await backend.readAll()
+    const added = { ...before.loans[0], id: 'L3', name: 'Saved in tab A' }
+    await backend.write({ loans: { prev: before.loans, next: [...before.loans, added] } })
+
+    // Tab B started before the flag was set and runs the automatic move late.
+    const r = await runMove(s, db, { now })
+    expect(r).toMatchObject({ ok: false, outcome: 'already-moved' })
+    expect((await backend.readAll()).loans.map((l) => l.id)).toContain('L3')
+  })
+
+  it('an explicit move replaces what the database holds', async () => {
+    const s = typical()
+    const db = freshDb()
+    await runMove(s, db, { now })
+    const r = await runMove(s, db, { now, replaceExisting: true })
+    expect(r.ok).toBe(true)
+  })
+
+  it('removes a stale undo-restore copy from the database when simple storage has none', async () => {
+    const s = typical()
+    const db = freshDb()
+    await dexieSafetyStore(db).write({ savedAt: now.toISOString(), schemaVersion: 1, snapshot: readLegacySnapshot(s), prefs: {} })
+    await runMove(s, db, { now })
+    expect(await dexieSafetyStore(db).read()).toBeNull()
   })
 })

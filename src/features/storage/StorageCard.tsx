@@ -11,6 +11,7 @@ import { openOllieDb } from './db'
 import { useStorageStatusStore } from './storageStatusStore'
 import { formatBytes, legacyBackupJson, moveBack, moveToDatabase, quarantineText } from './storageActions'
 import type { QuarantineItem } from './move'
+import type { QuarantineRow } from './db'
 
 const FIELD_LABELS: Record<QuarantineItem['field'], string> = {
   loans: 'Loan',
@@ -46,6 +47,8 @@ export default function StorageCard() {
   const [persisted, setPersisted] = useState<boolean | null>(null)
   const [usage, setUsage] = useState<number | null>(null)
   const [confirmBack, setConfirmBack] = useState(false)
+  // The old copy holds something the database doesn't; it's saved as a file before moving back.
+  const [oldCopyFirst, setOldCopyFirst] = useState(false)
   const [busy, setBusy] = useState(false)
   useBodyScrollLock(confirmBack)
 
@@ -79,23 +82,33 @@ export default function StorageCard() {
     if (result.outcome === 'blocked') {
       useStorageStatusStore.getState().update({ blocked: result.items })
     } else {
-      useStorageStatusStore.getState().update({ failedReason: result.reason })
+      useStorageStatusStore.getState().update({ failedReason: result.outcome === 'failed' ? result.reason : 'Please try again.' })
       showToast('Ollie couldn’t move your data. Nothing was changed.')
     }
   }
 
-  async function goBack() {
+  async function goBack(saveFirst: boolean) {
     const db = getActiveStorage().db
     if (!db) return
     setBusy(true)
-    const result = await moveBack({ db, storage: localStorage })
-    setConfirmBack(false)
+    if (saveFirst) await saveOldCopy()
+    const result = await moveBack({ db, storage: localStorage, oldCopySaved: saveFirst })
     if (result === 'ok') {
       window.location.reload()
       return
     }
     setBusy(false)
+    if (result === 'old-copy-differs') {
+      setOldCopyFirst(true)
+      return
+    }
+    closeConfirm()
     showToast('Your data is too big for simple storage, so it stays in the database.')
+  }
+
+  function closeConfirm() {
+    setConfirmBack(false)
+    setOldCopyFirst(false)
   }
 
   async function copyBlocked(items: QuarantineItem[]) {
@@ -107,10 +120,18 @@ export default function StorageCard() {
     }
   }
 
-  function saveOldCopy() {
+  /** The old copy, plus anything the move set aside, as a backup file. */
+  async function saveOldCopy() {
     const { name, pinHash, recoveryHash } = usePrivateFolderStore.getState()
     const folder = name !== null ? { name, pinHash, recoveryHash } : undefined
-    downloadFile(legacyBackupJson(localStorage, folder, new Date()), `ollie-old-copy-${dateSuffix()}.json`, 'application/json')
+    const db = getActiveStorage().db
+    let setAside: QuarantineRow[] = []
+    try {
+      if (db) setAside = await db.quarantine.toArray()
+    } catch {
+      // The old copy still holds them.
+    }
+    downloadFile(legacyBackupJson(localStorage, folder, new Date(), setAside), `ollie-old-copy-${dateSuffix()}.json`, 'application/json')
     showToast('Old copy saved')
   }
 
@@ -178,7 +199,7 @@ export default function StorageCard() {
       {oldCopyChanged && (
         <div className="rounded-xl bg-subtle p-3 space-y-2">
           <p className="text-[12px] text-secondary">An older Ollie window changed the old copy after the move. Those changes aren't shown here.</p>
-          <button type="button" onClick={saveOldCopy} className={fullButton}>Save the old copy as a backup file</button>
+          <button type="button" onClick={() => void saveOldCopy()} className={fullButton}>Save the old copy as a backup file</button>
         </div>
       )}
 
@@ -193,15 +214,21 @@ export default function StorageCard() {
         <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
           <div role="alertdialog" aria-labelledby="move-back-title" className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 id="move-back-title" className="font-bold text-primary text-[18px] tracking-tight mb-2">Move back to simple storage?</h3>
-            <p className="text-[13px] text-secondary mb-6">
-              Ollie will copy everything you have now into the browser's simple storage and use that from now on. Nothing is deleted, and you can move to the database again later.
-            </p>
+            {oldCopyFirst ? (
+              <p className="text-[13px] text-secondary mb-6">
+                The old copy in simple storage holds things the database doesn't: records Ollie set aside, or changes from an older Ollie window. Moving back replaces that copy, so Ollie will save it as a backup file first.
+              </p>
+            ) : (
+              <p className="text-[13px] text-secondary mb-6">
+                Ollie will copy everything you have now into the browser's simple storage and use that from now on. Nothing is deleted, and you can move to the database again later.
+              </p>
+            )}
             <div className="flex gap-2.5">
-              <button type="button" onClick={() => setConfirmBack(false)} className="flex-1 py-3 rounded-xl bg-subtle text-secondary font-semibold text-[14px] hover:opacity-80 transition-opacity">
+              <button type="button" onClick={closeConfirm} className="flex-1 py-3 rounded-xl bg-subtle text-secondary font-semibold text-[14px] hover:opacity-80 transition-opacity">
                 Cancel
               </button>
-              <button type="button" disabled={busy} onClick={() => void goBack()} className="flex-1 py-3 rounded-xl bg-brand text-on-brand font-bold text-[14px] hover:opacity-90 transition-opacity disabled:opacity-60">
-                Move back
+              <button type="button" disabled={busy} onClick={() => void goBack(oldCopyFirst)} className="flex-1 py-3 rounded-xl bg-brand text-on-brand font-bold text-[14px] hover:opacity-90 transition-opacity disabled:opacity-60">
+                {oldCopyFirst ? 'Save it, then move back' : 'Move back'}
               </button>
             </div>
           </div>

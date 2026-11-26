@@ -135,3 +135,52 @@ describe('formatBytes', () => {
     expect(formatBytes(5_400_000)).toBe('5.1 MB')
   })
 })
+
+describe('final review fixes: moving back keeps everything', () => {
+  it('moving back waits while set-aside records exist only in the old copy, then goes ahead once it is saved', async () => {
+    const storage = legacy([loan(), { ...loan({ id: 'L2', name: 'Bad' }), totalAmount: 'abc' as unknown as number }])
+    const name = dbName()
+    const r = await moveToDatabase({ storage, openDb: opener(name), now, allowQuarantine: true })
+    expect(r.ok).toBe(true)
+    const db = await opener(name)()
+    const oldKeys = storage.getItem(STORAGE_FIELDS.loans)
+
+    expect(await moveBack({ db, storage })).toBe('old-copy-differs')
+    expect(storage.getItem(STORAGE_FIELDS.loans)).toBe(oldKeys)
+    expect(storage.getItem(STORAGE_FLAG_KEY)).toBe('indexeddb')
+
+    expect(await moveBack({ db, storage, oldCopySaved: true })).toBe('ok')
+  })
+
+  it('moving back waits when an older window changed the old copy', async () => {
+    const { storage, db } = await moved()
+    storage.setItem(STORAGE_FIELDS.loans, JSON.stringify([loan({ id: 'OLDTAB', name: 'From an old window' })]))
+    expect(await moveBack({ db, storage })).toBe('old-copy-differs')
+    expect(JSON.parse(storage.getItem(STORAGE_FIELDS.loans)!)[0].id).toBe('OLDTAB')
+  })
+
+  it('the old-copy backup file also carries the set-aside records', () => {
+    const storage = legacy()
+    const setAside = [{ field: 'loans' as const, id: 'L2', name: 'Bad', reason: 'totalAmount: bad', raw: { id: 'L2' } }]
+    const file = JSON.parse(legacyBackupJson(storage, undefined, now, setAside))
+    expect(file.setAside).toEqual(setAside)
+  })
+
+  it('a used undo does not come back after moving back and forth', async () => {
+    const { storage, db } = await moved()
+    const copy = { savedAt: now.toISOString(), schemaVersion: 1, snapshot: await createDexieBackend(db).readAll(), prefs: {} }
+    await dexieSafetyStore(db).write(copy)
+    expect(await moveBack({ db, storage })).toBe('ok')
+    // Undo on simple storage uses up the copy there.
+    await localSafetyStore(storage).remove()
+    await moveToDatabase({ storage, openDb: async () => db, now, allowQuarantine: false })
+    expect(await dexieSafetyStore(db).read()).toBeNull()
+  })
+
+  it('moving back removes a stale undo copy from simple storage', async () => {
+    const { storage, db } = await moved()
+    await localSafetyStore(storage).write({ savedAt: now.toISOString(), schemaVersion: 1, snapshot: readLegacySnapshot(storage), prefs: {} })
+    expect(await moveBack({ db, storage })).toBe('ok')
+    expect(await localSafetyStore(storage).read()).toBeNull()
+  })
+})

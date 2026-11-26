@@ -282,9 +282,9 @@ describe('restoring on simple storage only', () => {
     expect(await readSafetyCopy(h.active.safety, T0)).not.toBeNull()
   })
 
-  it('treats a copy without a snapshot as unusable and frees the space', async () => {
+  it('treats a copy with no data in it as unusable and frees the space', async () => {
     const h = await makeLocal()
-    h.prefs.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION, values: {} }))
+    h.prefs.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION }))
     expect(await readSafetyCopy(h.active.safety, T0)).toBeNull()
     expect(h.prefs.getItem(SAFETY_COPY_KEY)).toBeNull()
   })
@@ -307,4 +307,22 @@ describe('review follow-ups', () => {
     expect(r.skipped).toBe(4)
   })
 
+})
+
+describe('final review fixes: older safety copies', () => {
+  it('a safety copy in the earlier key-by-key format is converted, not thrown away', async () => {
+    const h = await makeLocal()
+    const values = {
+      [STORAGE_FIELDS.loans]: JSON.stringify([loan({ id: 'PRE', name: 'Before restore' })]),
+      [STORAGE_FIELDS.monthlyIncome]: '15000',
+      [LAST_BACKUP_KEY]: '2026-09-01T00:00:00.000Z',
+    }
+    h.prefs.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION, values }))
+    const copy = await readSafetyCopy(h.active.safety, T0)
+    expect(copy?.snapshot.loans.map((l) => l.id)).toEqual(['PRE'])
+    expect(copy?.snapshot.monthlyIncome).toBe(15000)
+    expect(copy?.prefs[LAST_BACKUP_KEY]).toBe('2026-09-01T00:00:00.000Z')
+    expect(await undoRestore(h.active, T0)).toBe(true)
+    expect(ids((await h.data()).loans)).toEqual(['PRE'])
+  })
 })

@@ -30,6 +30,10 @@ export type MoveResult =
   | { ok: true; report: MoveReport }
   | { ok: false; outcome: 'blocked'; items: QuarantineItem[] }
   | { ok: false; outcome: 'failed'; reason: string }
+  /** Another tab finished the move first; its database is the data now. */
+  | { ok: false; outcome: 'already-moved' }
+
+class AlreadyMoved extends Error {}
 
 const SCHEMAS: Record<RecordField, z.ZodType<{ id: string }>> = {
   loans: loanSchema,
@@ -166,7 +170,8 @@ async function verify(db: OllieDb, plan: MovePlan): Promise<string | null> {
 export async function runMove(
   storage: KeyValueStorage,
   db: OllieDb,
-  opts: { now: Date; allowQuarantine?: boolean },
+  /** replaceExisting: the owner asked (Move to the database, recovery), so a database that was moved before is refilled. */
+  opts: { now: Date; allowQuarantine?: boolean; replaceExisting?: boolean },
 ): Promise<MoveResult> {
   try {
     const plan = planMove(storage)
@@ -174,6 +179,9 @@ export async function runMove(
 
     const tables = [...RECORD_FIELDS.map((f) => db.recordTable(f)), db.kv, db.quarantine]
     await db.transaction('rw', tables, async () => {
+      // The automatic move never refills a database another tab already moved into:
+      // it may hold changes saved since.
+      if (!opts.replaceExisting && (await db.kv.get('migration'))) throw new AlreadyMoved()
       // Cleared first: rows left from an earlier move may be records deleted since.
       for (const field of RECORD_FIELDS) {
         const table = db.recordTable(field)
@@ -190,9 +198,11 @@ export async function runMove(
     const mismatch = await verify(db, plan)
     if (mismatch) return { ok: false, outcome: 'failed', reason: mismatch }
 
-    // A restore that can still be undone stays undoable after the move.
+    // The undo-restore offer follows the data exactly: a copy already used up
+    // on simple storage mustn't come back from an older one in the database.
     const copy = await localSafetyStore(storage).read()
     if (copy) await dexieSafetyStore(db).write(copy)
+    else await dexieSafetyStore(db).remove()
 
     const report: MoveReport = {
       at: opts.now.toISOString(),
@@ -205,6 +215,7 @@ export async function runMove(
     await setKv(db, 'migration', report)
     return { ok: true, report }
   } catch (err) {
+    if (err instanceof AlreadyMoved) return { ok: false, outcome: 'already-moved' }
     return { ok: false, outcome: 'failed', reason: err instanceof Error ? err.message : String(err) }
   }
 }

@@ -158,3 +158,23 @@ describe('start-up', () => {
     expect((await createDexieBackend(b.active.db).readAll()).payments).toHaveLength(2)
   })
 })
+
+describe('final review fixes: start-up', () => {
+  it('a tab that starts while another finishes the move loads the database, not a fresh move', async () => {
+    const s = withLoans([loan()])
+    const e = env(s)
+    const first = await bootstrap(e)
+    if (first.kind !== 'ready' || !first.active.db) throw new Error(first.kind)
+    const before = await first.active.backend.readAll()
+    await first.active.backend.write({ loans: { prev: before.loans, next: [...before.loans, loan({ id: 'L3', name: 'Saved in tab A' }) as Loan] } })
+
+    // Tab B read the flag before tab A set it.
+    s.removeItem(STORAGE_FLAG_KEY)
+    const late = await bootstrap({ ...e, now: hours(1) })
+    if (late.kind !== 'ready') throw new Error(late.kind)
+    expect(late.active.backend.kind).toBe('indexeddb')
+    expect(late.snapshot.loans.map((l) => l.id)).toContain('L3')
+    expect(s.getItem(STORAGE_FLAG_KEY)).toBe('indexeddb')
+    expect(late.status.justMoved).toBe(false)
+  })
+})

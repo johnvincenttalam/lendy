@@ -69,7 +69,11 @@ async function start() {
   const { loans, bills, savingsGoals } = outcome.snapshot
   void requestPersistentStorage(loans.length > 0 || bills.length > 0 || savingsGoals.length > 0)
 }
-void start()
+// Anything unexpected shows the error screen rather than a blank page.
+start().catch((err: unknown) => {
+  console.error('Starting Ollie failed', err)
+  root.render(<StorageErrorScreen />)
+})
 
 // A tab left open across an update asks for page files the new version
 // replaced. Reload once to pick up the new version; the page error boundary

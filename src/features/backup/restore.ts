@@ -33,6 +33,7 @@ import { ReplaceAllError } from '../storage/backend'
 import type { KeyValueStorage } from '../storage/backend'
 import type { ActiveStorage } from '../storage/activeStorage'
 import { emptySnapshot } from '../storage/snapshot'
+import { readLegacySnapshot } from '../storage/localStorageBackend'
 import type { DataSnapshot } from '../storage/snapshot'
 
 export { SAFETY_COPY_KEY }
@@ -164,6 +165,22 @@ export async function writeRestore(active: ActiveStorage, data: RestoreData, now
   return true
 }
 
+/**
+ * Copies saved before the data could live in the database kept each storage
+ * key's raw text (`values`). They're converted rather than thrown away, so
+ * an undo offered before this version still works.
+ */
+function fromKeyValues(value: unknown): SafetyCopy | null {
+  if (!value || typeof value !== 'object') return null
+  const c = value as { savedAt?: unknown; schemaVersion?: unknown; values?: unknown }
+  if (typeof c.savedAt !== 'string' || !c.values || typeof c.values !== 'object') return null
+  const values = c.values as Record<string, string | null>
+  const read = { getItem: (k: string) => values[k] ?? null, setItem: () => {}, removeItem: () => {} }
+  const prefs: Record<string, string | null> = {}
+  for (const key of RESTORE_PREF_KEYS) if (key in values) prefs[key] = values[key]
+  return { savedAt: c.savedAt, schemaVersion: Number(c.schemaVersion), snapshot: readLegacySnapshot(read), prefs }
+}
+
 function looksLikeCopy(value: unknown): value is SafetyCopy {
   if (!value || typeof value !== 'object') return false
   const c = value as Partial<SafetyCopy>
@@ -185,7 +202,7 @@ export async function readSafetyCopy(safety: SafetyCopyStore, now: Date = new Da
     return null
   }
   if (raw === null || raw === undefined) return null
-  const copy = looksLikeCopy(raw) ? raw : null
+  const copy = looksLikeCopy(raw) ? raw : fromKeyValues(raw)
   const savedAt = copy ? new Date(copy.savedAt).getTime() : NaN
   const usable = copy !== null
     && copy.schemaVersion === SCHEMA_VERSION
