@@ -3,6 +3,7 @@ import { writeRestore, undoRestore, readSafetyCopy, SAFETY_COPY_KEY } from './re
 import { prepareRestore } from './prepareRestore'
 import type { RestoreData } from './restore'
 import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
+import { LAST_BACKUP_KEY } from './backupStatus'
 
 // Synthetic records only — never real data.
 const loan = (over: Record<string, unknown> = {}) => ({
@@ -216,5 +217,32 @@ describe('safety copy limits', () => {
     s.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION - 1, values: {} }))
     expect(readSafetyCopy(s, T0)).toBeNull()
     expect(undoRestore(s, T0)).toBe(false)
+  })
+})
+
+describe('review follow-ups', () => {
+  it('leaves out payments and transactions whose loan, bill or goal was left out', () => {
+    const r = prepared(file({
+      loans: [loan(), loan({ id: 'BAD', startDate: 'soon' })],
+      payments: [
+        { id: 'p1', loanId: 'L1', amount: 1000, principal: 1000, interest: 0, paidAt: '2026-02-15T00:00:00.000Z', dueDate: '2026-02-15', month: 1 },
+        { id: 'p2', loanId: 'BAD', amount: 1000, principal: 1000, interest: 0, paidAt: '2026-02-15T00:00:00.000Z', dueDate: '2026-02-15', month: 1 },
+      ],
+      billPayments: [{ id: 'bp', billId: 'NOPE', amount: 1, paidAt: '2026-02-15T00:00:00.000Z', dueDate: '2026-02-15' }],
+      savingsTransactions: [{ id: 't', goalId: 'NOPE', type: 'deposit', amount: 1, createdAt: '2026-02-15T00:00:00.000Z' }],
+    }))
+    expect(r.data.payments.map((p) => p.id)).toEqual(['p1'])
+    expect(r.data.billPayments).toEqual([])
+    expect(r.data.savingsTransactions).toEqual([])
+    expect(r.skipped).toBe(4)
+  })
+
+  it('puts back the last-backup date on undo, so the backup reminder comes back', () => {
+    const s = deviceWithData()
+    s.setItem(LAST_BACKUP_KEY, '2026-09-01T00:00:00.000Z')
+    writeRestore(s, incoming(), T0)
+    s.setItem(LAST_BACKUP_KEY, T0.toISOString()) // what restoring a file records
+    undoRestore(s, T0)
+    expect(s.getItem(LAST_BACKUP_KEY)).toBe('2026-09-01T00:00:00.000Z')
   })
 })

@@ -1,3 +1,6 @@
+/** When this device last made or restored a backup (ISO time). */
+export const LAST_BACKUP_KEY = 'loan-tracker-last-backup'
+
 /** After this many days without a backup, Ollie suggests making one. */
 export const BACKUP_STALE_DAYS = 30
 

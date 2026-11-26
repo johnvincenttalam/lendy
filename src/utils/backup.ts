@@ -45,6 +45,7 @@ function reloadStores() {
   useBillStore.getState().reloadFromStorage()
   useSavingsStore.getState().reloadFromStorage()
   usePrivateFolderStore.getState().reloadFromStorage()
+  useLastBackupStore.getState().reloadFromStorage()
 }
 
 /**

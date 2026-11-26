@@ -22,6 +22,7 @@ import type { SavingsGoal, SavingsTransaction } from '../savings/savingsTypes'
 import { FOLDER_KEYS, cleanFolderName } from '../privateFolder/privateFolderUtils'
 import type { FolderBackup } from '../privateFolder/privateFolderUtils'
 import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
+import { LAST_BACKUP_KEY } from './backupStatus'
 
 export const SAFETY_COPY_KEY = 'loan-tracker-pre-restore'
 
@@ -47,7 +48,8 @@ export type PreparedRestore =
   | { ok: false; reason: 'invalid' | 'newer' }
 
 /** Every device key a restore can change. */
-const RESTORE_KEYS: string[] = [...Object.values(STORAGE_FIELDS), ...Object.values(FOLDER_KEYS)]
+// The last-backup date rides along so an undo also brings back the backup reminder.
+const RESTORE_KEYS: string[] = [...Object.values(STORAGE_FIELDS), ...Object.values(FOLDER_KEYS), LAST_BACKUP_KEY]
 
 export type SafetyCopy = { savedAt: string; schemaVersion: number; values: Record<string, string | null> }
 

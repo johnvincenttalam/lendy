@@ -30,6 +30,14 @@ function readList<T extends { id: string }>(value: unknown, schema: z.ZodType<T>
   return out
 }
 
+/** Keeps only records whose parent (by `key`) is among `parents`; the rest add to `skipped`. */
+function withParent<T, K extends keyof T>(records: T[], key: K, parents: { id: string }[], tally: { skipped: number }): T[] {
+  const ids = new Set(parents.map((p) => p.id))
+  const kept = records.filter((r) => ids.has(r[key] as unknown as string))
+  tally.skipped += records.length - kept.length
+  return kept
+}
+
 export function prepareRestore(json: string): PreparedRestore {
   let raw: unknown
   try {
@@ -52,13 +60,17 @@ export function prepareRestore(json: string): PreparedRestore {
     : backfillPayments(loans, [])
   const income = file.monthlyIncome
 
+  const bills = readList(file.bills, billSchema, tally)
+  const savingsGoals = readList(file.savingsGoals, savingsGoalSchema, tally)
+
   const data: RestoreData = {
     loans,
-    payments,
-    bills: readList(file.bills, billSchema, tally),
-    billPayments: readList(file.billPayments, billPaymentSchema, tally),
-    savingsGoals: readList(file.savingsGoals, savingsGoalSchema, tally),
-    savingsTransactions: readList(file.savingsTransactions, savingsTransactionSchema, tally),
+    // A payment or transaction whose loan, bill or goal was left out would be an orphan.
+    payments: withParent(payments, 'loanId', loans, tally),
+    bills,
+    billPayments: withParent(readList(file.billPayments, billPaymentSchema, tally), 'billId', bills, tally),
+    savingsGoals,
+    savingsTransactions: withParent(readList(file.savingsTransactions, savingsTransactionSchema, tally), 'goalId', savingsGoals, tally),
     monthlyIncome: typeof income === 'number' && Number.isFinite(income) && income >= 0 ? income : null,
     privateFolder: parseFolderBackup(file),
   }
