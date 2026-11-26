@@ -236,7 +236,7 @@ amount, date, `installments` and `daysUntil`, and bills always have one
 instalment. The message link reads "View" (or "View bill"/"View loan" by
 `module`) instead of always "View loan". Dismissal keys keep their shape
 (ids + dates), so a bill becoming due brings Ollie back. Celebrations,
-insights, greeting and relaxed stay loans-only. `ollieUtils`/`ollieMessages`
+insights and greeting stay loans-only; relaxed names the next item of any kind. `ollieUtils`/`ollieMessages`
 tests are updated, and new cases cover a bill due today, an overdue bill
 alongside an overdue loan, and the order (overdue before today before upcoming).
 
@@ -299,5 +299,5 @@ lucide; how `Planner` reads `?view=`; splitting the work into commits.
 - Empty widgets hide themselves instead of showing an empty card.
 - Analytics moves from a tab into More and the sidebar.
 - Bell = overdue + due today; no read/unread state until Phase 2. Phones: Home header only.
-- Ollie's "relaxed" message ("next payment is…") still names the next loan only; it's a calm note, not a reminder.
+- Ollie's "relaxed" message ("next payment is…") names the next item of any kind, a bill included.
 - Dates stay device-local; currency/locale/time zone are fixed defaults, no settings screen yet.
