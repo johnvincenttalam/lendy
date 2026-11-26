@@ -6,6 +6,7 @@ import { showToast } from '../../components/toastEvents'
 import { triggerConfetti } from '../../components/confettiEvents'
 import { useIncomeStore, setMonthlyIncomeFromBackup } from '../finance/incomeStore'
 import { STORAGE_FIELDS } from '../backup/schema'
+import { addMonthsClamped } from '../../core/time/months'
 
 const STORAGE_KEY = STORAGE_FIELDS.loans
 const PAYMENTS_KEY = STORAGE_FIELDS.payments
@@ -194,8 +195,7 @@ export const useLoanStore = create<LoanStore>((set, get) => ({
         const principalPortion = scheduled ? scheduled.principal : Math.round(monthlyPrincipalPortion(loan) * 100) / 100
 
         // Calculate scheduled due date for this payment
-        const dueDate = new Date(loan.startDate)
-        dueDate.setMonth(dueDate.getMonth() + loan.monthsPaid)
+        const dueDate = scheduled ? scheduled.date : addMonthsClamped(new Date(loan.startDate), loan.monthsPaid)
 
         newRecord = {
           id: crypto.randomUUID(),

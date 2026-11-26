@@ -1,4 +1,5 @@
 // Date utility functions
+import { addMonthsClamped } from '../core/time/months'
 
 /**
  * Format date as ISO string (YYYY-MM-DD)
@@ -60,9 +61,7 @@ export function isToday(date: Date | string): boolean {
  * Add months to a date
  */
 export function addMonths(date: Date | string, months: number): Date {
-  const d = typeof date === 'string' ? new Date(date) : new Date(date)
-  d.setMonth(d.getMonth() + months)
-  return d
+  return addMonthsClamped(typeof date === 'string' ? new Date(date) : date, months)
 }
 
 /**

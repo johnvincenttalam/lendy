@@ -1,4 +1,5 @@
 import type { Loan, PaymentBreakdown } from './loanTypes'
+import { addMonthsClamped } from '../../core/time/months'
 
 // --- Flat/Simple Interest (Philippine lending model) ---
 
@@ -26,8 +27,7 @@ export function paymentSchedule(loan: Loan): PaymentBreakdown[] {
   const schedule: PaymentBreakdown[] = []
 
   for (let i = 0; i < loan.durationMonths; i++) {
-    const payDate = new Date(loan.startDate)
-    payDate.setMonth(payDate.getMonth() + i)
+    const payDate = addMonthsClamped(new Date(loan.startDate), i)
 
     const isLast = i === loan.durationMonths - 1
     const payment = isLast
@@ -121,9 +121,7 @@ export function formatCurrencyParts(amount: number): { symbol: string; amount: s
 }
 
 export function endDate(loan: Loan): string {
-  const start = new Date(loan.startDate)
-  start.setMonth(start.getMonth() + loan.durationMonths)
-  return start.toISOString().split('T')[0]
+  return addMonthsClamped(new Date(loan.startDate), loan.durationMonths).toISOString().split('T')[0]
 }
 
 export function isFullyPaid(loan: Loan): boolean {
@@ -179,8 +177,7 @@ export function debtFreeDate(loans: Loan[]): Date | null {
 
   let latest = new Date(0)
   for (const loan of active) {
-    const end = new Date(loan.startDate)
-    end.setMonth(end.getMonth() + loan.durationMonths)
+    const end = addMonthsClamped(new Date(loan.startDate), loan.durationMonths)
     if (end > latest) latest = end
   }
   return latest

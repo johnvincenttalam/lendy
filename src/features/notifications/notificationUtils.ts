@@ -1,10 +1,8 @@
-import { isFullyPaid, isOverdue, daysOverdue, isTracked } from '../loans/loanUtils'
+import { isFullyPaid, isOverdue, daysOverdue, isTracked, paymentSchedule } from '../loans/loanUtils'
 import type { Loan } from '../loans/loanTypes'
 
 function getNextDueDate(loan: Loan): Date {
-  const d = new Date(loan.startDate)
-  d.setMonth(d.getMonth() + loan.monthsPaid)
-  return d
+  return paymentSchedule(loan)[loan.monthsPaid]?.date ?? new Date(loan.startDate)
 }
 
 export type PaymentInfo = {

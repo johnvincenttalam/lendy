@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Loan } from './loanTypes'
-import { isTracked, debtFreeDate, getOverdueLoans, upcomingPayments, isOverdue } from './loanUtils'
+import { isTracked, debtFreeDate, getOverdueLoans, upcomingPayments, isOverdue, paymentSchedule, nextDueDate, endDate } from './loanUtils'
 
 const NOW = new Date()
 
@@ -41,5 +41,25 @@ describe('private loans in aggregates', () => {
 
   it('still show as overdue on their own, inside the folder', () => {
     expect(isOverdue(makeLoan({ startDate: isoOffset(-5), private: true }))).toBe(true)
+  })
+})
+
+describe('month-end start dates', () => {
+  // A loan starting on the 31st must be due on the last day of shorter
+  // months, not spill into the next month (Jan 31 + 1 month used to be Mar 3).
+  const monthEnd = () => makeLoan({ startDate: '2026-01-31', durationMonths: 4, monthsPaid: 0 })
+  const local = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+  it('schedules each payment in its own month', () => {
+    expect(paymentSchedule(monthEnd()).map((p) => local(p.date)))
+      .toEqual(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30'])
+  })
+
+  it('gives the next due date in the right month', () => {
+    expect(local(nextDueDate({ ...monthEnd(), monthsPaid: 1 })!)).toBe('2026-02-28')
+  })
+
+  it('ends the loan in the right month', () => {
+    expect(endDate(makeLoan({ startDate: '2026-01-31', durationMonths: 1 }))).toBe('2026-02-28')
   })
 })
