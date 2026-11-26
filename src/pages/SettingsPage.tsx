@@ -16,7 +16,8 @@ import { showToast } from '../components/toastEvents'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
-import { exportAllData, applyRestore, checkBackup, undoLastRestore, lastRestoreAt } from '../utils/backup'
+import { exportAllData, applyRestore, checkBackup, undoLastRestore } from '../utils/backup'
+import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { describeLastBackup, isBackupDue } from '../features/backup/backupStatus'
 import type { RestoreCounts, RestoreData } from '../features/backup/restore'
@@ -39,7 +40,7 @@ export default function SettingsPage() {
   const [showIncome, setShowIncome] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
   // Set while the last restore can still be undone.
-  const [restoredAt, setRestoredAt] = useState(lastRestoreAt)
+  const restoredAt = useLastRestoreStore((s) => s.restoredAt)
   const [confirmUndo, setConfirmUndo] = useState(false)
 
   useBodyScrollLock(pendingImport !== null || confirmUndo)
@@ -103,13 +104,11 @@ export default function SettingsPage() {
     if (!pendingImport) return
     applyRestore(pendingImport.data)
     setPendingImport(null)
-    setRestoredAt(lastRestoreAt())
   }
 
   function handleUndoRestore() {
     undoLastRestore()
     setConfirmUndo(false)
-    setRestoredAt(lastRestoreAt())
   }
 
   return (

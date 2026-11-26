@@ -8,6 +8,7 @@ import { SCHEMA_VERSION } from '../features/backup/schema'
 import { writeRestore, undoRestore, readSafetyCopy } from '../features/backup/restore'
 import type { PreparedRestore, RestoreData } from '../features/backup/restore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
+import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
 
 export function exportAllData(): string {
   const { loans, payments } = useLoanStore.getState()
@@ -46,6 +47,7 @@ function reloadStores() {
   useSavingsStore.getState().reloadFromStorage()
   usePrivateFolderStore.getState().reloadFromStorage()
   useLastBackupStore.getState().reloadFromStorage()
+  useLastRestoreStore.getState().refresh()
 }
 
 /**
@@ -86,10 +88,6 @@ export function undoLastRestore(): boolean {
   return true
 }
 
-/** When the last restore happened, if it can still be undone. */
-export function lastRestoreAt(): string | null {
-  return readSafetyCopy(localStorage)?.savedAt ?? null
-}
 
 function describeCount(n: number, singular: string): string {
   return `${n} ${n === 1 ? singular : `${singular}s`}`
