@@ -5,6 +5,7 @@ import PinScreen from './features/lock/PinScreen'
 import { useNotificationCheck } from './features/notifications/useNotificationCheck'
 import AppShell from './app/AppShell'
 import DeadlinesProvider from './app/DeadlinesProvider'
+import CalendarRedirect from './app/CalendarRedirect'
 
 // Home loads with the app; every other page loads the first time it's opened.
 const LoanDetailsPage = lazy(() => import('./pages/LoanDetailsPage'))
@@ -45,7 +46,7 @@ export default function App() {
               <Route path="/whats-new" element={<WhatsNewPage />} />
               <Route path="/private" element={<PrivateFolderPage />} />
               {/* The calendar now lives in the Planner. */}
-              <Route path="/calendar" element={<Navigate to="/planner?view=calendar" replace />} />
+              <Route path="/calendar" element={<CalendarRedirect />} />
               {/* Removed pages (like the old Money page) and mistyped links go Home instead of a blank screen. */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

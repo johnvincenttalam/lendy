@@ -84,6 +84,35 @@ test('Customize Home hides a section, remembers it, and resets', async ({ page }
   await expect(page.getByText('Financial Health', { exact: true })).toBeVisible()
 })
 
+test('an old calendar link keeps the month it pointed at', async ({ page }) => {
+  await page.goto('/#/calendar?y=2027&m=0')
+  await expect(page).toHaveURL(/view=calendar/)
+  await expect(page.getByText('January 2027')).toBeVisible()
+})
+
+test('Customize Home moves a section up, and it stays there after a reload', async ({ page }) => {
+  // A savings goal and a loan give Home sections to reorder.
+  await page.goto('/#/savings')
+  await addButton(page).click()
+  await page.getByRole('textbox').first().fill('Test Trip')
+  await page.getByRole('spinbutton').first().fill('10000')
+  await page.getByRole('button', { name: 'Add Goal' }).click()
+
+  await page.goto('/#/')
+  const order = () => page.locator('main section[aria-label], main section[aria-labelledby]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('aria-label') ?? document.getElementById(e.getAttribute('aria-labelledby') ?? '')?.textContent?.trim()))
+  expect((await order()).indexOf('Savings')).toBeLessThan((await order()).indexOf('Your loans'))
+
+  await page.getByRole('button', { name: 'Customize Home' }).click()
+  await page.getByRole('button', { name: 'Move Your loans up' }).click()
+  await page.getByRole('button', { name: 'Done' }).click()
+  await page.reload()
+  await expect.poll(async () => {
+    const o = await order()
+    return o.indexOf('Your loans') < o.indexOf('Savings')
+  }).toBe(true)
+})
+
 test('old links land in the right place', async ({ page }) => {
   await page.goto('/#/calendar')
   await expect(page).toHaveURL(/#\/planner\?view=calendar/)
