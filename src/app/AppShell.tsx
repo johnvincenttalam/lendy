@@ -34,8 +34,9 @@ export default function AppShell() {
 
   // Said once, after the toast area is listening (child effects run first).
   useEffect(() => {
-    // Read live, not from the closure: StrictMode runs effects twice in development.
-    if (!justMoved || !useStorageStatusStore.getState().justMoved) return
+    // Uses the value from render, not the store: in development StrictMode re-runs
+    // effects after clearing the toast's timers, and showing it again restarts them.
+    if (!justMoved) return
     useStorageStatusStore.getState().update({ justMoved: false })
     showToast('Moved your data to sturdier storage. Your old copy is kept.')
   }, [justMoved])

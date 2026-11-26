@@ -1,7 +1,26 @@
 # Progress
 
 Newest first. Each entry says what was done, how it was verified, and what's
-known to be left. Branch: `feature/phase-1-foundation` (not merged or pushed).
+known to be left. Branch: `feature/phase-2-storage` (not merged or pushed; Phase 1 is merged into local `main`, not pushed).
+
+## 2026-11-26 — Phase 2, piece 1: IndexedDB, centavos, start-up loading (done)
+
+Design `docs/superpowers/specs/2026-11-26-storage-move-design.md`, plan
+`docs/superpowers/plans/2026-11-26-storage-move.md`, summary in
+`ARCHITECTURE.md` §4a.
+- Money data moves by itself into the browser's database on the next start:
+  checked record by record, written in one transaction, read back and compared
+  to the centavo, then switched. The old keys are never written.
+- Anything that would be set aside stops the automatic move; Settings lists it.
+- Stores load once before the first screen and save each change through an
+  ordered queue; a failed save shows a lasting banner.
+- Restore and undo work on either storage. Settings has a Storage card (where,
+  kept or not, space, not-sync note, move back / move forward, old-copy backup).
+- Error screen if the database won't open; recovery screen if the browser
+  emptied it.
+
+Checks: see the final review entry for this branch. Known left: Backup v2
+(merge, duplicates) and snooze/dismiss + activity log are pieces 2 and 3.
 
 ## 2026-11-26 — Final review of the branch (done)
 

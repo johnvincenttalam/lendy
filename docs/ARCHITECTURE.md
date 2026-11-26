@@ -251,3 +251,40 @@ would be fine where they are.
 
 Backups keep working throughout: the v2 envelope reader accepts v0/v1 files
 and upgrades them through the existing `MIGRATIONS` chain.
+
+### 4a. As built (Phase 2, piece 1, 2026-11-26)
+
+Design: `docs/superpowers/specs/2026-11-26-storage-move-design.md`. Code:
+`src/features/storage/` (a feature folder, not `core/`, because the move uses
+the feature zod schemas).
+
+- **Backends.** `DataBackend` (`readAll`, `write(change)`, `replaceAll`) with
+  two implementations: `localStorageBackend` (today's JSON-per-key format) and
+  `dexieBackend` (database `ollie` v1: one table per record type, `kv`,
+  `quarantine`). Stores hold the data in memory, are filled once at start-up
+  (`hydrate`), and save every change through `persist(change)`, an ordered
+  queue. A failed save shows a lasting banner and keeps what's on screen.
+- **Centavos at the edge.** The Dexie backend stores money as integers
+  (`centavos.ts`); app code still sees pesos. Rows carry a hidden `_seq` so
+  list order (and undo's "last payment") is exactly as before.
+- **Choosing storage.** The flag `loan-tracker-storage` lives in simple
+  storage (not in IndexedDB as §4 suggested), so it can be read without
+  waiting on the database: `'indexeddb'`, `'localstorage'` (moved back) or
+  missing (not moved yet). `bootstrap.ts` decides, moves, loads, and returns
+  ready data, an error screen (database won't open in 5 s; never falls back to
+  the old copy), or a recovery screen (database emptied by the browser).
+- **The move** (`move.ts`): validate with zod → set aside what fails (the
+  automatic move waits instead, and Settings lists the records with Move
+  anyway / Copy them as text) → clear and fill the tables in one transaction
+  → read back and compare counts, every amount to the centavo, totals and
+  parent links → only then set the flag. No automatic backup download (§4
+  step 3): the old keys are never written, so they are the safety copy. A
+  failed move retries at most once a day. A fingerprint of the old keys shows
+  when an older window wrote to them after the move.
+- **Going back.** Settings → Storage → Move back copies the *current* data into
+  simple storage (all or nothing) and switches; Move to the database runs the
+  move again. Restore and undo work on either backend; the safety copy sits
+  next to the data and moves with it.
+- **Data versions.** Database data is upgraded through the same `MIGRATIONS`
+  chain at start-up (`upgradeDexieData`); `migrateStorage` no longer touches
+  the old keys once moved.

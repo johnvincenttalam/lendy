@@ -1,6 +1,6 @@
 # Ollie — Roadmap to a Personal Life OS
 
-Status: **Phase 1 done on branch `feature/phase-1-foundation`, 2026-11-26 (not merged).** Phase 2 next; see `PROGRESS.md`.
+Status: **Phase 1 done and merged locally. Phase 2 piece 1 (IndexedDB, centavos, start-up loading) done on branch `feature/phase-2-storage`, 2026-11-26.** Next: Backup v2, then snooze/dismiss and the activity log; see `PROGRESS.md`.
 The owner approved every recommendation below on 2026-11-26.
 Findings referenced as D#/S#/A# are in `ARCHITECTURE.md` §2.
 
@@ -59,6 +59,7 @@ before the shell, because they protect the records every later phase depends on.
 
 ### Phase 2 — Repositories, IndexedDB, Backup v2 (≈ 4–6 sessions)
 
+- **Done (piece 1):** storage backends (localStorage first, then Dexie), start-up loading (A2), the automatic move with checks, centavos, Settings Storage card, move back. See `ARCHITECTURE.md` §4a.
 - Repository interface; localStorage adapter first (no behaviour change, ship).
 - Dexie schema + boot hydration step (A2).
 - Migration exactly as in `ARCHITECTURE.md` §4: safety download →
