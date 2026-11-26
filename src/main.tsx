@@ -11,6 +11,7 @@ import { getActiveStorage } from './features/storage/activeStorage'
 import { persist } from './features/storage/persist'
 import { backfillPayments } from './features/loans/paymentBackfill'
 import { hydrateStores } from './utils/storeSnapshot'
+import { useLastRestoreStore } from './features/backup/lastRestoreStore'
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -20,6 +21,7 @@ async function start() {
   const payments = backfillPayments(snapshot.loans, snapshot.payments)
   if (payments.length > snapshot.payments.length) void persist({ payments: { next: payments, prev: snapshot.payments } })
   hydrateStores({ ...snapshot, payments })
+  await useLastRestoreStore.getState().refresh()
   root.render(
     <StrictMode>
       <App />

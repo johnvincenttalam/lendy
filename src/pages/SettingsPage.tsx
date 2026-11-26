@@ -102,12 +102,12 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    applyRestore(pendingImport.data)
+    void applyRestore(pendingImport.data)
     setPendingImport(null)
   }
 
   function handleUndoRestore() {
-    undoLastRestore()
+    void undoLastRestore()
     setConfirmUndo(false)
   }
 

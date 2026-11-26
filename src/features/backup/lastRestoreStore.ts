@@ -1,22 +1,23 @@
 import { create } from 'zustand'
 import { readSafetyCopy } from './restore'
-
-function read(): string | null {
-  try {
-    return readSafetyCopy(localStorage)?.savedAt ?? null
-  } catch {
-    return null
-  }
-}
+import { getActiveStorage } from '../storage/activeStorage'
 
 type LastRestoreStore = {
   /** When the last restore happened, while it can still be undone; null otherwise. */
   restoredAt: string | null
-  /** Re-checks after a restore or an undo, from wherever it happened (Settings or the toast). */
-  refresh: () => void
+  /** Re-checks at start-up and after a restore or an undo, from wherever it happened (Settings or the toast). */
+  refresh: () => Promise<void>
 }
 
 export const useLastRestoreStore = create<LastRestoreStore>((set) => ({
-  restoredAt: read(),
-  refresh: () => set({ restoredAt: read() }),
+  restoredAt: null,
+  refresh: async () => {
+    let restoredAt: string | null = null
+    try {
+      restoredAt = (await readSafetyCopy(getActiveStorage().safety))?.savedAt ?? null
+    } catch {
+      restoredAt = null
+    }
+    set({ restoredAt })
+  },
 }))

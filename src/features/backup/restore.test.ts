@@ -1,8 +1,21 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect } from 'vitest'
 import { writeRestore, undoRestore, readSafetyCopy, SAFETY_COPY_KEY } from './restore'
 import { prepareRestore } from './prepareRestore'
 import type { RestoreData } from './restore'
 import { SCHEMA_VERSION, STORAGE_FIELDS } from './schema'
+import { memoryStorage } from '../storage/testStorage'
+import type { MemoryStorage } from '../storage/testStorage'
+import { createLocalStorageBackend } from '../storage/localStorageBackend'
+import { createDexieBackend } from '../storage/dexieBackend'
+import { createOllieDb } from '../storage/db'
+import { dexieSafetyStore, localSafetyStore } from '../storage/safetyCopyStore'
+import type { SafetyCopyStore } from '../storage/safetyCopyStore'
+import type { ActiveStorage } from '../storage/activeStorage'
+import { emptySnapshot } from '../storage/snapshot'
+import type { DataSnapshot, RecordField } from '../storage/snapshot'
+import type { Loan } from '../loans/loanTypes'
+import type { Bill } from '../bills/billTypes'
 import { LAST_BACKUP_KEY } from './backupStatus'
 
 // Synthetic records only — never real data.
@@ -95,128 +108,185 @@ describe('prepareRestore', () => {
   })
 })
 
-class MemoryStorage {
-  map = new Map<string, string>()
-  failOnSet: ((key: string) => boolean) | null = null
-  getItem(key: string) { return this.map.has(key) ? this.map.get(key)! : null }
-  setItem(key: string, value: string) {
-    if (this.failOnSet?.(key)) throw new Error('QuotaExceededError')
-    this.map.set(key, value)
-  }
-  removeItem(key: string) { this.map.delete(key) }
+type Harness = {
+  active: ActiveStorage
+  prefs: MemoryStorage
+  failReplaceOn: (field: RecordField) => void
+  failSafetyCopy: () => void
+  data: () => Promise<DataSnapshot>
+  safetyRaw: () => Promise<unknown>
 }
 
-function deviceWithData() {
-  const s = new MemoryStorage()
-  s.setItem(STORAGE_FIELDS.loans, JSON.stringify([loan({ id: 'OLD', name: 'Old loan' })]))
-  s.setItem(STORAGE_FIELDS.bills, JSON.stringify([bill({ id: 'OLDB' })]))
-  s.setItem(STORAGE_FIELDS.monthlyIncome, '20000')
-  return s
+const OLD = (): DataSnapshot => ({
+  ...emptySnapshot(),
+  loans: [loan({ id: 'OLD', name: 'Old loan' }) as Loan],
+  bills: [bill({ id: 'OLDB' }) as Bill],
+  monthlyIncome: 20000,
+})
+
+function failingSafety(inner: SafetyCopyStore, fail: { on: boolean }): SafetyCopyStore {
+  return {
+    read: () => inner.read(),
+    remove: () => inner.remove(),
+    write: async (copy) => {
+      if (fail.on) throw new Error('QuotaExceededError')
+      return inner.write(copy)
+    },
+  }
+}
+
+async function makeLocal(): Promise<Harness> {
+  const s = memoryStorage()
+  const backend = createLocalStorageBackend(s)
+  await backend.replaceAll(OLD())
+  return {
+    active: { backend, safety: localSafetyStore(s), prefs: s, db: null },
+    prefs: s,
+    failReplaceOn: (field) => { s.failOnSet = (key) => key === STORAGE_FIELDS[field] },
+    failSafetyCopy: () => { s.failOnSet = (key) => key === SAFETY_COPY_KEY },
+    data: () => backend.readAll(),
+    safetyRaw: () => localSafetyStore(s).read(),
+  }
+}
+
+async function makeDexie(): Promise<Harness> {
+  const db = createOllieDb(`t-${crypto.randomUUID()}`)
+  const backend = createDexieBackend(db)
+  await backend.replaceAll(OLD())
+  const prefs = memoryStorage()
+  const fail = { on: false }
+  return {
+    active: { backend, safety: failingSafety(dexieSafetyStore(db), fail), prefs, db },
+    prefs,
+    failReplaceOn: (field) => { db.recordTable(field).hook('creating', () => { throw new Error('QuotaExceededError') }) },
+    failSafetyCopy: () => { fail.on = true },
+    data: () => backend.readAll(),
+    safetyRaw: () => dexieSafetyStore(db).read(),
+  }
 }
 
 const incoming = (): RestoreData => prepared(file()).data
-const loansIn = (s: MemoryStorage) => JSON.parse(s.getItem(STORAGE_FIELDS.loans) ?? '[]').map((l: { id: string }) => l.id)
-
-describe('writeRestore', () => {
-  it('replaces every section on the device', () => {
-    const s = deviceWithData()
-    expect(writeRestore(s, incoming(), new Date('2026-11-26T10:00:00Z'))).toBe(true)
-    expect(loansIn(s)).toEqual(['L1'])
-    expect(JSON.parse(s.getItem(STORAGE_FIELDS.bills)!).map((b: { id: string }) => b.id)).toEqual(['B1'])
-    expect(s.getItem(STORAGE_FIELDS.monthlyIncome)).toBe('30000')
-  })
-
-  it('keeps a safety copy of what was there before', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), new Date('2026-11-26T10:00:00Z'))
-    const copy = readSafetyCopy(s, new Date('2026-11-26T10:05:00Z'))
-    expect(copy?.savedAt).toBe('2026-11-26T10:00:00.000Z')
-    expect(JSON.parse(copy!.values[STORAGE_FIELDS.loans]!)[0].id).toBe('OLD')
-  })
-
-  it('leaves the income as it was when the file has none', () => {
-    const s = deviceWithData()
-    writeRestore(s, { ...incoming(), monthlyIncome: null }, new Date())
-    expect(s.getItem(STORAGE_FIELDS.monthlyIncome)).toBe('20000')
-  })
-
-  it('changes nothing if one part fails to save', () => {
-    const s = deviceWithData()
-    s.failOnSet = (key) => key === STORAGE_FIELDS.savingsGoals
-    expect(writeRestore(s, incoming(), new Date())).toBe(false)
-    expect(loansIn(s)).toEqual(['OLD'])
-    expect(JSON.parse(s.getItem(STORAGE_FIELDS.bills)!)[0].id).toBe('OLDB')
-    expect(s.getItem(STORAGE_FIELDS.savingsGoals)).toBeNull()
-  })
-
-  it('changes nothing if the safety copy cannot be kept', () => {
-    const s = deviceWithData()
-    s.failOnSet = (key) => key === SAFETY_COPY_KEY
-    expect(writeRestore(s, incoming(), new Date())).toBe(false)
-    expect(loansIn(s)).toEqual(['OLD'])
-  })
-})
-
+const ids = (records: { id: string }[]) => records.map((r) => r.id)
 const T0 = new Date('2026-11-26T10:00:00Z')
 const days = (n: number) => new Date(T0.getTime() + n * 86_400_000)
 
-describe('undoRestore', () => {
-  it('puts back what was there before the restore', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), T0)
-    expect(undoRestore(s, T0)).toBe(true)
-    expect(loansIn(s)).toEqual(['OLD'])
-    expect(s.getItem(STORAGE_FIELDS.savingsGoals)).toBeNull()
-    expect(s.getItem(STORAGE_FIELDS.monthlyIncome)).toBe('20000')
+describe.each([
+  ['simple storage', makeLocal],
+  ['the database', makeDexie],
+])('restoring on %s', (_name, make) => {
+  describe('writeRestore', () => {
+    it('replaces every section on the device', async () => {
+      const h = await make()
+      expect(await writeRestore(h.active, incoming(), T0)).toBe(true)
+      const d = await h.data()
+      expect(ids(d.loans)).toEqual(['L1'])
+      expect(ids(d.bills)).toEqual(['B1'])
+      expect(d.monthlyIncome).toBe(30000)
+    })
+
+    it('keeps a safety copy of what was there before', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      const copy = await readSafetyCopy(h.active.safety, new Date('2026-11-26T10:05:00Z'))
+      expect(copy?.savedAt).toBe('2026-11-26T10:00:00.000Z')
+      expect(copy!.snapshot.loans[0].id).toBe('OLD')
+    })
+
+    it('leaves the income as it was when the file has none', async () => {
+      const h = await make()
+      await writeRestore(h.active, { ...incoming(), monthlyIncome: null }, T0)
+      expect((await h.data()).monthlyIncome).toBe(20000)
+    })
+
+    it('changes nothing if one part fails to save', async () => {
+      const h = await make()
+      h.failReplaceOn('savingsGoals')
+      expect(await writeRestore(h.active, incoming(), T0)).toBe(false)
+      expect(await h.data()).toEqual(OLD())
+    })
+
+    it('changes nothing if the safety copy cannot be kept', async () => {
+      const h = await make()
+      h.failSafetyCopy()
+      expect(await writeRestore(h.active, incoming(), T0)).toBe(false)
+      expect(ids((await h.data()).loans)).toEqual(['OLD'])
+    })
   })
 
-  it('can only be used once', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), T0)
-    undoRestore(s, T0)
-    expect(readSafetyCopy(s, T0)).toBeNull()
-    expect(undoRestore(s, T0)).toBe(false)
+  describe('undoRestore', () => {
+    it('puts back what was there before the restore', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      expect(await undoRestore(h.active, T0)).toBe(true)
+      expect(await h.data()).toEqual(OLD())
+    })
+
+    it('can only be used once', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      await undoRestore(h.active, T0)
+      expect(await readSafetyCopy(h.active.safety, T0)).toBeNull()
+      expect(await undoRestore(h.active, T0)).toBe(false)
+    })
+  })
+
+  describe('safety copy limits', () => {
+    it('keeps the safety copy and says so when putting the old data back fails', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      h.failReplaceOn('loans')
+      expect(await undoRestore(h.active, T0)).toBe(false)
+      expect(await readSafetyCopy(h.active.safety, T0)).not.toBeNull()
+    })
+
+    it('records the data version it was saved with', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      expect((await readSafetyCopy(h.active.safety, T0))?.schemaVersion).toBe(SCHEMA_VERSION)
+    })
+
+    it('stops offering an undo after 7 days, and frees the space', async () => {
+      const h = await make()
+      await writeRestore(h.active, incoming(), T0)
+      expect(await readSafetyCopy(h.active.safety, days(7))).not.toBeNull()
+      expect(await readSafetyCopy(h.active.safety, days(8))).toBeNull()
+      expect(await h.safetyRaw()).toBeNull()
+      expect(await undoRestore(h.active, days(8))).toBe(false)
+      expect(ids((await h.data()).loans)).toEqual(['L1'])
+    })
+
+    it('won’t put back data saved by a different version of Ollie', async () => {
+      const h = await make()
+      await h.active.safety.write({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION - 1, snapshot: emptySnapshot(), prefs: {} })
+      expect(await readSafetyCopy(h.active.safety, T0)).toBeNull()
+      expect(await undoRestore(h.active, T0)).toBe(false)
+    })
+  })
+
+  it('puts back the last-backup date on undo, so the backup reminder comes back', async () => {
+    const h = await make()
+    h.prefs.setItem(LAST_BACKUP_KEY, '2026-09-01T00:00:00.000Z')
+    await writeRestore(h.active, incoming(), T0)
+    h.prefs.setItem(LAST_BACKUP_KEY, T0.toISOString()) // what restoring a file records
+    await undoRestore(h.active, T0)
+    expect(h.prefs.getItem(LAST_BACKUP_KEY)).toBe('2026-09-01T00:00:00.000Z')
   })
 })
 
-describe('safety copy limits', () => {
-  it('keeps the safety copy and says so when putting the old data back fails', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), T0)
-    s.failOnSet = (key) => key === STORAGE_FIELDS.loans
-    expect(undoRestore(s, T0)).toBe(false)
-    expect(readSafetyCopy(s, T0)).not.toBeNull()
-  })
-
-  it('keeps the safety copy if a failed restore can’t be fully rolled back', () => {
-    const s = deviceWithData()
+describe('restoring on simple storage only', () => {
+  it('keeps the safety copy if a failed restore can’t be fully rolled back', async () => {
+    const h = await makeLocal()
     // Bills fail both ways: the new value can't be written, nor the old one put back.
-    s.failOnSet = (key) => key === STORAGE_FIELDS.bills
-    expect(writeRestore(s, incoming(), T0)).toBe(false)
-    expect(readSafetyCopy(s, T0)).not.toBeNull()
+    h.failReplaceOn('bills')
+    expect(await writeRestore(h.active, incoming(), T0)).toBe(false)
+    expect(await readSafetyCopy(h.active.safety, T0)).not.toBeNull()
   })
 
-  it('records the data version it was saved with', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), T0)
-    expect(readSafetyCopy(s, T0)?.schemaVersion).toBe(SCHEMA_VERSION)
-  })
-
-  it('stops offering an undo after 7 days, and frees the space', () => {
-    const s = deviceWithData()
-    writeRestore(s, incoming(), T0)
-    expect(readSafetyCopy(s, days(7))).not.toBeNull()
-    expect(readSafetyCopy(s, days(8))).toBeNull()
-    expect(s.getItem(SAFETY_COPY_KEY)).toBeNull()
-    expect(undoRestore(s, days(8))).toBe(false)
-    expect(loansIn(s)).toEqual(['L1'])
-  })
-
-  it('won’t put back data saved by a different version of Ollie', () => {
-    const s = deviceWithData()
-    s.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION - 1, values: {} }))
-    expect(readSafetyCopy(s, T0)).toBeNull()
-    expect(undoRestore(s, T0)).toBe(false)
+  it('treats a copy without a snapshot as unusable and frees the space', async () => {
+    const h = await makeLocal()
+    h.prefs.setItem(SAFETY_COPY_KEY, JSON.stringify({ savedAt: T0.toISOString(), schemaVersion: SCHEMA_VERSION, values: {} }))
+    expect(await readSafetyCopy(h.active.safety, T0)).toBeNull()
+    expect(h.prefs.getItem(SAFETY_COPY_KEY)).toBeNull()
   })
 })
 
@@ -237,12 +307,4 @@ describe('review follow-ups', () => {
     expect(r.skipped).toBe(4)
   })
 
-  it('puts back the last-backup date on undo, so the backup reminder comes back', () => {
-    const s = deviceWithData()
-    s.setItem(LAST_BACKUP_KEY, '2026-09-01T00:00:00.000Z')
-    writeRestore(s, incoming(), T0)
-    s.setItem(LAST_BACKUP_KEY, T0.toISOString()) // what restoring a file records
-    undoRestore(s, T0)
-    expect(s.getItem(LAST_BACKUP_KEY)).toBe('2026-09-01T00:00:00.000Z')
-  })
 })
