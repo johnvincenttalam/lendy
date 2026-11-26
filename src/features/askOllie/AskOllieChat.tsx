@@ -12,8 +12,8 @@ import type { Line } from './formatAnswer'
 import { usePrivateFolderStore } from '../privateFolder/privateFolderStore'
 import { folderLabel } from '../privateFolder/privateFolderUtils'
 import type { Bubble } from './dashboardChat'
+import { QUICK_QUESTIONS } from './quickQuestions'
 
-const QUICK_QUESTIONS = ['Biggest loan?', "What's due this week?", 'How much did I spend this month?']
 
 /**
  * A read-only chat with Ollie. `frame` places the conversation and the input
@@ -101,8 +101,8 @@ export default function AskOllieChat({ includePrivate, frame }: {
             <p className="text-[15px] font-bold text-primary mt-3">What would you like to know?</p>
             <p className="text-[13px] text-muted mt-1">
               {includePrivate
-                ? `I can see the loans in ${folderLabel(folderName)} too, as well as your bills, savings and spending.`
-                : 'I can answer questions about your loans, bills, savings and spending.'}
+                ? `I can see the loans in ${folderLabel(folderName)} too, as well as your bills and savings.`
+                : 'I can answer questions about your loans, bills and savings.'}
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {QUICK_QUESTIONS.map((q) => (
