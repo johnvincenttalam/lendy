@@ -5,7 +5,7 @@ import { useLoanStore } from '../features/loans/loanStore'
 import { useIncomeStore } from '../features/finance/incomeStore'
 import { useBillStore } from '../features/bills/billStore'
 import { useSavingsStore } from '../features/savings/savingsStore'
-import { hasExistingData, describeBackupImport } from '../utils/backupDescribe'
+import { hasExistingData } from '../utils/backupDescribe'
 import { debtToIncomeRatio, monthlyLoanPayments } from '../features/loans/loanUtils'
 import PageHeader from '../components/PageHeader'
 import ThemeSettings from '../features/theme/ThemeSettings'
@@ -103,7 +103,7 @@ export default function SettingsPage() {
 
   function confirmImport() {
     if (!pendingImport) return
-    void applyRestore(pendingImport.data)
+    void applyRestore(pendingImport.data, 'replace')
     setPendingImport(null)
   }
 
@@ -251,7 +251,7 @@ export default function SettingsPage() {
           <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
             <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
             <p className="text-[13px] text-secondary mb-6">
-              {describeBackupImport(pendingImport.counts, existing, pendingImport.skipped)}
+              {hasExistingData(existing) ? 'This replaces everything on this device with the backup. You can undo it from Settings afterwards.' : 'Import this backup?'}
             </p>
             <div className="flex gap-2.5">
               <button
