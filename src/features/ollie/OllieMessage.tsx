@@ -104,7 +104,7 @@ export default function OllieMessage({ situation, content, tone, now, critical, 
             </button>
           )}
           {showCalendar && (
-            <button type="button" onClick={() => navigate('/calendar')} className={linkButton}>
+            <button type="button" onClick={() => navigate('/planner?view=calendar')} className={linkButton}>
               <CalendarDays className="w-3.5 h-3.5" /> Schedule
             </button>
           )}

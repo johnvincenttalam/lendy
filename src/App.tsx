@@ -10,7 +10,7 @@ import DeadlinesProvider from './app/DeadlinesProvider'
 const LoanDetailsPage = lazy(() => import('./pages/LoanDetailsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const PlannerPage = lazy(() => import('./pages/PlannerPage'))
 const BillsPage = lazy(() => import('./pages/BillsPage'))
 const BillDetailsPage = lazy(() => import('./pages/BillDetailsPage'))
 const SavingsPage = lazy(() => import('./pages/SavingsPage'))
@@ -18,7 +18,7 @@ const SavingsGoalDetailsPage = lazy(() => import('./pages/SavingsGoalDetailsPage
 const MorePage = lazy(() => import('./pages/MorePage'))
 const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
 const PrivateFolderPage = lazy(() => import('./pages/PrivateFolderPage'))
-const WhatIfPage = lazy(() => import('./pages/PlannerPage'))
+const WhatIfPage = lazy(() => import('./pages/WhatIfPage'))
 
 export default function App() {
   useNotificationCheck()
@@ -30,7 +30,7 @@ export default function App() {
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/planner" element={<CalendarPage />} />
+              <Route path="/planner" element={<PlannerPage />} />
               <Route path="/ollie" element={<Navigate to="/" replace />} />
               <Route path="/more" element={<MorePage />} />
               <Route path="/what-if" element={<WhatIfPage />} />

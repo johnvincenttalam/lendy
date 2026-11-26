@@ -1,13 +1,14 @@
+import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
-import { useLoanStore } from '../features/loans/loanStore'
-import { paymentSchedule, isTracked } from '../features/loans/loanUtils'
-import { DEFAULT_COLOR } from '../features/loans/loanTypes'
-import PageHeader from '../components/PageHeader'
-import EmptyState from '../components/EmptyState'
-import CurrencyAmount from '../components/CurrencyAmount'
-import type { Loan } from '../features/loans/loanTypes'
+import { useLoanStore } from '../loans/loanStore'
+import { paymentSchedule, isTracked } from '../loans/loanUtils'
+import { DEFAULT_COLOR } from '../loans/loanTypes'
+import PageHeader from '../../components/PageHeader'
+import EmptyState from '../../components/EmptyState'
+import CurrencyAmount from '../../components/CurrencyAmount'
+import type { Loan } from '../loans/loanTypes'
 
 type CalendarPayment = {
   loan: Loan
@@ -62,7 +63,8 @@ function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 1).getDay()
 }
 
-export default function CalendarPage() {
+/** The month calendar of every loan payment. `tabs` sits under the Planner title. */
+export default function CalendarView({ tabs }: { tabs?: ReactNode }) {
   const navigate = useNavigate()
   const { loans } = useLoanStore()
   const activeLoans = loans.filter(isTracked)
@@ -200,7 +202,8 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-page transition-colors duration-300">
-      <PageHeader title="Calendar" subtitle="Every payment, month by month">
+      <PageHeader title="Planner" subtitle="Every loan payment, month by month">
+        {tabs}
         {/* Month navigator */}
         <div className="flex items-center justify-between rounded-2xl bg-card border border-themed px-2 py-2.5">
           <button
@@ -246,7 +249,7 @@ export default function CalendarPage() {
         </div>
       </PageHeader>
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-28">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 lg:pb-10">
         {/* Calendar grid */}
         <div className="bg-card rounded-2xl border border-themed p-3 transition-colors">
           {/* Weekday headers */}
