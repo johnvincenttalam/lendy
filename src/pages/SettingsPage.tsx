@@ -16,15 +16,15 @@ import { showToast } from '../components/toastEvents'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 import CurrencyAmount from '../components/CurrencyAmount'
 import { useUnseenReleaseCount } from '../features/whatsNew/seenVersionStore'
-import { exportAllData, applyRestore, checkBackup, undoLastRestore } from '../utils/backup'
+import { exportAllData, checkBackup, undoLastRestore } from '../utils/backup'
+import type { CheckedBackup } from '../utils/backup'
+import RestorePreview from '../features/backup/RestorePreview'
 import { useLastRestoreStore } from '../features/backup/lastRestoreStore'
 import { useLastBackupStore } from '../features/backup/lastBackupStore'
 import { describeLastBackup, isBackupDue } from '../features/backup/backupStatus'
-import type { RestoreCounts, RestoreData } from '../features/backup/restore'
 import StorageCard from '../features/storage/StorageCard'
 import { downloadFile, dateSuffix } from '../utils/download'
 
-type PendingImport = { data: RestoreData; counts: RestoreCounts; skipped: number }
 
 export default function SettingsPage() {
   const { loans, exportCSV } = useLoanStore()
@@ -39,12 +39,12 @@ export default function SettingsPage() {
   const backupDue = hasData && isBackupDue(lastBackupAt, new Date())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showIncome, setShowIncome] = useState(false)
-  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+  const [pendingImport, setPendingImport] = useState<CheckedBackup | null>(null)
   // Set while the last restore can still be undone.
   const restoredAt = useLastRestoreStore((s) => s.restoredAt)
   const [confirmUndo, setConfirmUndo] = useState(false)
 
-  useBodyScrollLock(pendingImport !== null || confirmUndo)
+  useBodyScrollLock(confirmUndo)
 
   const totalMonthly = monthlyLoanPayments(loans)
 
@@ -95,16 +95,10 @@ export default function SettingsPage() {
           : 'Invalid backup file')
         return
       }
-      setPendingImport({ data: check.data, counts: check.counts, skipped: check.skipped })
+      setPendingImport(check)
     }
     reader.readAsText(file)
     e.target.value = ''
-  }
-
-  function confirmImport() {
-    if (!pendingImport) return
-    void applyRestore(pendingImport.data, 'replace')
-    setPendingImport(null)
   }
 
   function handleUndoRestore() {
@@ -246,33 +240,7 @@ export default function SettingsPage() {
         className="hidden"
       />
 
-      {pendingImport && (
-        <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
-          <div className="bg-card rounded-2xl p-6 max-w-[320px] w-full border border-themed transition-colors animate-scale-in">
-            <h3 className="font-bold text-primary text-[18px] tracking-tight mb-2">Restore backup?</h3>
-            <p className="text-[13px] text-secondary mb-6">
-              {hasExistingData(existing) ? 'This replaces everything on this device with the backup. You can undo it from Settings afterwards.' : 'Import this backup?'}
-            </p>
-            <div className="flex gap-2.5">
-              <button
-                onClick={() => setPendingImport(null)}
-                className="flex-1 py-3 rounded-xl bg-subtle text-secondary font-semibold text-[14px] hover:opacity-80 transition-opacity"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmImport}
-                className="flex-1 py-3 rounded-xl font-bold text-[14px] text-white hover:opacity-90 transition-opacity"
-                style={hasExistingData(existing)
-                  ? { backgroundColor: '#EF4444', color: '#FFFFFF' }
-                  : { backgroundColor: 'var(--color-brand)', color: 'var(--color-on-brand)' }}
-              >
-                {hasExistingData(existing) ? 'Replace' : 'Restore'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {pendingImport && <RestorePreview checked={pendingImport} onClose={() => setPendingImport(null)} />}
 
       {confirmUndo && restoredAt && (
         <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-5 animate-fade-in">
