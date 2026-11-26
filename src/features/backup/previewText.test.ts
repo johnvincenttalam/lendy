@@ -77,3 +77,19 @@ describe('preview wording', () => {
     expect(setAsideLine(1)).toBe('1 record Ollie set aside is in this file; it isn\'t imported.')
   })
 })
+
+describe('final review fixes: replace shows what this phone loses', () => {
+  it('lists records that differ and the income, as replace would leave them', async () => {
+    const { planMerge } = await import('./planMerge')
+    const { previewLines } = await import('./previewText')
+    const base = { name: 'Laptop', color: '#000', totalAmount: 6000, monthlyPayment: 1000, interestRate: 0, durationMonths: 6, startDate: '2026-01-15', monthsPaid: 3, totalPaid: 3000, totalInterestPaid: 0, createdAt: '2026-01-01T00:00:00.000Z' }
+    const pay = (id: string, month: number) => ({ id, loanId: 'L1', amount: 1000, principal: 1000, interest: 0, paidAt: '2026-02-15T00:00:00.000Z', dueDate: `2026-0${month + 1}-15`, month })
+    const device = { loans: [{ id: 'L1', ...base, monthsPaid: 5 }], payments: [1, 2, 3, 4, 5].map((m) => pay(`P${m}`, m)), monthlyIncome: 30000, bills: [], billPayments: [], savingsGoals: [], savingsTransactions: [] }
+    const file = { loans: [{ id: 'L1', ...base }], payments: [1, 2, 3].map((m) => pay(`P${m}`, m)), monthlyIncome: 25000, bills: [], billPayments: [], savingsGoals: [], savingsTransactions: [], privateFolder: null }
+    const plan = planMerge({ snapshot: device, folder: null }, file, { useFileForDifferent: true, addPossibleDuplicates: false, rebuiltPayments: false })
+    const lines = previewLines(plan, 'replace', false)
+    expect(lines.differentHeading).toBe('Different, using the file\'s version:')
+    expect(lines.different).toEqual(['"Laptop" loan: this phone has 2 payments the file doesn\'t; other details differ'])
+    expect(lines.income).toBe('Monthly income: using the file\'s ₱25,000.00')
+  })
+})

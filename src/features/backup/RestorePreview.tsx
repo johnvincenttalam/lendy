@@ -8,7 +8,7 @@ import type { CheckedBackup } from '../../utils/backup'
 import { hasExistingData } from '../../utils/backupDescribe'
 import { planMerge, planReplace } from './planMerge'
 import type { Area } from './planMerge'
-import { checksumWarning, differentLine, fileLine, heldBackLine, incomeLine, mergeToast, removesLine, setAsideLine, skippedLine } from './previewText'
+import { checksumWarning, fileLine, heldBackLine, mergeToast, previewLines, removesLine, setAsideLine, skippedLine } from './previewText'
 
 type Mode = 'merge' | 'replace'
 
@@ -55,6 +55,11 @@ export default function RestorePreview({ checked, onClose }: { checked: CheckedB
     return planMerge({ snapshot: device, folder }, checked.data, { useFileForDifferent: useFile, addPossibleDuplicates: addDoubles, rebuiltPayments: checked.rebuiltPayments })
   }, [device, checked, useFile, addDoubles, folderName, folderPin, folderRecovery])
   const removes = useMemo(() => planReplace(device, checked.data).removes, [device, checked])
+  // What replace does to records in both places: the file's version, every time.
+  const replaceView = useMemo(
+    () => planMerge({ snapshot: device, folder: null }, checked.data, { useFileForDifferent: true, addPossibleDuplicates: true, rebuiltPayments: checked.rebuiltPayments }),
+    [device, checked],
+  )
 
   const effectiveMode: Mode = hasData ? mode : 'replace'
   const merging = effectiveMode === 'merge'
@@ -62,7 +67,8 @@ export default function RestorePreview({ checked, onClose }: { checked: CheckedB
   const confirmLabel = !hasData ? 'Restore' : merging ? 'Merge' : 'Replace'
   const removeText = removesLine(removes)
   const checksum = checksumWarning(checked.checksum)
-  const income = merging ? incomeLine(plan.income) : null
+  const lines = merging ? previewLines(plan, 'merge', useFile) : previewLines(replaceView, 'replace', true)
+  const income = hasData ? lines.income : null
   const rows = AREA_ROWS.filter(({ area }) => {
     const c = plan.counts[area]
     return c.added + c.alreadyHere + c.different + c.heldBack > 0
@@ -134,13 +140,13 @@ export default function RestorePreview({ checked, onClose }: { checked: CheckedB
 
       {income && <p className="text-[13px] text-secondary">{income}</p>}
 
-      {merging && plan.different.length > 0 && (
+      {hasData && lines.differentHeading && (
         <div className="space-y-1.5">
-          <p className="text-[12px] font-semibold text-muted">{useFile ? 'Different, using the file\'s version:' : 'Different, keeping this phone\'s version:'}</p>
+          <p className="text-[12px] font-semibold text-muted">{lines.differentHeading}</p>
           <ul className="text-[12px] text-secondary space-y-1 list-disc pl-4">
-            {plan.different.map((d) => <li key={`${d.area}-${d.id}`}>{differentLine(d, useFile)}</li>)}
+            {lines.different.map((text, i) => <li key={i}>{text}</li>)}
           </ul>
-          <Switch checked={useFile} onChange={setUseFile}>Use the file's version for records that differ</Switch>
+          {merging && <Switch checked={useFile} onChange={setUseFile}>Use the file's version for records that differ</Switch>}
         </div>
       )}
 

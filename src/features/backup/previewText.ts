@@ -53,6 +53,16 @@ export function differentLine(item: DifferentItem, useFile: boolean): string {
   return `${label(item.area, item.name)}: ${parts.join('; ')}`
 }
 
+/** The "different" list and income line for the chosen mode. Replace always takes the file's version. */
+export function previewLines(plan: MergePlan, mode: 'merge' | 'replace', useFile: boolean): { differentHeading: string | null; different: string[]; income: string | null } {
+  const fileWins = mode === 'replace' || useFile
+  return {
+    differentHeading: plan.different.length === 0 ? null : fileWins ? 'Different, using the file\'s version:' : 'Different, keeping this phone\'s version:',
+    different: plan.different.map((d) => differentLine(d, fileWins)),
+    income: incomeLine(plan.income),
+  }
+}
+
 export function heldBackLine(item: HeldBack): string {
   const why = item.area === 'loans' ? 'same name, amount and start date' : item.area === 'bills' ? 'same name, amount and category' : 'same name and target'
   return `${label(item.area, item.name)}: ${why} as one you have`

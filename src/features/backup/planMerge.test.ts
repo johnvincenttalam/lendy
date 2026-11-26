@@ -105,7 +105,9 @@ describe('planMerge', () => {
       savingsTransactions: [tx('T1', 'G1'), tx('T2', 'G1')],
     })
     const plan = planMerge({ snapshot: d, ...noFolder }, f, opts())
-    expect(plan.heldBack.map((h) => h.id)).toEqual(['B9', 'G9'])
+    // G1 is in the file too, so the file itself shows G9 is a separate goal.
+    expect(plan.heldBack.map((h) => h.id)).toEqual(['B9'])
+    expect(ids(plan.next.savingsGoals)).toEqual(['G1', 'G9'])
     expect(plan.different).toEqual([{ area: 'savings', id: 'G1', name: 'Trip', fileOnlyDates: ['2026-03-01T00:00:00.000Z'], deviceOnlyCount: 0, detailsDiffer: false }])
   })
 
@@ -163,5 +165,37 @@ describe('planReplace', () => {
     const d = device({ loans: [loan('L1'), loan('L2')], bills: [bill('B1')], savingsGoals: [goal('G1')] })
     const f = file({ loans: [loan('L1')], bills: [bill('B1')] })
     expect(planReplace(d, f).removes).toEqual({ loans: 1, bills: 0, savings: 1 })
+  })
+})
+
+describe('final review fixes', () => {
+  it("taking the file's version never moves a loan out of the private folder", () => {
+    const d = device({ loans: [loan('L1', { private: true })] })
+    const f = file({ loans: [loan('L1', { notes: 'from the file' })] })
+    const plan = planMerge({ snapshot: d, folder: { name: 'P', pinHash: 'h', recoveryHash: null } }, f, opts({ useFileForDifferent: true }))
+    expect(plan.next.loans[0].notes).toBe('from the file')
+    expect(plan.next.loans[0].private).toBe(true)
+  })
+
+  it('a held-back line never names a private loan on this phone', () => {
+    const d = device({ loans: [loan('L1', { name: 'Secret', private: true })] })
+    const f = file({ loans: [loan('L2', { name: 'Secret' })] })
+    const plan = planMerge({ snapshot: d, folder: { name: 'P', pinHash: 'h', recoveryHash: null } }, f, opts())
+    expect(plan.heldBack).toEqual([{ area: 'loans', id: 'L2', name: null }])
+  })
+
+  it('a second look-alike record the file itself shows is separate is added, not held back', () => {
+    const d = device({ bills: [bill('B1', { name: 'Internet' })] })
+    const f = file({ bills: [bill('B1', { name: 'Internet' }), bill('B2', { name: 'Internet' })] })
+    const plan = planMerge({ snapshot: d, ...noFolder }, f, opts())
+    expect(plan.heldBack).toEqual([])
+    expect(ids(plan.next.bills)).toEqual(['B1', 'B2'])
+  })
+
+  it("takes the file's private folder only when private loans come with it", () => {
+    const f = file({ loans: [loan('F1')], privateFolder: { name: 'File', pinHash: 'abc', recoveryHash: null } })
+    const plan = planMerge({ snapshot: device({ loans: [loan('F1')] }), folder: null }, f, opts())
+    expect(plan.next.privateFolder).toBeNull()
+    expect(plan.changes).toBe(false)
   })
 })

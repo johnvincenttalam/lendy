@@ -94,7 +94,10 @@ export function planMerge(
     const deviceKids = groupChildren(snap[def.children] ?? [], def.parentKey)
     const fileKids = groupChildren(incoming[def.children] ?? [], def.parentKey)
     const deviceById = new Map(deviceParents.map((p) => [p.id, p]))
-    const deviceKeys = new Map(deviceParents.map((p) => [def.matchKey(p), p.id]))
+    // Only this phone's records the file doesn't already account for can be
+    // doubles of a new one: the file itself shows its own look-alikes are separate.
+    const fileIds = new Set(fileParents.map((p) => p.id))
+    const deviceKeys = new Map(deviceParents.filter((p) => !fileIds.has(p.id)).map((p) => [def.matchKey(p), p]))
     // Rebuilt payment history gets fresh ids on every read, so those compare by content that matters.
     const childKey = def.area === 'loans' && opts.rebuiltPayments
       ? (k: Rec) => `${String(k.loanId)}|${String(k.month)}|${String(k.amount)}`
@@ -107,10 +110,12 @@ export function planMerge(
       const dp = deviceById.get(fp.id)
       if (!dp) {
         const match = deviceKeys.get(def.matchKey(fp))
-        if (match !== undefined && match !== fp.id && !opts.addPossibleDuplicates) {
+        if (match !== undefined && !opts.addPossibleDuplicates) {
+          // Named only when neither side is private: the line would reveal the hidden one.
+          const hidden = isPrivate(fp) || isPrivate(match)
           c.heldBack++
-          if (isPrivate(fp)) c.private++
-          heldBack.push({ area: def.area, id: fp.id, name: shownName(fp) })
+          if (hidden) c.private++
+          heldBack.push({ area: def.area, id: fp.id, name: hidden ? null : shownName(fp) })
           continue
         }
         c.added++
@@ -141,8 +146,11 @@ export function planMerge(
         detailsDiffer,
       })
       if (opts.useFileForDifferent) {
-        replaced.set(fp.id, fp)
-        if (isPrivate(fp)) privateArrives = true
+        // The file's version comes in, but this phone decides what's in the private folder.
+        const taken: Rec = { ...fp }
+        if (dp.private === undefined) delete taken.private
+        else taken.private = dp.private
+        replaced.set(fp.id, taken)
       }
     }
 
@@ -160,7 +168,8 @@ export function planMerge(
     && (opts.useFileForDifferent || deviceIncome === 0)
   if (takeIncome) changed = true
 
-  const takeFolder = device.folder === null && file.privateFolder !== null
+  // The file's folder (and PIN) comes only with private loans that need it.
+  const takeFolder = device.folder === null && file.privateFolder !== null && privateArrives
   if (takeFolder) changed = true
   const folderWarning = device.folder !== null && !device.folder.pinHash && !!file.privateFolder?.pinHash && privateArrives
 
